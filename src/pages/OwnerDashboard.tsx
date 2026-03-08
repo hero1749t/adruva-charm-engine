@@ -106,8 +106,8 @@ const OwnerDashboard = () => {
 
   return (
     <OwnerLayout>
-      {/* Stats overview */}
-      <DashboardStats />
+      {/* Stats overview - only for owner/manager */}
+      {(isOwner || isManager) && <DashboardStats />}
 
       {/* Orders section */}
       <div className="mb-4">
