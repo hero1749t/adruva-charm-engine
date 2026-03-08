@@ -5,12 +5,13 @@ import OwnerLayout from "@/components/OwnerLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { IndianRupee, ShoppingBag, TrendingUp, Utensils, Download } from "lucide-react";
+import { IndianRupee, ShoppingBag, TrendingUp, Utensils, Download, Star, MessageSquare } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"];
 type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
 type OrderWithItems = Order & { order_items: OrderItem[] };
+type Review = Database["public"]["Tables"]["customer_reviews"]["Row"];
 
 const COLORS = [
   "hsl(var(--primary))",
