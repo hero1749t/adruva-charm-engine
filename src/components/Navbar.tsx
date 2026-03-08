@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -13,10 +13,24 @@ const navLinks = [
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const scrollTo = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const id = href.replace("#", "");
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    setMobileOpen(false);
+  }, []);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
       <div className="container-main flex items-center justify-between h-16 px-4 md:px-8">
-        <a href="#" className="font-display text-2xl font-bold tracking-tight">
+        <a
+          href="#"
+          onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          className="font-display text-2xl font-bold tracking-tight"
+        >
           <span className="text-primary">ADRU</span>
           <span className="text-secondary">vaa</span>
         </a>
@@ -27,12 +41,17 @@ const Navbar = () => {
             <a
               key={link.label}
               href={link.href}
+              onClick={(e) => scrollTo(e, link.href)}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {link.label}
             </a>
           ))}
-          <Button variant="hero" size="lg">
+          <Button
+            variant="hero"
+            size="lg"
+            onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
+          >
             Book a Free Demo
           </Button>
         </div>
@@ -57,13 +76,17 @@ const Navbar = () => {
             <a
               key={link.label}
               href={link.href}
+              onClick={(e) => scrollTo(e, link.href)}
               className="block py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
             >
               {link.label}
             </a>
           ))}
-          <Button variant="hero" className="w-full mt-2">
+          <Button
+            variant="hero"
+            className="w-full mt-2"
+            onClick={() => { setMobileOpen(false); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}
+          >
             Book a Free Demo
           </Button>
         </motion.div>
