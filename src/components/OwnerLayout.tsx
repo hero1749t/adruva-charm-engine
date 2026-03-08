@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
@@ -48,6 +48,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
     { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR" },
+    { to: "/owner/leads", icon: Users, label: "Leads" },
     { to: "/owner/settings", icon: Settings, label: "Settings" },
     { to: "/install", icon: Download, label: "Install App" },
   ];
