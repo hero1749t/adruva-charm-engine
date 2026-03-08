@@ -97,6 +97,33 @@ const OwnerAnalytics = () => {
     return { totalRevenue, totalOrders, avgOrder, topDishes, dailyRevenue, hourlyOrders };
   }, [orders]);
 
+  const downloadCSV = () => {
+    if (orders.length === 0) return;
+    const rows = [["Order ID", "Date", "Time", "Table", "Items", "Total (₹)", "Status", "Phone"]];
+    orders.forEach((o) => {
+      const d = new Date(o.created_at);
+      const items = o.order_items.map((i) => `${i.quantity}x ${i.item_name}`).join("; ");
+      rows.push([
+        o.id.slice(0, 8),
+        d.toLocaleDateString("en-IN"),
+        d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+        String(o.table_number || ""),
+        `"${items}"`,
+        String(o.total_amount),
+        o.status,
+        o.customer_phone || "",
+      ]);
+    });
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sales-report-${period}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <OwnerLayout>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
