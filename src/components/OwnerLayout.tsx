@@ -108,6 +108,26 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
               ) : null}
             </NavLink>
           ))}
+
+          {/* Support contact */}
+          <div className="mt-auto pt-4 border-t border-border space-y-2">
+            <a
+              href="https://wa.me/918383877088"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <MessageCircle className="w-4 h-4 text-green-500" />
+              WhatsApp Support
+            </a>
+            <a
+              href="tel:+918383877088"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <Phone className="w-4 h-4 text-primary" />
+              +91 83838 77088
+            </a>
+          </div>
         </aside>
 
         {/* Main content */}
