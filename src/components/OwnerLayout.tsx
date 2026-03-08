@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat } from "lucide-react";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
@@ -14,7 +14,9 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
 
   const links = [
     { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders" },
+    { to: "/owner/analytics", icon: BarChart3, label: "Analytics" },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
+    { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR" },
     { to: "/owner/settings", icon: Settings, label: "Settings" },
   ];
