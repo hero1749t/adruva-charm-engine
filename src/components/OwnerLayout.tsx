@@ -48,6 +48,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
     { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR" },
+    { to: "/owner/leads", icon: Users, label: "Leads" },
     { to: "/owner/settings", icon: Settings, label: "Settings" },
     { to: "/install", icon: Download, label: "Install App" },
   ];
