@@ -54,6 +54,7 @@ const OwnerDashboard = () => {
     } else {
       setOrders((data as OrderWithItems[]) || []);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
