@@ -15,10 +15,12 @@ import OwnerTables from "./pages/OwnerTables";
 import OwnerSettings from "./pages/OwnerSettings";
 import CustomerMenu from "./pages/CustomerMenu";
 import KitchenDisplay from "./pages/KitchenDisplay";
+import CashierDashboard from "./pages/CashierDashboard";
 import OwnerAnalytics from "./pages/OwnerAnalytics";
 import OwnerLeads from "./pages/OwnerLeads";
 import OwnerStaff from "./pages/OwnerStaff";
 import Install from "./pages/Install";
+import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
 
 const queryClient = new QueryClient();
 
@@ -32,15 +34,17 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/owner/login" element={<OwnerLogin />} />
+            <Route path="/owner" element={<ProtectedRoute><RoleDashboardRedirect /></ProtectedRoute>} />
             <Route path="/owner/dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
-            <Route path="/owner/menu" element={<ProtectedRoute><OwnerMenu /></ProtectedRoute>} />
+            <Route path="/owner/cashier" element={<ProtectedRoute><CashierDashboard /></ProtectedRoute>} />
+            <Route path="/owner/menu" element={<ProtectedRoute><RoleGuard check="canManageMenu"><OwnerMenu /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/analytics" element={<ProtectedRoute><RoleGuard check="canViewAnalytics"><OwnerAnalytics /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/tables" element={<ProtectedRoute><OwnerTables /></ProtectedRoute>} />
             <Route path="/owner/settings" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerSettings /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/leads" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerLeads /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/staff" element={<ProtectedRoute><RoleGuard check="canManageStaff"><OwnerStaff /></RoleGuard></ProtectedRoute>} />
-            <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
+            <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import OwnerLayout from "@/components/OwnerLayout";
 import DashboardStats from "@/components/DashboardStats";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ const statusTabs = [
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
+  const { isOwner, isManager, canViewAnalytics } = useStaffRole();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [filter, setFilter] = useState<string>("active");
   const [loading, setLoading] = useState(true);
@@ -104,8 +106,8 @@ const OwnerDashboard = () => {
 
   return (
     <OwnerLayout>
-      {/* Stats overview */}
-      <DashboardStats />
+      {/* Stats overview - only for owner/manager */}
+      {(isOwner || isManager) && <DashboardStats />}
 
       {/* Orders section */}
       <div className="mb-4">
