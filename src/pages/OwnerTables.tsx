@@ -99,7 +99,7 @@ const OwnerTables = () => {
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase
       .from("restaurant_tables")
-      .update({ status })
+      .update({ status: status as Database["public"]["Enums"]["table_status"] })
       .eq("id", id);
     if (error) toast.error("Failed to update status");
     else fetchTables();
