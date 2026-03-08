@@ -7,6 +7,28 @@ import { toast } from "@/hooks/use-toast";
 
 const CTASection = () => {
   const [formData, setFormData] = useState({ name: "", phone: "", restaurant: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.restaurant.trim()) {
+      toast({ title: "Sabhi fields bharo", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await supabase.from("demo_requests").insert({
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      restaurant_name: formData.restaurant.trim(),
+    });
+    setIsSubmitting(false);
+    if (error) {
+      toast({ title: "Kuch gadbad ho gayi", description: "Please dobara try karo", variant: "destructive" });
+    } else {
+      toast({ title: "Demo request submit ho gayi! 🎉", description: "Humari team jaldi aapko call karegi" });
+      setFormData({ name: "", phone: "", restaurant: "" });
+    }
+  };
 
   return (
     <section id="pricing" className="section-padding bg-cream">
