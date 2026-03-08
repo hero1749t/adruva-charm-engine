@@ -26,6 +26,7 @@ const CustomerMenu = () => {
   const [upiId, setUpiId] = useState<string | null>(null);
   const [ordering, setOrdering] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
+  const [orderTotal, setOrderTotal] = useState(0);
   const [phone, setPhone] = useState("");
 
   useEffect(() => {
