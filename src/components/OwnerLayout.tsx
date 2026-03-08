@@ -45,11 +45,12 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   const allLinks = [
-    { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount },
+    { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount, visible: isOwner || isManager },
+    { to: "/owner/cashier", icon: Receipt, label: "Billing", visible: isCashier || isOwner || isManager },
     { to: "/owner/analytics", icon: BarChart3, label: "Analytics", visible: canViewAnalytics },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu", visible: canManageMenu },
-    { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
-    { to: "/owner/tables", icon: QrCode, label: "Tables & QR" },
+    { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen", visible: isOwner || isManager || isKitchen },
+    { to: "/owner/tables", icon: QrCode, label: "Tables & QR", visible: isOwner || isManager },
     { to: "/owner/leads", icon: Users, label: "Leads", visible: isOwner },
     { to: "/owner/staff", icon: Shield, label: "Staff", visible: canManageStaff },
     { to: "/owner/settings", icon: Settings, label: "Settings", visible: isOwner },
