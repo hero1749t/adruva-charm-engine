@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
+import DashboardStats from "@/components/DashboardStats";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +11,6 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"];
 type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
-
 type OrderWithItems = Order & { order_items: OrderItem[] };
 
 const statusColors: Record<string, string> = {
@@ -29,6 +29,15 @@ const statusFlow: Record<string, string> = {
   ready: "served",
 };
 
+const statusTabs = [
+  { key: "active", label: "Active Orders" },
+  { key: "new", label: "New" },
+  { key: "accepted", label: "Accepted" },
+  { key: "preparing", label: "Preparing" },
+  { key: "ready", label: "Ready" },
+  { key: "all", label: "All Orders" },
+];
+
 const OwnerDashboard = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -37,7 +46,7 @@ const OwnerDashboard = () => {
 
   const fetchOrders = async () => {
     if (!user) return;
-    
+
     let query = supabase
       .from("orders")
       .select("*, order_items(*)")
@@ -46,6 +55,8 @@ const OwnerDashboard = () => {
 
     if (filter === "active") {
       query = query.in("status", ["new", "accepted", "preparing", "ready"]);
+    } else if (filter !== "all") {
+      query = query.eq("status", filter as Order["status"]);
     }
 
     const { data, error } = await query;
@@ -58,23 +69,16 @@ const OwnerDashboard = () => {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchOrders();
   }, [user, filter]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel("orders-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` },
-        () => {
-          fetchOrders();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` }, () => fetchOrders())
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
@@ -83,7 +87,6 @@ const OwnerDashboard = () => {
       .from("orders")
       .update({ status: newStatus as Order["status"] })
       .eq("id", orderId);
-
     if (error) {
       toast.error("Failed to update status");
     } else {
@@ -101,18 +104,22 @@ const OwnerDashboard = () => {
 
   return (
     <OwnerLayout>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-foreground">Live Orders</h1>
-        <div className="flex gap-2 mt-4">
-          {["active", "all"].map((f) => (
+      {/* Stats overview */}
+      <DashboardStats />
+
+      {/* Orders section */}
+      <div className="mb-4">
+        <h2 className="font-display text-xl font-bold text-foreground mb-3">Orders</h2>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {statusTabs.map((tab) => (
             <Button
-              key={f}
-              variant={filter === f ? "default" : "outline"}
+              key={tab.key}
+              variant={filter === tab.key ? "default" : "outline"}
               size="sm"
-              onClick={() => setFilter(f)}
-              className="capitalize"
+              onClick={() => setFilter(tab.key)}
+              className="whitespace-nowrap"
             >
-              {f === "active" ? "Active Orders" : "All Orders"}
+              {tab.label}
             </Button>
           ))}
         </div>
@@ -133,8 +140,8 @@ const OwnerDashboard = () => {
           ))}
         </div>
       ) : orders.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg">No orders yet</p>
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-lg">No orders found</p>
           <p className="text-sm mt-2">Orders will appear here in real-time when customers place them</p>
         </div>
       ) : (
@@ -144,9 +151,7 @@ const OwnerDashboard = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="font-display font-bold text-lg">Table {order.table_number}</span>
-                  <Badge className={statusColors[order.status] || ""}>
-                    {order.status}
-                  </Badge>
+                  <Badge className={statusColors[order.status] || ""}>{order.status}</Badge>
                 </div>
                 <span className="text-xs text-muted-foreground">{timeAgo(order.created_at)}</span>
               </div>
@@ -163,11 +168,7 @@ const OwnerDashboard = () => {
               <div className="flex items-center justify-between pt-3 border-t border-border">
                 <span className="font-display font-bold text-lg">₹{order.total_amount}</span>
                 {statusFlow[order.status] && (
-                  <Button
-                    size="sm"
-                    variant="hero"
-                    onClick={() => updateStatus(order.id, statusFlow[order.status])}
-                  >
+                  <Button size="sm" variant="hero" onClick={() => updateStatus(order.id, statusFlow[order.status])}>
                     Mark {statusFlow[order.status]}
                   </Button>
                 )}
