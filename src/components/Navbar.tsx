@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -12,6 +13,7 @@ const navLinks = [
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
 
   const scrollTo = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -47,6 +49,13 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/owner/login")}
+          >
+            Owner Login
+          </Button>
           <Button
             variant="hero"
             size="lg"
