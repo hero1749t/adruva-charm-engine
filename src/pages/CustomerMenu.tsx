@@ -49,10 +49,13 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!ownerId) return;
-    supabase.from("profiles").select("restaurant_name, upi_id, phone").eq("user_id", ownerId).single().then(({ data }) => {
+    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number").eq("user_id", ownerId).single().then(({ data }: any) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
+      if (data?.restaurant_logo_url) setRestaurantLogo(data.restaurant_logo_url);
+      if (data?.address) setRestaurantAddress(data.address);
+      if (data?.gst_number) setRestaurantGst(data.gst_number);
     });
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
