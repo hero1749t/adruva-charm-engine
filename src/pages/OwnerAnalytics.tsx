@@ -37,7 +37,7 @@ const ReviewCard = ({ review, onReplied }: { review: ReviewWithReply; onReplied:
     setSending(true);
     const { error } = await supabase
       .from("customer_reviews")
-      .update({ owner_reply: replyText.trim(), replied_at: new Date().toISOString() } as any)
+      .update({ owner_reply: replyText.trim(), replied_at: new Date().toISOString() })
       .eq("id", review.id);
     setSending(false);
     if (error) {
