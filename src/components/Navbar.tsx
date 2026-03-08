@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const navLinks = [
   { label: "Services", href: "#services" },
+  { label: "Demo", href: "#demo" },
   { label: "Pricing", href: "#pricing" },
   { label: "Why Adruva", href: "#why-choose" },
   { label: "Contact", href: "#lead-form" },
@@ -26,18 +27,18 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
       <div className="container-main flex items-center justify-between h-16 px-4 md:px-8">
         <a
           href="#"
           onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          className="font-display text-2xl font-bold tracking-tight"
+          className="font-display text-xl font-bold tracking-tight"
         >
           <span className="text-primary">Adruva</span>
           <span className="text-foreground"> Solution</span>
         </a>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-6">
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -51,13 +52,15 @@ const Navbar = () => {
           <Button
             variant="outline"
             size="sm"
+            className="rounded-lg"
             onClick={() => navigate("/owner/login")}
           >
             Owner Login
           </Button>
           <Button
             variant="hero"
-            size="lg"
+            size="default"
+            className="rounded-lg"
             onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}
           >
             Free Consultation
@@ -65,7 +68,7 @@ const Navbar = () => {
         </div>
 
         <button
-          className="md:hidden text-foreground"
+          className="lg:hidden text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
         >
           {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -76,7 +79,7 @@ const Navbar = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden bg-background border-b border-border px-4 pb-4"
+          className="lg:hidden bg-background border-b border-border px-4 pb-4"
         >
           {navLinks.map((link) => (
             <a
@@ -88,13 +91,22 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
-          <Button
-            variant="hero"
-            className="w-full mt-2"
-            onClick={() => { setMobileOpen(false); document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" }); }}
-          >
-            Free Consultation
-          </Button>
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-lg"
+              onClick={() => { setMobileOpen(false); navigate("/owner/login"); }}
+            >
+              Owner Login
+            </Button>
+            <Button
+              variant="hero"
+              className="flex-1 rounded-lg"
+              onClick={() => { setMobileOpen(false); document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" }); }}
+            >
+              Free Consultation
+            </Button>
+          </div>
         </motion.div>
       )}
     </nav>

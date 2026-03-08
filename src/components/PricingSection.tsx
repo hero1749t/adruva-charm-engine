@@ -1,46 +1,43 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Star } from "lucide-react";
+import { Check, Star, ArrowRight } from "lucide-react";
 
 const plans = [
   {
     name: "Starter",
     price: "₹5,000",
-    description: "Perfect for small restaurants getting started online",
+    description: "Perfect for restaurants getting started online",
     features: [
       "Restaurant Website",
+      "Digital Menu",
       "Mobile Friendly Design",
-      "Menu Page with Photos",
       "Contact + Google Map",
-      "WhatsApp Button",
     ],
     popular: false,
   },
   {
     name: "Growth",
     price: "₹10,000",
-    description: "For restaurants ready to take online orders",
+    description: "For restaurants ready to take orders online",
     features: [
       "Everything in Starter",
-      "Online Ordering System",
-      "WhatsApp Integration",
+      "WhatsApp Order Button",
+      "Instagram Integration",
       "Basic SEO Setup",
       "Google Maps Listing",
-      "Social Media Setup",
     ],
     popular: true,
   },
   {
-    name: "Pro",
+    name: "Premium",
     price: "₹15,000",
-    description: "Complete digital solution for serious restaurant owners",
+    description: "Complete digital solution for serious growth",
     features: [
       "Everything in Growth",
-      "AI Chatbot for Reservations",
-      "Marketing Automation",
-      "Google Ads Setup",
-      "Instagram Ads Campaign",
-      "Monthly Analytics Report",
+      "Advanced SEO",
+      "Automation Setup",
+      "Google Ads Campaign",
+      "Social Media Marketing",
       "Priority Support",
     ],
     popular: false,
@@ -49,7 +46,7 @@ const plans = [
 
 const PricingSection = () => {
   return (
-    <section id="pricing" className="section-padding bg-cream">
+    <section id="pricing" className="section-padding bg-background">
       <div className="container-main">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -63,14 +60,14 @@ const PricingSection = () => {
           </span>
           <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
             Affordable Plans for{" "}
-            <span className="text-primary">Every Restaurant</span>
+            <span className="gradient-text">Every Restaurant</span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             No hidden fees. No monthly charges. One-time investment for your restaurant's digital future.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
@@ -80,21 +77,21 @@ const PricingSection = () => {
               transition={{ duration: 0.5, delay: i * 0.12 }}
               className={`relative rounded-2xl p-8 ${
                 plan.popular
-                  ? "bg-secondary text-secondary-foreground shadow-card-hover ring-2 ring-primary scale-[1.02]"
-                  : "bg-card shadow-card"
+                  ? "bg-secondary text-secondary-foreground shadow-card-hover ring-2 ring-primary md:scale-105"
+                  : "bg-card shadow-card border border-border"
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center gap-1">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1.5 shadow-button">
                   <Star className="w-3.5 h-3.5 fill-current" /> Most Popular
                 </div>
               )}
-              <h3 className="font-display text-xl font-bold">{plan.name}</h3>
+              <h3 className="font-display text-lg font-bold">{plan.name}</h3>
               <div className="mt-4 mb-2">
                 <span className="font-display text-4xl font-bold text-primary">{plan.price}</span>
-                <span className={`text-sm ${plan.popular ? "text-secondary-foreground/60" : "text-muted-foreground"}`}> one-time</span>
+                <span className={`text-sm ml-1 ${plan.popular ? "text-secondary-foreground/50" : "text-muted-foreground"}`}>one-time</span>
               </div>
-              <p className={`text-sm mb-6 ${plan.popular ? "text-secondary-foreground/70" : "text-muted-foreground"}`}>
+              <p className={`text-sm mb-6 ${plan.popular ? "text-secondary-foreground/60" : "text-muted-foreground"}`}>
                 {plan.description}
               </p>
               <ul className="space-y-3 mb-8">
@@ -107,10 +104,11 @@ const PricingSection = () => {
               </ul>
               <Button
                 variant={plan.popular ? "hero" : "outline"}
-                className="w-full h-12"
+                className="w-full h-12 rounded-xl gap-2"
                 onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}
               >
                 Get Started
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </motion.div>
           ))}
