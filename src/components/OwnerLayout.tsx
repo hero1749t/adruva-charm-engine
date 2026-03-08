@@ -105,7 +105,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-4 md:p-6 max-w-6xl">{children}</main>
+        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 max-w-6xl">{children}</main>
       </div>
 
       {/* Bottom nav - mobile */}
