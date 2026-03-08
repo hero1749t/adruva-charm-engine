@@ -90,7 +90,7 @@ const OwnerTables = () => {
     const newStatus = statusCycle[currentStatus] || "free";
     const { error } = await supabase
       .from("restaurant_tables")
-      .update({ status: newStatus })
+      .update({ status: newStatus as Database["public"]["Enums"]["table_status"] })
       .eq("id", id);
     if (error) toast.error("Failed to update status");
     else fetchTables();
