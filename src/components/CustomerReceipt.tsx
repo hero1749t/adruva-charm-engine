@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Receipt, Download } from "lucide-react";
+import { Receipt, Download, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ReceiptItem {
@@ -59,6 +59,27 @@ const CustomerReceipt = ({
     printWindow.document.close();
   };
 
+  const shareOnWhatsApp = () => {
+    const itemLines = items.map((item) => `• ${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(0)}`).join("\n");
+    const message = [
+      `🧾 *Receipt - ${restaurantName || "Restaurant"}*`,
+      `Order #${orderId.slice(0, 8)} | Table ${tableNumber}`,
+      `📅 ${createdAt}`,
+      ``,
+      `*Items:*`,
+      itemLines,
+      ``,
+      `Subtotal: ₹${subtotal.toFixed(0)}`,
+      `GST (5%): ₹${gstAmount.toFixed(0)}`,
+      `*Total: ₹${total.toFixed(0)}*`,
+      ``,
+      `Thank you! 🙏`,
+    ].join("\n");
+
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -66,16 +87,22 @@ const CustomerReceipt = ({
       transition={{ delay: 0.3 }}
       className="mt-4 bg-card border border-border rounded-2xl shadow-card overflow-hidden"
     >
-      <button
-        onClick={printReceipt}
-        className="w-full flex items-center justify-between px-5 py-3 bg-muted/50 hover:bg-muted transition-colors"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Receipt className="w-4 h-4" />
-          View Receipt
-        </span>
-        <Download className="w-4 h-4 text-muted-foreground" />
-      </button>
+      <div className="flex">
+        <button
+          onClick={printReceipt}
+          className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-muted/50 hover:bg-muted transition-colors border-r border-border"
+        >
+          <Receipt className="w-4 h-4 text-foreground" />
+          <span className="text-sm font-semibold text-foreground">Print</span>
+        </button>
+        <button
+          onClick={shareOnWhatsApp}
+          className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-green-500/10 hover:bg-green-500/20 transition-colors"
+        >
+          <MessageCircle className="w-4 h-4 text-green-600" />
+          <span className="text-sm font-semibold text-green-600">WhatsApp</span>
+        </button>
+      </div>
 
       <div ref={receiptRef} className="px-5 py-4 text-xs text-foreground font-mono">
         <div className="text-center mb-3">
