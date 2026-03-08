@@ -84,12 +84,13 @@ const CTASection = () => {
               <p className="text-muted-foreground mb-8">
                 Humari team aapko call karke demo degi
               </p>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <Input
                   placeholder="Aapka Naam"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="h-12"
+                  maxLength={100}
                 />
                 <Input
                   placeholder="Phone Number"
@@ -97,15 +98,17 @@ const CTASection = () => {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="h-12"
+                  maxLength={15}
                 />
                 <Input
                   placeholder="Restaurant ka Naam"
                   value={formData.restaurant}
                   onChange={(e) => setFormData({ ...formData, restaurant: e.target.value })}
                   className="h-12"
+                  maxLength={200}
                 />
-                <Button variant="hero" size="lg" className="w-full h-14 text-base">
-                  Free Demo Book Karo
+                <Button variant="hero" size="lg" className="w-full h-14 text-base" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Free Demo Book Karo"}
                 </Button>
               </form>
               <p className="text-center text-xs text-muted-foreground mt-4">
