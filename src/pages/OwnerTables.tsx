@@ -279,6 +279,38 @@ const OwnerTables = () => {
           })}
         </div>
       )}
+
+      {/* QR Code Modal */}
+      {qrTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setQrTable(null)}>
+          <div className="bg-card rounded-xl border border-border p-6 shadow-xl max-w-sm w-full mx-4 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-display font-bold text-lg text-foreground">Table {qrTable.table_number} QR</h3>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQrTable(null)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="bg-white p-4 rounded-lg inline-block mb-4">
+              <QRCodeCanvas
+                id={`qr-canvas-${qrTable.table_number}`}
+                value={getMenuUrl(qrTable.table_number)}
+                size={200}
+                level="H"
+                includeMargin
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mb-4 break-all">{getMenuUrl(qrTable.table_number)}</p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="hero" onClick={() => downloadQR(qrTable.table_number)}>
+                <Download className="w-4 h-4 mr-1" /> Download PNG
+              </Button>
+              <Button variant="outline" onClick={() => copyLink(qrTable.table_number)}>
+                <Copy className="w-4 h-4 mr-1" /> Copy Link
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </OwnerLayout>
   );
 };
