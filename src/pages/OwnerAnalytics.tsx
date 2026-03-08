@@ -129,6 +129,9 @@ const OwnerAnalytics = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="font-display text-2xl font-bold text-foreground">Analytics</h1>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={downloadCSV} disabled={orders.length === 0}>
+            <Download className="w-4 h-4 mr-1" /> Export CSV
+          </Button>
           {([["today", "Today"], ["7days", "7 Days"], ["30days", "30 Days"]] as [Period, string][]).map(
             ([key, label]) => (
               <Button
