@@ -115,6 +115,17 @@ const OwnerTables = () => {
     toast.success(`Table ${tableNum} link copied!`);
   };
 
+  const downloadQR = (tableNum: number) => {
+    const canvas = document.getElementById(`qr-canvas-${tableNum}`) as HTMLCanvasElement;
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `table-${tableNum}-qr.png`;
+    a.click();
+    toast.success(`QR for Table ${tableNum} downloaded!`);
+  };
+
   const filteredTables = filterStatus === "all" ? tables : tables.filter((t) => (t.status || "free") === filterStatus);
 
   // Stats
