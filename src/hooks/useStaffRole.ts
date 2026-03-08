@@ -32,26 +32,41 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
       return;
     }
 
-    const effectiveOwnerId = ownerId || user.id;
-
-    // If user is the owner themselves
-    if (user.id === effectiveOwnerId) {
-      setRole("owner");
-      setLoading(false);
-      return;
-    }
-
-    // Check staff_members table
     const fetchRole = async () => {
-      const { data } = await supabase
+      if (ownerId) {
+        // Explicit ownerId provided (e.g. customer menu context)
+        if (user.id === ownerId) {
+          setRole("owner");
+          setLoading(false);
+          return;
+        }
+        const { data } = await supabase
+          .from("staff_members")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("restaurant_owner_id", ownerId)
+          .eq("is_active", true)
+          .maybeSingle();
+        setRole((data?.role as StaffRole) || null);
+        setLoading(false);
+        return;
+      }
+
+      // No ownerId: check if user is staff somewhere
+      const { data: staffRecord } = await supabase
         .from("staff_members")
-        .select("role")
+        .select("role, restaurant_owner_id")
         .eq("user_id", user.id)
-        .eq("restaurant_owner_id", effectiveOwnerId)
         .eq("is_active", true)
         .maybeSingle();
 
-      setRole((data?.role as StaffRole) || null);
+      if (staffRecord) {
+        // User is a staff member
+        setRole(staffRecord.role as StaffRole);
+      } else {
+        // No staff record → user is an owner
+        setRole("owner");
+      }
       setLoading(false);
     };
 
