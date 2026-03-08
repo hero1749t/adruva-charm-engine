@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ const CustomerMenu = () => {
   const [pastOrders, setPastOrders] = useState<PastOrder[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [liveStatus, setLiveStatus] = useState<string>("new");
+  const [orderPlacedAt, setOrderPlacedAt] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     if (!ownerId) return;
@@ -96,6 +98,29 @@ const CustomerMenu = () => {
       Notification.requestPermission();
     }
   }, []);
+
+  // Estimated prep time based on item count (base 10min + 3min per item, max 45min)
+  const estimatedMinutes = useMemo(() => {
+    const itemCount = pastOrders.length > 0 ? pastOrders[0].itemCount : cart.reduce((s, c) => s + c.quantity, 0);
+    return Math.min(45, 10 + itemCount * 3);
+  }, [pastOrders, cart]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!orderPlacedAt || liveStatus === "ready" || liveStatus === "served" || liveStatus === "cancelled") {
+      setTimeLeft(null);
+      return;
+    }
+    const estimatedMs = estimatedMinutes * 60 * 1000;
+    const tick = () => {
+      const elapsed = Date.now() - orderPlacedAt;
+      const remaining = Math.max(0, estimatedMs - elapsed);
+      setTimeLeft(Math.ceil(remaining / 1000));
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [orderPlacedAt, estimatedMinutes, liveStatus]);
 
   // Real-time order tracking
   useEffect(() => {
@@ -176,6 +201,7 @@ const CustomerMenu = () => {
     ]);
 
     setOrderPlaced(order.id);
+    setOrderPlacedAt(Date.now());
     setOrderTotal(total);
     setCart([]);
     setCartOpen(false);
@@ -221,6 +247,41 @@ const CustomerMenu = () => {
               {liveStatus === "ready" ? "Your order is ready!" : liveStatus === "served" ? "Enjoy your meal!" : "Order Placed!"}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">Table {tableNumber} • Order #{orderPlaced.slice(0, 8)}</p>
+            
+            {/* Estimated time display */}
+            {timeLeft !== null && timeLeft > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 inline-flex items-center gap-2 bg-accent/50 border border-border rounded-full px-4 py-2"
+              >
+                <Clock className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  ~{Math.ceil(timeLeft / 60)} min remaining
+                </span>
+              </motion.div>
+            )}
+            {timeLeft === 0 && liveStatus !== "ready" && liveStatus !== "served" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-3 inline-flex items-center gap-2 bg-accent/50 border border-border rounded-full px-4 py-2"
+              >
+                <Clock className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Almost ready...</span>
+              </motion.div>
+            )}
+            {(liveStatus === "ready" || liveStatus === "served") && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-3 inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2"
+              >
+                <span className="text-sm font-semibold text-primary">
+                  {liveStatus === "ready" ? "🎉 Pick up now!" : "✨ Bon appétit!"}
+                </span>
+              </motion.div>
+            )}
           </motion.div>
 
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 bg-card border border-border rounded-2xl p-5 shadow-card">
@@ -286,7 +347,7 @@ const CustomerMenu = () => {
             </a>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); }}>
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); }}>
             Order More
           </Button>
         </div>
