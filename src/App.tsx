@@ -32,6 +32,7 @@ const App = () => (
             <Route path="/owner/tables" element={<ProtectedRoute><OwnerTables /></ProtectedRoute>} />
             <Route path="/owner/settings" element={<ProtectedRoute><OwnerSettings /></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
+            <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
