@@ -321,6 +321,7 @@ export type Database = {
           is_active: boolean
           label: string | null
           owner_id: string
+          status: Database["public"]["Enums"]["table_status"]
           table_number: number
         }
         Insert: {
@@ -329,6 +330,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           owner_id: string
+          status?: Database["public"]["Enums"]["table_status"]
           table_number: number
         }
         Update: {
@@ -337,6 +339,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           owner_id?: string
+          status?: Database["public"]["Enums"]["table_status"]
           table_number?: number
         }
         Relationships: []
@@ -400,6 +403,7 @@ export type Database = {
         | "served"
         | "cancelled"
       staff_role: "owner" | "manager" | "kitchen" | "cashier"
+      table_status: "free" | "occupied" | "reserved" | "cleaning"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -536,6 +540,7 @@ export const Constants = {
         "cancelled",
       ],
       staff_role: ["owner", "manager", "kitchen", "cashier"],
+      table_status: ["free", "occupied", "reserved", "cleaning"],
     },
   },
 } as const
