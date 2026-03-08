@@ -25,8 +25,7 @@ const COLORS = [
 
 type Period = "today" | "7days" | "30days";
 
-// Review type with reply fields (not yet in generated types)
-type ReviewWithReply = Review & { owner_reply?: string | null; replied_at?: string | null };
+type ReviewWithReply = Review;
 
 const ReviewCard = ({ review, onReplied }: { review: ReviewWithReply; onReplied: (id: string, text: string) => void }) => {
   const [showReplyInput, setShowReplyInput] = useState(false);
