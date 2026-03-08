@@ -1,8 +1,4 @@
 import { motion } from "framer-motion";
-import featureMenu from "@/assets/feature-menu.png";
-import featureDashboard from "@/assets/feature-dashboard.png";
-import featurePayment from "@/assets/feature-payment.png";
-import featureAnalytics from "@/assets/feature-analytics.png";
 
 const features = [
   {
@@ -10,7 +6,7 @@ const features = [
     title: "QR Scan karo, Menu dekho — No app download!",
     description:
       "Customer table pe QR scan karta hai aur turant digital menu khulta hai — photos, prices, categories ke saath. Koi app ya login ki zarurat nahi.",
-    image: featureMenu,
+    video: "/feature-menu.mp4",
     reverse: false,
   },
   {
@@ -18,7 +14,7 @@ const features = [
     title: "Saare orders ek screen pe — real-time updates",
     description:
       "Naye orders turant dashboard pe dikhte hain table number ke saath. Ek tap mein status update karo — New → Preparing → Ready → Served.",
-    image: featureDashboard,
+    video: "/feature-dashboard.mp4",
     reverse: true,
   },
   {
@@ -26,7 +22,7 @@ const features = [
     title: "UPI se payment lo — bina kisi hardware ke",
     description:
       "Order ke baad UPI QR dikhao. Customer apne phone se pay kare ya counter pe — dono options available hain.",
-    image: featurePayment,
+    video: "/feature-payment.mp4",
     reverse: false,
   },
   {
@@ -34,7 +30,7 @@ const features = [
     title: "Jaano apna business — daily revenue, top dishes, peak hours",
     description:
       "Daily revenue, top 5 dishes, total orders aur hourly graph — sab kuch ek nazar mein. Ab andhere mein restaurant mat chalao.",
-    image: featureAnalytics,
+    video: "/hero-video.mp4",
     reverse: true,
   },
 ];
