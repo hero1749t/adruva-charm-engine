@@ -1,11 +1,41 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const [newOrderCount, setNewOrderCount] = useState(0);
+
+  const fetchNewOrderCount = async () => {
+    if (!user) return;
+    const { count, error } = await supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .eq("status", "new");
+    if (!error && count !== null) setNewOrderCount(count);
+  };
+
+  useEffect(() => {
+    fetchNewOrderCount();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("sidebar-new-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` },
+        () => fetchNewOrderCount()
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -13,7 +43,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   const links = [
-    { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders" },
+    { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount },
     { to: "/owner/analytics", icon: BarChart3, label: "Analytics" },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
     { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
@@ -56,7 +86,12 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
               }
             >
               <link.icon className="w-4 h-4" />
-              {link.label}
+              <span className="flex-1">{link.label}</span>
+              {link.badge && link.badge > 0 ? (
+                <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full min-w-5 h-5 flex items-center justify-center px-1.5">
+                  {link.badge}
+                </span>
+              ) : null}
             </NavLink>
           ))}
         </aside>
@@ -72,12 +107,19 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
             key={link.to}
             to={link.to}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-3 py-1 text-xs ${
+              `relative flex flex-col items-center gap-1 px-3 py-1 text-xs ${
                 isActive ? "text-primary" : "text-muted-foreground"
               }`
             }
           >
-            <link.icon className="w-5 h-5" />
+            <div className="relative">
+              <link.icon className="w-5 h-5" />
+              {link.badge && link.badge > 0 ? (
+                <span className="absolute -top-1.5 -right-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-4 h-4 flex items-center justify-center px-1">
+                  {link.badge}
+                </span>
+              ) : null}
+            </div>
             {link.label}
           </NavLink>
         ))}
