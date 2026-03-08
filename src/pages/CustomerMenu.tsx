@@ -109,34 +109,110 @@ const CustomerMenu = () => {
 
   const filteredItems = selectedCat ? items.filter((i) => i.category_id === selectedCat) : items;
 
+  // Real-time order tracking
+  const [liveStatus, setLiveStatus] = useState<string>("new");
+
+  useEffect(() => {
+    if (!orderPlaced) return;
+
+    // Fetch initial status
+    supabase.from("orders").select("status").eq("id", orderPlaced).single().then(({ data }) => {
+      if (data) setLiveStatus(data.status);
+    });
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel(`order-track-${orderPlaced}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "orders",
+        filter: `id=eq.${orderPlaced}`,
+      }, (payload) => {
+        setLiveStatus((payload.new as any).status);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [orderPlaced]);
+
+  const statusSteps = [
+    { key: "new", label: "Order Placed", emoji: "📝" },
+    { key: "accepted", label: "Accepted", emoji: "👍" },
+    { key: "preparing", label: "Preparing", emoji: "🍳" },
+    { key: "ready", label: "Ready!", emoji: "✅" },
+    { key: "served", label: "Served", emoji: "🍽️" },
+  ];
+
+  const currentStepIndex = statusSteps.findIndex((s) => s.key === liveStatus);
+
   if (orderPlaced) {
     const upiLink = upiId
       ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(restaurantName || "Restaurant")}&am=${orderTotal.toFixed(2)}&cu=INR&tn=Order-${orderPlaced.slice(0, 8)}`
       : null;
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="text-center max-w-sm w-full">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-4xl">✅</span>
+      <div className="min-h-screen bg-background px-4 py-8">
+        <div className="max-w-sm mx-auto">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">{statusSteps[currentStepIndex]?.emoji || "📝"}</span>
+            </div>
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              {liveStatus === "ready" ? "Your order is ready!" : liveStatus === "served" ? "Enjoy your meal!" : "Order Placed!"}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">Table {tableNumber} • Order #{orderPlaced.slice(0, 8)}</p>
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Order Placed!</h1>
-          <p className="text-muted-foreground mt-2">Your order has been sent to the kitchen. Please wait at Table {tableNumber}.</p>
-          <p className="text-sm text-muted-foreground mt-4">Order ID: {orderPlaced.slice(0, 8)}</p>
+
+          {/* Status tracker */}
+          <div className="mt-6 bg-card border border-border rounded-xl p-5 shadow-card">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Order Status</p>
+            <div className="space-y-0">
+              {statusSteps.map((step, i) => {
+                const isActive = i <= currentStepIndex;
+                const isCurrent = i === currentStepIndex;
+                const isLast = i === statusSteps.length - 1;
+                return (
+                  <div key={step.key} className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                        isCurrent
+                          ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                          : isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        {step.emoji}
+                      </div>
+                      {!isLast && (
+                        <div className={`w-0.5 h-6 transition-colors ${isActive && i < currentStepIndex ? "bg-primary" : "bg-border"}`} />
+                      )}
+                    </div>
+                    <div className={`pt-1 ${isCurrent ? "text-foreground font-semibold" : isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                      <p className="text-sm">{step.label}</p>
+                      {isCurrent && liveStatus !== "served" && (
+                        <p className="text-xs text-primary mt-0.5 animate-pulse">In progress...</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {upiLink && (
-            <div className="mt-6 bg-card border border-border rounded-xl p-6 shadow-card">
+            <div className="mt-4 bg-card border border-border rounded-xl p-5 shadow-card text-center">
               <p className="font-semibold text-foreground mb-1">Pay ₹{orderTotal.toFixed(0)} via UPI</p>
-              <p className="text-xs text-muted-foreground mb-4">Scan with any UPI app (GPay, PhonePe, Paytm)</p>
-              <div className="bg-background rounded-lg p-4 inline-block">
-                <QRCodeSVG value={upiLink} size={180} />
+              <p className="text-xs text-muted-foreground mb-3">Scan with any UPI app</p>
+              <div className="bg-background rounded-lg p-3 inline-block">
+                <QRCodeSVG value={upiLink} size={160} />
               </div>
-              <p className="text-xs text-muted-foreground mt-3">UPI: {upiId}</p>
+              <p className="text-xs text-muted-foreground mt-2">UPI: {upiId}</p>
             </div>
           )}
 
           {!upiLink && (
-            <div className="mt-6 bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="mt-4 bg-card border border-border rounded-xl p-4 shadow-card text-center">
               <p className="font-semibold text-foreground">Pay ₹{orderTotal.toFixed(0)} at the counter</p>
             </div>
           )}
@@ -154,7 +230,7 @@ const CustomerMenu = () => {
             </a>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); }}>
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); }}>
             Order More
           </Button>
         </div>
