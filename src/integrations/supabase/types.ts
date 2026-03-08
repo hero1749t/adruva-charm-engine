@@ -341,12 +341,55 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_members: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          restaurant_owner_id: string
+          role: Database["public"]["Enums"]["staff_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          restaurant_owner_id: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          restaurant_owner_id?: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_staff_role: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: Database["public"]["Enums"]["staff_role"]
+      }
+      is_restaurant_staff: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       order_status:
@@ -356,6 +399,7 @@ export type Database = {
         | "ready"
         | "served"
         | "cancelled"
+      staff_role: "owner" | "manager" | "kitchen" | "cashier"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -491,6 +535,7 @@ export const Constants = {
         "served",
         "cancelled",
       ],
+      staff_role: ["owner", "manager", "kitchen", "cashier"],
     },
   },
 } as const
