@@ -104,7 +104,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Bottom nav - mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around py-2 z-50">
-        {links.map((link) => (
+        {mobileLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
