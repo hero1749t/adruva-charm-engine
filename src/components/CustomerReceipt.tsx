@@ -2,6 +2,8 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Receipt, Download, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface ReceiptItem {
   name: string;
@@ -59,6 +61,15 @@ const CustomerReceipt = ({
     printWindow.document.close();
   };
 
+  const downloadPDF = async () => {
+    if (!receiptRef.current) return;
+    const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, canvas.height * 80 / canvas.width] });
+    pdf.addImage(imgData, "PNG", 0, 0, 80, canvas.height * 80 / canvas.width);
+    pdf.save(`receipt-${orderId.slice(0, 8)}.pdf`);
+  };
+
   const shareOnWhatsApp = () => {
     const itemLines = items.map((item) => `• ${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(0)}`).join("\n");
     const message = [
@@ -90,17 +101,24 @@ const CustomerReceipt = ({
       <div className="flex">
         <button
           onClick={printReceipt}
-          className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-muted/50 hover:bg-muted transition-colors border-r border-border"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-muted/50 hover:bg-muted transition-colors border-r border-border"
         >
           <Receipt className="w-4 h-4 text-foreground" />
           <span className="text-sm font-semibold text-foreground">Print</span>
         </button>
         <button
-          onClick={shareOnWhatsApp}
-          className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-green-500/10 hover:bg-green-500/20 transition-colors"
+          onClick={downloadPDF}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary/10 hover:bg-primary/20 transition-colors border-r border-border"
         >
-          <MessageCircle className="w-4 h-4 text-green-600" />
-          <span className="text-sm font-semibold text-green-600">WhatsApp</span>
+          <Download className="w-4 h-4 text-primary" />
+          <span className="text-sm font-semibold text-primary">PDF</span>
+        </button>
+        <button
+          onClick={shareOnWhatsApp}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent/50 hover:bg-accent transition-colors"
+        >
+          <MessageCircle className="w-4 h-4 text-foreground" />
+          <span className="text-sm font-semibold text-foreground">WhatsApp</span>
         </button>
       </div>
 
