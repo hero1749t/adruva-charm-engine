@@ -8,6 +8,8 @@ import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
+import CustomerReceipt from "@/components/CustomerReceipt";
+import CustomerReview from "@/components/CustomerReview";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
