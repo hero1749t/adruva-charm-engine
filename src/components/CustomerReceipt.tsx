@@ -61,6 +61,15 @@ const CustomerReceipt = ({
     printWindow.document.close();
   };
 
+  const downloadPDF = async () => {
+    if (!receiptRef.current) return;
+    const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, canvas.height * 80 / canvas.width] });
+    pdf.addImage(imgData, "PNG", 0, 0, 80, canvas.height * 80 / canvas.width);
+    pdf.save(`receipt-${orderId.slice(0, 8)}.pdf`);
+  };
+
   const shareOnWhatsApp = () => {
     const itemLines = items.map((item) => `• ${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(0)}`).join("\n");
     const message = [
