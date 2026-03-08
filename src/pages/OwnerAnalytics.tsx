@@ -365,29 +365,20 @@ const OwnerAnalytics = () => {
               </div>
             </Card>
 
-            {/* Recent Reviews */}
+            {/* Recent Reviews with Reply */}
             <Card className="p-5">
               <h2 className="font-display font-bold text-foreground mb-4 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" /> Recent Feedback
               </h2>
               {reviews.filter((r) => r.comment).length > 0 ? (
-                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
                   {reviews
                     .filter((r) => r.comment)
                     .slice(0, 10)
                     .map((r) => (
-                      <div key={r.id} className="border-b border-border pb-2 last:border-0">
-                        <div className="flex items-center gap-1 mb-1">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`w-3 h-3 ${s <= r.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />
-                          ))}
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {new Date(r.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                          </span>
-                        </div>
-                        {r.customer_name && <p className="text-xs font-semibold text-foreground">{r.customer_name}</p>}
-                        <p className="text-xs text-muted-foreground">{r.comment}</p>
-                      </div>
+                      <ReviewCard key={r.id} review={r} onReplied={(id, text) => {
+                        setReviews(prev => prev.map(rv => rv.id === id ? { ...rv, owner_reply: text, replied_at: new Date().toISOString() } : rv));
+                      }} />
                     ))}
                 </div>
               ) : (
