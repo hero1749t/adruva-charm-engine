@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -32,6 +33,7 @@ const OwnerDashboard = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [filter, setFilter] = useState<string>("active");
+  const [loading, setLoading] = useState(true);
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -52,6 +54,7 @@ const OwnerDashboard = () => {
     } else {
       setOrders((data as OrderWithItems[]) || []);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -115,7 +118,21 @@ const OwnerDashboard = () => {
         </div>
       </div>
 
-      {orders.length === 0 ? (
+      {loading ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-5 w-12" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : orders.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <p className="text-lg">No orders yet</p>
           <p className="text-sm mt-2">Orders will appear here in real-time when customers place them</p>
