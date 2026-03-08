@@ -42,7 +42,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/owner/login");
   };
 
-  const links = [
+  const sidebarLinks = [
     { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount },
     { to: "/owner/analytics", icon: BarChart3, label: "Analytics" },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
@@ -51,6 +51,8 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/owner/settings", icon: Settings, label: "Settings" },
     { to: "/install", icon: Download, label: "Install App" },
   ];
+
+  const mobileLinks = sidebarLinks.filter((link) => link.to !== "/install");
 
   return (
     <div className="min-h-screen bg-muted">
@@ -61,6 +63,11 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
           <span className="text-secondary-foreground">vaa</span>
         </a>
         <div className="flex items-center gap-4">
+          <NavLink to="/install" className="md:hidden">
+            <Button variant="ghost" size="sm" className="text-secondary-foreground/60 hover:text-secondary-foreground">
+              <Download className="w-4 h-4" />
+            </Button>
+          </NavLink>
           <span className="text-sm text-secondary-foreground/60 hidden md:inline">
             {user?.email}
           </span>
@@ -73,7 +80,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
       <div className="flex">
         {/* Sidebar - desktop */}
         <aside className="hidden md:flex flex-col w-56 bg-card border-r border-border min-h-[calc(100vh-3.5rem)] p-4 gap-1">
-          {links.map((link) => (
+          {sidebarLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -102,7 +109,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Bottom nav - mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around py-2 z-50">
-        {links.map((link) => (
+        {mobileLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
