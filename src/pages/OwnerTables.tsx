@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2 } from "lucide-react";
+import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2, Download, X } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Table = Database["public"]["Tables"]["restaurant_tables"]["Row"] & {
