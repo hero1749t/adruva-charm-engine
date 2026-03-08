@@ -13,6 +13,7 @@ import OwnerMenu from "./pages/OwnerMenu";
 import OwnerTables from "./pages/OwnerTables";
 import OwnerSettings from "./pages/OwnerSettings";
 import CustomerMenu from "./pages/CustomerMenu";
+import KitchenDisplay from "./pages/KitchenDisplay";
 
 const queryClient = new QueryClient();
 
