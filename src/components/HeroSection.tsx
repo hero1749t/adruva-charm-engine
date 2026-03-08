@@ -69,10 +69,13 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
             className="flex justify-center"
           >
-            <img
-              src={heroImg}
-              alt="Adruvaa restaurant digital ordering illustration"
-              className="w-full max-w-lg animate-float"
+            <video
+              src="/hero-video.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full max-w-lg rounded-2xl shadow-card"
             />
           </motion.div>
         </div>
