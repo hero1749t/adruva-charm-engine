@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
@@ -46,6 +46,17 @@ const CustomerMenu = () => {
   const [liveStatus, setLiveStatus] = useState<string>("new");
   const [orderPlacedAt, setOrderPlacedAt] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("customer-dark-mode", String(darkMode));
+  }, [darkMode]);
 
   useEffect(() => {
     if (!ownerId) return;
@@ -413,6 +424,13 @@ const CustomerMenu = () => {
                 </span>
               </button>
             )}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-1.5 rounded-lg bg-secondary-foreground/10 hover:bg-secondary-foreground/20 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <span className="font-display text-sm font-bold">
               <span className="text-primary">ADRU</span>vaa
             </span>
