@@ -15,10 +15,12 @@ import OwnerTables from "./pages/OwnerTables";
 import OwnerSettings from "./pages/OwnerSettings";
 import CustomerMenu from "./pages/CustomerMenu";
 import KitchenDisplay from "./pages/KitchenDisplay";
+import CashierDashboard from "./pages/CashierDashboard";
 import OwnerAnalytics from "./pages/OwnerAnalytics";
 import OwnerLeads from "./pages/OwnerLeads";
 import OwnerStaff from "./pages/OwnerStaff";
 import Install from "./pages/Install";
+import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
 
 const queryClient = new QueryClient();
 
