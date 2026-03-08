@@ -49,7 +49,7 @@ const ReviewCard = ({ review, onReplied }: { review: ReviewWithReply; onReplied:
     onReplied(review.id, replyText.trim());
   };
 
-  const hasReply = !!(review as any).owner_reply;
+  const hasReply = !!review.owner_reply;
 
   return (
     <div className="border-b border-border pb-3 last:border-0">
