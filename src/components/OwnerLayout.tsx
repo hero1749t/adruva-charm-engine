@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { isOwner, canViewAnalytics, canManageMenu, canManageStaff } = useStaffRole();
   const [newOrderCount, setNewOrderCount] = useState(0);
 
   const fetchNewOrderCount = async () => {
