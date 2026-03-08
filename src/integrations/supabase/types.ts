@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      customer_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_name: string | null
+          id: string
+          order_id: string
+          owner_id: string
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          order_id: string
+          owner_id: string
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          order_id?: string
+          owner_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_categories: {
         Row: {
           created_at: string
@@ -194,9 +232,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          closing_hours: string | null
           created_at: string
           full_name: string | null
+          gst_number: string | null
           id: string
+          opening_hours: string | null
           phone: string | null
           restaurant_logo_url: string | null
           restaurant_name: string | null
@@ -205,9 +247,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address?: string | null
+          closing_hours?: string | null
           created_at?: string
           full_name?: string | null
+          gst_number?: string | null
           id?: string
+          opening_hours?: string | null
           phone?: string | null
           restaurant_logo_url?: string | null
           restaurant_name?: string | null
@@ -216,9 +262,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address?: string | null
+          closing_hours?: string | null
           created_at?: string
           full_name?: string | null
+          gst_number?: string | null
           id?: string
+          opening_hours?: string | null
           phone?: string | null
           restaurant_logo_url?: string | null
           restaurant_name?: string | null
