@@ -14,7 +14,9 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
 
   const links = [
     { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders" },
+    { to: "/owner/analytics", icon: BarChart3, label: "Analytics" },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
+    { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR" },
     { to: "/owner/settings", icon: Settings, label: "Settings" },
   ];
