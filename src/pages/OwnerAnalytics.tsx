@@ -294,6 +294,82 @@ const OwnerAnalytics = () => {
               <p className="text-muted-foreground text-sm text-center py-10">No data for this period</p>
             )}
           </Card>
+          {/* Reviews Section */}
+          <div className="grid lg:grid-cols-3 gap-6 mt-6">
+            {/* Average Rating Card */}
+            <Card className="p-5 flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <Star className="w-7 h-7 text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">Average Rating</p>
+              <p className="font-display text-3xl font-bold text-foreground">
+                {reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—"}
+              </p>
+              <div className="flex gap-0.5 mt-2">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const avg = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+                  return (
+                    <Star
+                      key={star}
+                      className={`w-4 h-4 ${star <= Math.round(avg) ? "text-primary fill-primary" : "text-muted-foreground/30"}`}
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</p>
+            </Card>
+
+            {/* Rating Distribution */}
+            <Card className="p-5">
+              <h2 className="font-display font-bold text-foreground mb-4">Rating Distribution</h2>
+              <div className="space-y-2">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = reviews.filter((r) => r.rating === star).length;
+                  const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                  return (
+                    <div key={star} className="flex items-center gap-2 text-sm">
+                      <span className="w-4 text-muted-foreground">{star}</span>
+                      <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-8 text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Recent Reviews */}
+            <Card className="p-5">
+              <h2 className="font-display font-bold text-foreground mb-4 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> Recent Feedback
+              </h2>
+              {reviews.filter((r) => r.comment).length > 0 ? (
+                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                  {reviews
+                    .filter((r) => r.comment)
+                    .slice(0, 10)
+                    .map((r) => (
+                      <div key={r.id} className="border-b border-border pb-2 last:border-0">
+                        <div className="flex items-center gap-1 mb-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className={`w-3 h-3 ${s <= r.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />
+                          ))}
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {new Date(r.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                          </span>
+                        </div>
+                        {r.customer_name && <p className="text-xs font-semibold text-foreground">{r.customer_name}</p>}
+                        <p className="text-xs text-muted-foreground">{r.comment}</p>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm text-center py-6">No feedback yet</p>
+              )}
+            </Card>
+          </div>
         </>
       )}
     </OwnerLayout>
