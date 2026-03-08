@@ -67,7 +67,7 @@ const ReviewCard = ({ review, onReplied }: { review: ReviewWithReply; onReplied:
       {hasReply && !showReplyInput && (
         <div className="mt-2 ml-3 pl-2 border-l-2 border-primary/30">
           <p className="text-xs text-foreground font-medium">Your reply:</p>
-          <p className="text-xs text-muted-foreground">{(review as any).owner_reply}</p>
+          <p className="text-xs text-muted-foreground">{review.owner_reply}</p>
           <button onClick={() => setShowReplyInput(true)} className="text-xs text-primary mt-1 hover:underline">Edit</button>
         </div>
       )}
