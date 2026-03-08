@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Star, Send } from "lucide-react";
+import { Star, Send, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface CustomerReviewProps {
@@ -19,6 +19,28 @@ const CustomerReview = ({ orderId, ownerId, onSubmitted }: CustomerReviewProps) 
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [ownerReply, setOwnerReply] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll for owner reply after submission
+  useEffect(() => {
+    if (!reviewId) return;
+    const checkReply = async () => {
+      const { data } = await supabase
+        .from("customer_reviews")
+        .select("owner_reply")
+        .eq("id", reviewId)
+        .single();
+      if (data?.owner_reply) {
+        setOwnerReply(data.owner_reply);
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    };
+    checkReply();
+    pollRef.current = setInterval(checkReply, 15000); // check every 15s
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [reviewId]);
 
   const submit = async () => {
     if (rating === 0) {
@@ -26,19 +48,20 @@ const CustomerReview = ({ orderId, ownerId, onSubmitted }: CustomerReviewProps) 
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("customer_reviews" as any).insert({
+    const { data, error } = await supabase.from("customer_reviews").insert({
       order_id: orderId,
       owner_id: ownerId,
       rating,
       comment: comment.trim() || null,
       customer_name: name.trim() || null,
-    } as any);
+    }).select("id").single();
 
     if (error) {
       toast.error("Failed to submit review");
     } else {
       toast.success("Thank you for your feedback! 🙏");
       setSubmitted(true);
+      if (data) setReviewId(data.id);
       onSubmitted();
     }
     setSubmitting(false);
@@ -58,6 +81,27 @@ const CustomerReview = ({ orderId, ownerId, onSubmitted }: CustomerReviewProps) 
             <Star key={s} className={`w-5 h-5 ${s <= rating ? "text-yellow-400 fill-yellow-400" : "text-border"}`} />
           ))}
         </div>
+
+        {/* Owner reply */}
+        <AnimatePresence>
+          {ownerReply && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 text-left bg-muted/50 border border-border rounded-xl p-3"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-semibold text-primary">Restaurant replied</span>
+              </div>
+              <p className="text-sm text-foreground">{ownerReply}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!ownerReply && (
+          <p className="text-xs text-muted-foreground mt-3">The restaurant may reply to your feedback</p>
+        )}
       </motion.div>
     );
   }
