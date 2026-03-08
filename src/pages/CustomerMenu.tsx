@@ -213,6 +213,8 @@ const CustomerMenu = () => {
     setOrderPlaced(order.id);
     setOrderPlacedAt(Date.now());
     setOrderTotal(total);
+    setOrderItems(cart.map(c => ({ name: c.name, quantity: c.quantity, price: Number(c.price) })));
+    setOrderCreatedAt(new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
     setCart([]);
     setCartOpen(false);
     setOrdering(false);
