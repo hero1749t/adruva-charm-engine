@@ -46,6 +46,17 @@ const CustomerMenu = () => {
   const [liveStatus, setLiveStatus] = useState<string>("new");
   const [orderPlacedAt, setOrderPlacedAt] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("customer-dark-mode", String(darkMode));
+  }, [darkMode]);
 
   useEffect(() => {
     if (!ownerId) return;
