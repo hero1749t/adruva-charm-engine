@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Receipt, Download } from "lucide-react";
+import { Receipt, Download, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ReceiptItem {
