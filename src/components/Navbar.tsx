@@ -50,6 +50,13 @@ const Navbar = () => {
             </a>
           ))}
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/owner/login")}
+          >
+            Owner Login
+          </Button>
+          <Button
             variant="hero"
             size="lg"
             onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
