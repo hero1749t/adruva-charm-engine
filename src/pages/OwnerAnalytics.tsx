@@ -27,6 +27,7 @@ type Period = "today" | "7days" | "30days";
 const OwnerAnalytics = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [period, setPeriod] = useState<Period>("7days");
   const [loading, setLoading] = useState(true);
 
