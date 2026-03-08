@@ -141,7 +141,20 @@ const CustomerMenu = () => {
             </div>
           )}
 
-          <Button variant="hero" className="mt-6 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); }}>
+          {ownerPhone && (
+            <a
+              href={`https://wa.me/${ownerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                `🍽️ New Order!\nOrder ID: ${orderPlaced.slice(0, 8)}\nTable: ${tableNumber}\nTotal: ₹${orderTotal.toFixed(0)}\n\nPlease prepare my order. Thank you!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 transition-colors"
+            >
+              📱 Notify Restaurant on WhatsApp
+            </a>
+          )}
+
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); }}>
             Order More
           </Button>
         </div>
