@@ -353,13 +353,35 @@ const CustomerMenu = () => {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 transition-colors"
+              className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-green-500 hover:bg-green-600 text-primary-foreground font-semibold py-3 px-4 transition-colors"
             >
               📱 Notify on WhatsApp
             </a>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); }}>
+          {/* Receipt */}
+          <CustomerReceipt
+            orderId={orderPlaced}
+            restaurantName={restaurantName}
+            tableNumber={tableNumber}
+            items={orderItems}
+            total={orderTotal}
+            gstNumber={restaurantGst}
+            address={restaurantAddress}
+            phone={ownerPhone}
+            createdAt={orderCreatedAt}
+          />
+
+          {/* Review - show after served */}
+          {(liveStatus === "served" || liveStatus === "ready") && ownerId && (
+            <CustomerReview
+              orderId={orderPlaced}
+              ownerId={ownerId}
+              onSubmitted={() => {}}
+            />
+          )}
+
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); setOrderItems([]); setOrderCreatedAt(""); }}>
             Order More
           </Button>
         </div>
