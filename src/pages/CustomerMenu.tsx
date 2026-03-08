@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
