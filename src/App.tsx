@@ -15,6 +15,7 @@ import OwnerSettings from "./pages/OwnerSettings";
 import CustomerMenu from "./pages/CustomerMenu";
 import KitchenDisplay from "./pages/KitchenDisplay";
 import OwnerAnalytics from "./pages/OwnerAnalytics";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/owner/settings" element={<ProtectedRoute><OwnerSettings /></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
+            <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
