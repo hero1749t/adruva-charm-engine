@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import OwnerLayout from "@/components/OwnerLayout";
 import DashboardStats from "@/components/DashboardStats";
 import { Badge } from "@/components/ui/badge";
