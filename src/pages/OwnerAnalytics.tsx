@@ -29,7 +29,7 @@ type ReviewWithReply = Review;
 
 const ReviewCard = ({ review, onReplied }: { review: ReviewWithReply; onReplied: (id: string, text: string) => void }) => {
   const [showReplyInput, setShowReplyInput] = useState(false);
-  const [replyText, setReplyText] = useState((review as any).owner_reply || "");
+  const [replyText, setReplyText] = useState(review.owner_reply || "");
   const [sending, setSending] = useState(false);
 
   const submitReply = async () => {
