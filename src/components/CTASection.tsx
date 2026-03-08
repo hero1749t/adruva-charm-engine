@@ -2,9 +2,33 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const CTASection = () => {
   const [formData, setFormData] = useState({ name: "", phone: "", restaurant: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.restaurant.trim()) {
+      toast({ title: "Sabhi fields bharo", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await supabase.from("demo_requests").insert({
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      restaurant_name: formData.restaurant.trim(),
+    });
+    setIsSubmitting(false);
+    if (error) {
+      toast({ title: "Kuch gadbad ho gayi", description: "Please dobara try karo", variant: "destructive" });
+    } else {
+      toast({ title: "Demo request submit ho gayi! 🎉", description: "Humari team jaldi aapko call karegi" });
+      setFormData({ name: "", phone: "", restaurant: "" });
+    }
+  };
 
   return (
     <section id="pricing" className="section-padding bg-cream">
@@ -60,12 +84,13 @@ const CTASection = () => {
               <p className="text-muted-foreground mb-8">
                 Humari team aapko call karke demo degi
               </p>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <Input
                   placeholder="Aapka Naam"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="h-12"
+                  maxLength={100}
                 />
                 <Input
                   placeholder="Phone Number"
@@ -73,15 +98,17 @@ const CTASection = () => {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="h-12"
+                  maxLength={15}
                 />
                 <Input
                   placeholder="Restaurant ka Naam"
                   value={formData.restaurant}
                   onChange={(e) => setFormData({ ...formData, restaurant: e.target.value })}
                   className="h-12"
+                  maxLength={200}
                 />
-                <Button variant="hero" size="lg" className="w-full h-14 text-base">
-                  Free Demo Book Karo
+                <Button variant="hero" size="lg" className="w-full h-14 text-base" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Free Demo Book Karo"}
                 </Button>
               </form>
               <p className="text-center text-xs text-muted-foreground mt-4">

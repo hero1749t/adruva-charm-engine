@@ -58,6 +58,30 @@ export type Database = {
           },
         ]
       }
+      demo_requests: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          restaurant_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          restaurant_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          restaurant_name?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           created_at: string
