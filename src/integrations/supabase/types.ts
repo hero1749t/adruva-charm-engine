@@ -22,7 +22,9 @@ export type Database = {
           id: string
           order_id: string
           owner_id: string
+          owner_reply: string | null
           rating: number
+          replied_at: string | null
         }
         Insert: {
           comment?: string | null
@@ -31,7 +33,9 @@ export type Database = {
           id?: string
           order_id: string
           owner_id: string
+          owner_reply?: string | null
           rating: number
+          replied_at?: string | null
         }
         Update: {
           comment?: string | null
@@ -40,7 +44,9 @@ export type Database = {
           id?: string
           order_id?: string
           owner_id?: string
+          owner_reply?: string | null
           rating?: number
+          replied_at?: string | null
         }
         Relationships: [
           {
