@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
@@ -22,16 +23,19 @@ const CustomerMenu = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
+  const [upiId, setUpiId] = useState<string | null>(null);
   const [ordering, setOrdering] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
+  const [orderTotal, setOrderTotal] = useState(0);
   const [phone, setPhone] = useState("");
 
   useEffect(() => {
     if (!ownerId) return;
 
     // Fetch restaurant name
-    supabase.from("profiles").select("restaurant_name").eq("user_id", ownerId).single().then(({ data }) => {
+    supabase.from("profiles").select("restaurant_name, upi_id").eq("user_id", ownerId).single().then(({ data }) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
+      if (data?.upi_id) setUpiId(data.upi_id);
     });
 
     // Fetch menu
@@ -95,6 +99,7 @@ const CustomerMenu = () => {
     await supabase.from("order_items").insert(orderItems);
 
     setOrderPlaced(order.id);
+    setOrderTotal(total);
     setCart([]);
     setCartOpen(false);
     setOrdering(false);
@@ -103,16 +108,38 @@ const CustomerMenu = () => {
   const filteredItems = selectedCat ? items.filter((i) => i.category_id === selectedCat) : items;
 
   if (orderPlaced) {
+    const upiLink = upiId
+      ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(restaurantName || "Restaurant")}&am=${orderTotal.toFixed(2)}&cu=INR&tn=Order-${orderPlaced.slice(0, 8)}`
+      : null;
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="text-center max-w-sm w-full">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <span className="text-4xl">✅</span>
           </div>
           <h1 className="font-display text-2xl font-bold text-foreground">Order Placed!</h1>
           <p className="text-muted-foreground mt-2">Your order has been sent to the kitchen. Please wait at Table {tableNumber}.</p>
           <p className="text-sm text-muted-foreground mt-4">Order ID: {orderPlaced.slice(0, 8)}</p>
-          <Button variant="hero" className="mt-6" onClick={() => { setOrderPlaced(null); }}>
+
+          {upiLink && (
+            <div className="mt-6 bg-card border border-border rounded-xl p-6 shadow-card">
+              <p className="font-semibold text-foreground mb-1">Pay ₹{orderTotal.toFixed(0)} via UPI</p>
+              <p className="text-xs text-muted-foreground mb-4">Scan with any UPI app (GPay, PhonePe, Paytm)</p>
+              <div className="bg-background rounded-lg p-4 inline-block">
+                <QRCodeSVG value={upiLink} size={180} />
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">UPI: {upiId}</p>
+            </div>
+          )}
+
+          {!upiLink && (
+            <div className="mt-6 bg-card border border-border rounded-xl p-4 shadow-card">
+              <p className="font-semibold text-foreground">Pay ₹{orderTotal.toFixed(0)} at the counter</p>
+            </div>
+          )}
+
+          <Button variant="hero" className="mt-6 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); }}>
             Order More
           </Button>
         </div>
