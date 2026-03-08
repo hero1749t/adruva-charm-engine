@@ -347,7 +347,7 @@ const CustomerMenu = () => {
             </a>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); }}>
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); }}>
             Order More
           </Button>
         </div>
