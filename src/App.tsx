@@ -30,6 +30,7 @@ const App = () => (
             <Route path="/owner/login" element={<OwnerLogin />} />
             <Route path="/owner/dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
             <Route path="/owner/menu" element={<ProtectedRoute><OwnerMenu /></ProtectedRoute>} />
+            <Route path="/owner/analytics" element={<ProtectedRoute><OwnerAnalytics /></ProtectedRoute>} />
             <Route path="/owner/tables" element={<ProtectedRoute><OwnerTables /></ProtectedRoute>} />
             <Route path="/owner/settings" element={<ProtectedRoute><OwnerSettings /></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
