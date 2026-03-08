@@ -35,6 +35,7 @@ const OwnerTables = () => {
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState("1");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [qrTable, setQrTable] = useState<Table | null>(null);
 
   const fetchTables = async () => {
     if (!user) return;
