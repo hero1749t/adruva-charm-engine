@@ -44,6 +44,7 @@ const App = () => (
             <Route path="/owner/leads" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerLeads /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/staff" element={<ProtectedRoute><RoleGuard check="canManageStaff"><OwnerStaff /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
+            <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
