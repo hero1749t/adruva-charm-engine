@@ -63,6 +63,11 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
           <span className="text-secondary-foreground">vaa</span>
         </a>
         <div className="flex items-center gap-4">
+          <NavLink to="/install" className="md:hidden">
+            <Button variant="ghost" size="sm" className="text-secondary-foreground/60 hover:text-secondary-foreground">
+              <Download className="w-4 h-4" />
+            </Button>
+          </NavLink>
           <span className="text-sm text-secondary-foreground/60 hidden md:inline">
             {user?.email}
           </span>
