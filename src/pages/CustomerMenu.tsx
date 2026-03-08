@@ -395,9 +395,14 @@ const CustomerMenu = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-secondary px-4 py-3 text-secondary-foreground shadow-lg">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-lg font-bold tracking-tight">{restaurantName || "Menu"}</h1>
-            {tableNumber > 0 && <p className="text-xs text-secondary-foreground/60">Table {tableNumber}</p>}
+          <div className="flex items-center gap-3">
+            {restaurantLogo && (
+              <img src={restaurantLogo} alt="Logo" className="w-9 h-9 rounded-lg object-cover border border-secondary-foreground/20" />
+            )}
+            <div>
+              <h1 className="font-display text-lg font-bold tracking-tight">{restaurantName || "Menu"}</h1>
+              {tableNumber > 0 && <p className="text-xs text-secondary-foreground/60">Table {tableNumber}</p>}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {pastOrders.length > 0 && (
