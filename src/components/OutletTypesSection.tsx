@@ -40,7 +40,7 @@ const OutletTypesSection = () => {
               initial={{ opacity: 0, y: 30, scale: 0.9 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ duration: 0.4, delay: i * 0.08, ease: "easeOut" }}
               whileHover={{ y: -6, scale: 1.05, transition: { duration: 0.25 } }}
               className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-card shadow-card hover:shadow-card-hover transition-shadow cursor-pointer group"
             >

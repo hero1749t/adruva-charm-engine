@@ -43,7 +43,7 @@ const StatsSection = () => {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ duration: 0.5, delay: i * 0.12, ease: "easeOut" }}
               className="text-center"
             >
               <div className="font-display text-5xl md:text-6xl font-bold text-primary">

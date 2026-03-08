@@ -51,7 +51,7 @@ const CTASection = () => {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
           >
             <div className="bg-card rounded-2xl shadow-card-hover p-8 md:p-10">
               <h3 className="font-display text-2xl font-bold text-foreground mb-2">
