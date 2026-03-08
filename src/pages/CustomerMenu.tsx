@@ -37,6 +37,8 @@ const CustomerMenu = () => {
   const [pastOrders, setPastOrders] = useState<PastOrder[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [liveStatus, setLiveStatus] = useState<string>("new");
+  const [orderPlacedAt, setOrderPlacedAt] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     if (!ownerId) return;
