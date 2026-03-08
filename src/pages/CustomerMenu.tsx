@@ -34,9 +34,10 @@ const CustomerMenu = () => {
     if (!ownerId) return;
 
     // Fetch restaurant name
-    supabase.from("profiles").select("restaurant_name, upi_id").eq("user_id", ownerId).single().then(({ data }) => {
+    supabase.from("profiles").select("restaurant_name, upi_id, phone").eq("user_id", ownerId).single().then(({ data }) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
+      if (data?.phone) setOwnerPhone(data.phone);
     });
 
     // Fetch menu
