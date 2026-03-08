@@ -136,11 +136,36 @@ const OwnerAnalytics = () => {
     URL.revokeObjectURL(url);
   };
 
+  const shareOnWhatsApp = () => {
+    const periodLabel = period === "today" ? "Today" : period === "7days" ? "Last 7 Days" : "Last 30 Days";
+    const topItems = stats.topDishes.slice(0, 5).map((d, i) => `  ${i + 1}. ${d.name} — ${d.qty} sold`).join("\n");
+    const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "N/A";
+
+    const message = [
+      `📊 *Sales Summary — ${periodLabel}*`,
+      ``,
+      `💰 Revenue: ₹${stats.totalRevenue.toLocaleString("en-IN")}`,
+      `🛒 Orders: ${stats.totalOrders}`,
+      `📈 Avg Order: ₹${stats.avgOrder.toFixed(0)}`,
+      `⭐ Rating: ${avgRating} (${reviews.length} reviews)`,
+      ``,
+      `🏆 *Top Dishes:*`,
+      topItems || "  No data",
+      ``,
+      `— Powered by ADRUvaa 🍽️`,
+    ].join("\n");
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+  };
+
   return (
     <OwnerLayout>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="font-display text-2xl font-bold text-foreground">Analytics</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={shareOnWhatsApp} disabled={orders.length === 0} className="gap-1.5">
+            <MessageCircle className="w-4 h-4" /> Share Summary
+          </Button>
           <Button variant="outline" size="sm" onClick={downloadCSV} disabled={orders.length === 0}>
             <Download className="w-4 h-4 mr-1" /> Export CSV
           </Button>
