@@ -39,11 +39,34 @@ const features = [
   },
 ];
 
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+const textVariants = {
+  hidden: { opacity: 0, x: -30 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
+
+const imageVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
+
 const FeaturesSection = () => {
   return (
     <section id="features" className="section-padding bg-background">
       <div className="container-main">
-        <div className="text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
           <span className="inline-block px-4 py-1.5 rounded-full bg-red-brand-light text-primary text-sm font-semibold tracking-wide uppercase">
             Smart Features
           </span>
@@ -51,21 +74,22 @@ const FeaturesSection = () => {
             Aapke restaurant ki har zarurat,{" "}
             <span className="text-primary">ek jagah</span>
           </h2>
-        </div>
+        </motion.div>
 
         <div className="space-y-24">
-          {features.map((feature, index) => (
+          {features.map((feature) => (
             <motion.div
               key={feature.tag}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className={`grid lg:grid-cols-2 gap-12 items-center ${
-                feature.reverse ? "lg:direction-rtl" : ""
-              }`}
+              className="grid lg:grid-cols-2 gap-12 items-center"
             >
-              <div className={feature.reverse ? "lg:order-2" : ""}>
+              <motion.div
+                variants={textVariants}
+                className={feature.reverse ? "lg:order-2" : ""}
+              >
                 <span className="inline-block px-3 py-1 rounded-md bg-red-brand-light text-primary text-xs font-bold tracking-wider uppercase">
                   {feature.tag}
                 </span>
@@ -77,18 +101,21 @@ const FeaturesSection = () => {
                 </p>
                 <a
                   href="#"
-                  className="inline-flex items-center mt-6 text-primary font-semibold hover:underline"
+                  className="inline-flex items-center mt-6 text-primary font-semibold hover:underline transition-all"
                 >
                   Explore features →
                 </a>
-              </div>
-              <div className={feature.reverse ? "lg:order-1" : ""}>
+              </motion.div>
+              <motion.div
+                variants={imageVariants}
+                className={feature.reverse ? "lg:order-1" : ""}
+              >
                 <img
                   src={feature.image}
                   alt={feature.title}
-                  className="w-full max-w-md mx-auto rounded-2xl shadow-card"
+                  className="w-full max-w-md mx-auto rounded-2xl shadow-card hover:shadow-card-hover transition-shadow duration-300"
                 />
-              </div>
+              </motion.div>
             </motion.div>
           ))}
         </div>
