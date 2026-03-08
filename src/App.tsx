@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleGuard from "@/components/RoleGuard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import OwnerLogin from "./pages/OwnerLogin";
@@ -33,11 +34,11 @@ const App = () => (
             <Route path="/owner/login" element={<OwnerLogin />} />
             <Route path="/owner/dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
             <Route path="/owner/menu" element={<ProtectedRoute><OwnerMenu /></ProtectedRoute>} />
-            <Route path="/owner/analytics" element={<ProtectedRoute><OwnerAnalytics /></ProtectedRoute>} />
+            <Route path="/owner/analytics" element={<ProtectedRoute><RoleGuard check="canViewAnalytics"><OwnerAnalytics /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/tables" element={<ProtectedRoute><OwnerTables /></ProtectedRoute>} />
-            <Route path="/owner/settings" element={<ProtectedRoute><OwnerSettings /></ProtectedRoute>} />
-            <Route path="/owner/leads" element={<ProtectedRoute><OwnerLeads /></ProtectedRoute>} />
-            <Route path="/owner/staff" element={<ProtectedRoute><OwnerStaff /></ProtectedRoute>} />
+            <Route path="/owner/settings" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerSettings /></RoleGuard></ProtectedRoute>} />
+            <Route path="/owner/leads" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerLeads /></RoleGuard></ProtectedRoute>} />
+            <Route path="/owner/staff" element={<ProtectedRoute><RoleGuard check="canManageStaff"><OwnerStaff /></RoleGuard></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />

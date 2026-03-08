@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield } from "lucide-react";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { isOwner, canViewAnalytics, canManageMenu, canManageStaff } = useStaffRole();
   const [newOrderCount, setNewOrderCount] = useState(0);
 
   const fetchNewOrderCount = async () => {
@@ -42,17 +44,19 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/owner/login");
   };
 
-  const sidebarLinks = [
+  const allLinks = [
     { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount },
-    { to: "/owner/analytics", icon: BarChart3, label: "Analytics" },
-    { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
+    { to: "/owner/analytics", icon: BarChart3, label: "Analytics", visible: canViewAnalytics },
+    { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu", visible: canManageMenu },
     { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen" },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR" },
-    { to: "/owner/leads", icon: Users, label: "Leads" },
-    { to: "/owner/staff", icon: Shield, label: "Staff" },
-    { to: "/owner/settings", icon: Settings, label: "Settings" },
+    { to: "/owner/leads", icon: Users, label: "Leads", visible: isOwner },
+    { to: "/owner/staff", icon: Shield, label: "Staff", visible: canManageStaff },
+    { to: "/owner/settings", icon: Settings, label: "Settings", visible: isOwner },
     { to: "/install", icon: Download, label: "Install App" },
   ];
+
+  const sidebarLinks = allLinks.filter((link) => link.visible !== false);
 
   const mobileLinks = sidebarLinks.filter((link) => link.to !== "/install");
 
