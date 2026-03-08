@@ -42,7 +42,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/owner/login");
   };
 
-  const links = [
+  const sidebarLinks = [
     { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount },
     { to: "/owner/analytics", icon: BarChart3, label: "Analytics" },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu" },
@@ -51,6 +51,8 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/owner/settings", icon: Settings, label: "Settings" },
     { to: "/install", icon: Download, label: "Install App" },
   ];
+
+  const mobileLinks = sidebarLinks.filter((link) => link.to !== "/install");
 
   return (
     <div className="min-h-screen bg-muted">
