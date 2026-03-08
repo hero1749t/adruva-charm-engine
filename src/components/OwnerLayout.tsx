@@ -75,7 +75,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
       <div className="flex">
         {/* Sidebar - desktop */}
         <aside className="hidden md:flex flex-col w-56 bg-card border-r border-border min-h-[calc(100vh-3.5rem)] p-4 gap-1">
-          {links.map((link) => (
+          {sidebarLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
