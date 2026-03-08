@@ -259,6 +259,9 @@ const OwnerTables = () => {
 
                 {/* Actions */}
                 <div className="flex gap-1 mt-3 justify-center">
+                  <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setQrTable(table)}>
+                    <QrCode className="w-3 h-3 mr-1" /> QR
+                  </Button>
                   <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => copyLink(table.table_number)}>
                     <Copy className="w-3 h-3 mr-1" /> Link
                   </Button>
