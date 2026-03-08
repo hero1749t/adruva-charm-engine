@@ -424,6 +424,13 @@ const CustomerMenu = () => {
                 </span>
               </button>
             )}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-1.5 rounded-lg bg-secondary-foreground/10 hover:bg-secondary-foreground/20 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <span className="font-display text-sm font-bold">
               <span className="text-primary">ADRU</span>vaa
             </span>
