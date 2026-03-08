@@ -106,9 +106,12 @@ const FeaturesSection = () => {
                 variants={imageVariants}
                 className={feature.reverse ? "lg:order-1" : ""}
               >
-                <img
-                  src={feature.image}
-                  alt={feature.title}
+                <video
+                  src={feature.video}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                   className="w-full max-w-md mx-auto rounded-2xl shadow-card hover:shadow-card-hover transition-shadow duration-300"
                 />
               </motion.div>
