@@ -41,6 +41,7 @@ const statusTabs = [
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
+  const { isOwner, isManager, canViewAnalytics } = useStaffRole();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [filter, setFilter] = useState<string>("active");
   const [loading, setLoading] = useState(true);
