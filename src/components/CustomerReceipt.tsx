@@ -59,6 +59,27 @@ const CustomerReceipt = ({
     printWindow.document.close();
   };
 
+  const shareOnWhatsApp = () => {
+    const itemLines = items.map((item) => `• ${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(0)}`).join("\n");
+    const message = [
+      `🧾 *Receipt - ${restaurantName || "Restaurant"}*`,
+      `Order #${orderId.slice(0, 8)} | Table ${tableNumber}`,
+      `📅 ${createdAt}`,
+      ``,
+      `*Items:*`,
+      itemLines,
+      ``,
+      `Subtotal: ₹${subtotal.toFixed(0)}`,
+      `GST (5%): ₹${gstAmount.toFixed(0)}`,
+      `*Total: ₹${total.toFixed(0)}*`,
+      ``,
+      `Thank you! 🙏`,
+    ].join("\n");
+
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
