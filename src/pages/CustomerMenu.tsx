@@ -247,6 +247,41 @@ const CustomerMenu = () => {
               {liveStatus === "ready" ? "Your order is ready!" : liveStatus === "served" ? "Enjoy your meal!" : "Order Placed!"}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">Table {tableNumber} • Order #{orderPlaced.slice(0, 8)}</p>
+            
+            {/* Estimated time display */}
+            {timeLeft !== null && timeLeft > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 inline-flex items-center gap-2 bg-accent/50 border border-border rounded-full px-4 py-2"
+              >
+                <Clock className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  ~{Math.ceil(timeLeft / 60)} min remaining
+                </span>
+              </motion.div>
+            )}
+            {timeLeft === 0 && liveStatus !== "ready" && liveStatus !== "served" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-3 inline-flex items-center gap-2 bg-accent/50 border border-border rounded-full px-4 py-2"
+              >
+                <Clock className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Almost ready...</span>
+              </motion.div>
+            )}
+            {(liveStatus === "ready" || liveStatus === "served") && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-3 inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2"
+              >
+                <span className="text-sm font-semibold text-primary">
+                  {liveStatus === "ready" ? "🎉 Pick up now!" : "✨ Bon appétit!"}
+                </span>
+              </motion.div>
+            )}
           </motion.div>
 
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 bg-card border border-border rounded-2xl p-5 shadow-card">
