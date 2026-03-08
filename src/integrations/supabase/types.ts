@@ -60,21 +60,27 @@ export type Database = {
       }
       demo_requests: {
         Row: {
+          city: string | null
           created_at: string
+          has_website: boolean | null
           id: string
           name: string
           phone: string
           restaurant_name: string
         }
         Insert: {
+          city?: string | null
           created_at?: string
+          has_website?: boolean | null
           id?: string
           name: string
           phone: string
           restaurant_name: string
         }
         Update: {
+          city?: string | null
           created_at?: string
+          has_website?: boolean | null
           id?: string
           name?: string
           phone?: string

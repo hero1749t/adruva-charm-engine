@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
-
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
   visible: (i: number) => ({
@@ -17,6 +16,15 @@ const HeroSection = () => {
       <div className="container-main px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
+            <motion.span
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              custom={0}
+              className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold tracking-wide uppercase mb-6"
+            >
+              Your Digital Partner for Restaurants
+            </motion.span>
             <motion.h1
               variants={fadeUp}
               initial="hidden"
@@ -24,10 +32,8 @@ const HeroSection = () => {
               custom={0}
               className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-secondary-foreground"
             >
-              Apne Restaurant ko{" "}
-              <span className="text-primary">Digital</span> banao,{" "}
-              <br className="hidden md:block" />
-              sirf 1 ghante mein!
+              Grow Your Restaurant with{" "}
+              <span className="text-primary">Adruva Solution</span>
             </motion.h1>
             <motion.p
               variants={fadeUp}
@@ -36,7 +42,7 @@ const HeroSection = () => {
               custom={1}
               className="mt-6 text-lg text-secondary-foreground/70 max-w-lg"
             >
-              QR se menu, online orders, UPI payments aur live dashboard — sab kuch ek jagah. Koi app download nahi, koi training nahi.
+              We build high-converting restaurant websites, online ordering systems, and automated marketing to help your restaurant get more customers.
             </motion.p>
             <motion.div
               variants={fadeUp}
@@ -46,21 +52,30 @@ const HeroSection = () => {
               className="mt-8 flex flex-wrap gap-4"
             >
               <Button variant="hero" size="lg" className="h-14 px-8 text-base" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}>
-                Free Demo Le
+                Get Your Restaurant Website
               </Button>
-              <Button variant="hero-outline" size="lg" className="h-14 px-8 text-base" onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}>
-                Features Dekho
+              <Button variant="hero-outline" size="lg" className="h-14 px-8 text-base" onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}>
+                Free Consultation
               </Button>
             </motion.div>
-            <motion.p
+            <motion.div
               variants={fadeUp}
               initial="hidden"
               animate="visible"
               custom={3}
-              className="mt-6 text-sm text-secondary-foreground/50"
+              className="mt-8 grid grid-cols-3 gap-6"
             >
-              ✓ Setup under 1 hour &nbsp; ✓ No hardware needed &nbsp; ✓ Free trial
-            </motion.p>
+              {[
+                { value: "50+", label: "Restaurants Served" },
+                { value: "2x", label: "More Online Orders" },
+                { value: "₹5K", label: "Starting Price" },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <p className="font-display text-2xl md:text-3xl font-bold text-primary">{stat.value}</p>
+                  <p className="text-sm text-secondary-foreground/50">{stat.label}</p>
+                </div>
+              ))}
+            </motion.div>
           </div>
 
           <motion.div
