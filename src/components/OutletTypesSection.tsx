@@ -29,7 +29,7 @@ const OutletTypesSection = () => {
             <span className="text-primary">Food Businesses</span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Chota dhaba ho ya bada restaurant — Adruvaa sabke liye kaam karta hai
+            From small dhabas to large restaurants — Adruva works for everyone
           </p>
         </motion.div>
 

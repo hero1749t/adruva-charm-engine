@@ -17,7 +17,7 @@ const benefits = [
 
 const WhyChooseSection = () => {
   return (
-    <section className="section-padding bg-background">
+    <section id="why-choose" className="section-padding bg-background">
       <div className="container-main">
         {/* Problem Section */}
         <motion.div
