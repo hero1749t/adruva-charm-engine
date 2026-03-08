@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import heroImg from "@/assets/hero-illustration.png";
+
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
