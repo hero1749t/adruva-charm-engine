@@ -25,8 +25,8 @@ const OutletTypesSection = () => {
             Outlet Types
           </span>
           <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
-            Har type ke food business ke liye{" "}
-            <span className="text-primary">built</span>
+            Trusted by All Types of{" "}
+            <span className="text-primary">Food Businesses</span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             Chota dhaba ho ya bada restaurant — Adruvaa sabke liye kaam karta hai
