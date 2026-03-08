@@ -98,6 +98,7 @@ const CustomerMenu = () => {
     await supabase.from("order_items").insert(orderItems);
 
     setOrderPlaced(order.id);
+    setOrderTotal(total);
     setCart([]);
     setCartOpen(false);
     setOrdering(false);
