@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
-
 type CartItem = MenuItem & { quantity: number };
+type PastOrder = { id: string; total: number; itemCount: number; time: string };
 
 const CustomerMenu = () => {
   const { ownerId } = useParams();
@@ -29,18 +31,20 @@ const CustomerMenu = () => {
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState(0);
   const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [vegOnly, setVegOnly] = useState(false);
+  const [pastOrders, setPastOrders] = useState<PastOrder[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<string>("new");
 
   useEffect(() => {
     if (!ownerId) return;
-
-    // Fetch restaurant name
     supabase.from("profiles").select("restaurant_name, upi_id, phone").eq("user_id", ownerId).single().then(({ data }) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
     });
-
-    // Fetch menu
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
       supabase.from("menu_items").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order"),
@@ -50,13 +54,28 @@ const CustomerMenu = () => {
     });
   }, [ownerId]);
 
+  // Real-time order tracking
+  useEffect(() => {
+    if (!orderPlaced) return;
+    supabase.from("orders").select("status").eq("id", orderPlaced).single().then(({ data }) => {
+      if (data) setLiveStatus(data.status);
+    });
+    const channel = supabase
+      .channel(`order-track-${orderPlaced}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderPlaced}` }, (payload) => {
+        setLiveStatus((payload.new as any).status);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [orderPlaced]);
+
   const addToCart = (item: MenuItem) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.id === item.id);
       if (existing) return prev.map((c) => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
       return [...prev, { ...item, quantity: 1 }];
     });
-    toast.success(`${item.name} added`);
+    toast.success(`${item.name} added`, { duration: 1500 });
   };
 
   const updateQty = (itemId: string, delta: number) => {
@@ -71,7 +90,6 @@ const CustomerMenu = () => {
   const placeOrder = async () => {
     if (!ownerId || cart.length === 0) return;
     setOrdering(true);
-
     const { data: order, error } = await supabase
       .from("orders")
       .insert({
@@ -80,6 +98,7 @@ const CustomerMenu = () => {
         customer_phone: phone || null,
         total_amount: total,
         status: "new",
+        notes: notes.trim() || null,
       })
       .select()
       .single();
@@ -97,44 +116,33 @@ const CustomerMenu = () => {
       item_price: Number(c.price),
       quantity: c.quantity,
     }));
-
     await supabase.from("order_items").insert(orderItems);
+
+    // Save to session history
+    setPastOrders((prev) => [
+      { id: order.id, total, itemCount: cartCount, time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
+      ...prev,
+    ]);
 
     setOrderPlaced(order.id);
     setOrderTotal(total);
     setCart([]);
     setCartOpen(false);
     setOrdering(false);
+    setNotes("");
   };
 
-  const filteredItems = selectedCat ? items.filter((i) => i.category_id === selectedCat) : items;
-
-  // Real-time order tracking
-  const [liveStatus, setLiveStatus] = useState<string>("new");
-
-  useEffect(() => {
-    if (!orderPlaced) return;
-
-    // Fetch initial status
-    supabase.from("orders").select("status").eq("id", orderPlaced).single().then(({ data }) => {
-      if (data) setLiveStatus(data.status);
-    });
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel(`order-track-${orderPlaced}`)
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "orders",
-        filter: `id=eq.${orderPlaced}`,
-      }, (payload) => {
-        setLiveStatus((payload.new as any).status);
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [orderPlaced]);
+  // Filtered items with search + veg filter
+  const filteredItems = useMemo(() => {
+    let result = items;
+    if (selectedCat) result = result.filter((i) => i.category_id === selectedCat);
+    if (vegOnly) result = result.filter((i) => i.is_veg);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((i) => i.name.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q));
+    }
+    return result;
+  }, [items, selectedCat, vegOnly, searchQuery]);
 
   const statusSteps = [
     { key: "new", label: "Order Placed", emoji: "📝" },
@@ -143,9 +151,9 @@ const CustomerMenu = () => {
     { key: "ready", label: "Ready!", emoji: "✅" },
     { key: "served", label: "Served", emoji: "🍽️" },
   ];
-
   const currentStepIndex = statusSteps.findIndex((s) => s.key === liveStatus);
 
+  // ── ORDER TRACKING SCREEN ──
   if (orderPlaced) {
     const upiLink = upiId
       ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(restaurantName || "Restaurant")}&am=${orderTotal.toFixed(2)}&cu=INR&tn=Order-${orderPlaced.slice(0, 8)}`
@@ -154,7 +162,7 @@ const CustomerMenu = () => {
     return (
       <div className="min-h-screen bg-background px-4 py-8">
         <div className="max-w-sm mx-auto">
-          <div className="text-center">
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">{statusSteps[currentStepIndex]?.emoji || "📝"}</span>
             </div>
@@ -162,11 +170,10 @@ const CustomerMenu = () => {
               {liveStatus === "ready" ? "Your order is ready!" : liveStatus === "served" ? "Enjoy your meal!" : "Order Placed!"}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">Table {tableNumber} • Order #{orderPlaced.slice(0, 8)}</p>
-          </div>
+          </motion.div>
 
-          {/* Status tracker */}
-          <div className="mt-6 bg-card border border-border rounded-xl p-5 shadow-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Order Status</p>
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 bg-card border border-border rounded-2xl p-5 shadow-card">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Live Status</p>
             <div className="space-y-0">
               {statusSteps.map((step, i) => {
                 const isActive = i <= currentStepIndex;
@@ -175,20 +182,20 @@ const CustomerMenu = () => {
                 return (
                   <div key={step.key} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                        isCurrent
-                          ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                          : isActive
-                          ? "bg-primary text-primary-foreground"
+                      <motion.div
+                        animate={isCurrent ? { scale: [1, 1.15, 1] } : {}}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all ${
+                          isCurrent ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-lg"
+                          : isActive ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground"
-                      }`}>
+                        }`}
+                      >
                         {step.emoji}
-                      </div>
-                      {!isLast && (
-                        <div className={`w-0.5 h-6 transition-colors ${isActive && i < currentStepIndex ? "bg-primary" : "bg-border"}`} />
-                      )}
+                      </motion.div>
+                      {!isLast && <div className={`w-0.5 h-5 transition-colors ${isActive && i < currentStepIndex ? "bg-primary" : "bg-border"}`} />}
                     </div>
-                    <div className={`pt-1 ${isCurrent ? "text-foreground font-semibold" : isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                    <div className={`pt-1.5 ${isCurrent ? "text-foreground font-semibold" : isActive ? "text-foreground" : "text-muted-foreground"}`}>
                       <p className="text-sm">{step.label}</p>
                       {isCurrent && liveStatus !== "served" && (
                         <p className="text-xs text-primary mt-0.5 animate-pulse">In progress...</p>
@@ -198,21 +205,19 @@ const CustomerMenu = () => {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
 
           {upiLink && (
-            <div className="mt-4 bg-card border border-border rounded-xl p-5 shadow-card text-center">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="mt-4 bg-card border border-border rounded-2xl p-5 shadow-card text-center">
               <p className="font-semibold text-foreground mb-1">Pay ₹{orderTotal.toFixed(0)} via UPI</p>
               <p className="text-xs text-muted-foreground mb-3">Scan with any UPI app</p>
-              <div className="bg-background rounded-lg p-3 inline-block">
-                <QRCodeSVG value={upiLink} size={160} />
-              </div>
+              <div className="bg-background rounded-lg p-3 inline-block"><QRCodeSVG value={upiLink} size={150} /></div>
               <p className="text-xs text-muted-foreground mt-2">UPI: {upiId}</p>
-            </div>
+            </motion.div>
           )}
 
           {!upiLink && (
-            <div className="mt-4 bg-card border border-border rounded-xl p-4 shadow-card text-center">
+            <div className="mt-4 bg-card border border-border rounded-2xl p-4 shadow-card text-center">
               <p className="font-semibold text-foreground">Pay ₹{orderTotal.toFixed(0)} at the counter</p>
             </div>
           )}
@@ -226,7 +231,7 @@ const CustomerMenu = () => {
               rel="noopener noreferrer"
               className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 transition-colors"
             >
-              📱 Notify Restaurant on WhatsApp
+              📱 Notify on WhatsApp
             </a>
           )}
 
@@ -238,150 +243,300 @@ const CustomerMenu = () => {
     );
   }
 
+  // ── MENU SCREEN ──
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-secondary px-4 py-3 text-secondary-foreground">
+      <header className="sticky top-0 z-40 bg-secondary px-4 py-3 text-secondary-foreground shadow-lg">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-lg font-bold">{restaurantName || "Menu"}</h1>
+            <h1 className="font-display text-lg font-bold tracking-tight">{restaurantName || "Menu"}</h1>
             {tableNumber > 0 && <p className="text-xs text-secondary-foreground/60">Table {tableNumber}</p>}
           </div>
-          <span className="font-display text-sm font-bold">
-            <span className="text-primary">ADRU</span>vaa
-          </span>
+          <div className="flex items-center gap-3">
+            {pastOrders.length > 0 && (
+              <button onClick={() => setShowHistory(true)} className="relative text-secondary-foreground/70 hover:text-secondary-foreground">
+                <Clock className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {pastOrders.length}
+                </span>
+              </button>
+            )}
+            <span className="font-display text-sm font-bold">
+              <span className="text-primary">ADRU</span>vaa
+            </span>
+          </div>
         </div>
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-4">
-        {/* Category pills */}
-        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4">
+        {/* Search bar */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search dishes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
+        {/* Veg filter + Category pills */}
+        <div className="flex items-center gap-3 mb-4">
           <button
-            onClick={() => setSelectedCat(null)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              !selectedCat ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            onClick={() => setVegOnly(!vegOnly)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+              vegOnly ? "bg-green-50 border-green-500 text-green-700" : "bg-card border-border text-muted-foreground"
             }`}
           >
-            All
+            <Leaf className="w-3.5 h-3.5" />
+            Veg
           </button>
-          {categories.map((cat) => (
+          <div className="flex gap-2 overflow-x-auto pb-1 -mr-4 pr-4">
             <button
-              key={cat.id}
-              onClick={() => setSelectedCat(cat.id)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedCat === cat.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              onClick={() => setSelectedCat(null)}
+              className={`px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                !selectedCat ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"
               }`}
             >
-              {cat.name}
+              All
             </button>
-          ))}
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCat(cat.id)}
+                className={`px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                  selectedCat === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Menu items */}
-        <div className="space-y-3">
-          {filteredItems.map((item) => {
-            const inCart = cart.find((c) => c.id === item.id);
-            return (
-              <div key={item.id} className="flex gap-3 bg-card rounded-xl border border-border p-3 shadow-card">
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-3 h-3 rounded-sm border ${item.is_veg ? "border-green-600 bg-green-600" : "border-red-600 bg-red-600"}`} />
-                    <span className="font-semibold text-foreground text-sm truncate">{item.name}</span>
-                  </div>
-                  {item.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>}
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="font-display font-bold text-foreground">₹{item.price}</span>
-                    {inCart ? (
-                      <div className="flex items-center gap-2 bg-primary rounded-lg px-1">
-                        <button onClick={() => updateQty(item.id, -1)} className="p-1 text-primary-foreground"><Minus className="w-4 h-4" /></button>
-                        <span className="text-sm font-bold text-primary-foreground w-5 text-center">{inCart.quantity}</span>
-                        <button onClick={() => updateQty(item.id, 1)} className="p-1 text-primary-foreground"><Plus className="w-4 h-4" /></button>
+        <AnimatePresence mode="popLayout">
+          {filteredItems.length === 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
+              <p className="text-muted-foreground">No dishes found</p>
+              {(searchQuery || vegOnly) && (
+                <button onClick={() => { setSearchQuery(""); setVegOnly(false); }} className="text-primary text-sm mt-2 underline">
+                  Clear filters
+                </button>
+              )}
+            </motion.div>
+          )}
+          <div className="space-y-3">
+            {filteredItems.map((item) => {
+              const inCart = cart.find((c) => c.id === item.id);
+              return (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex gap-3 bg-card rounded-2xl border border-border p-3 shadow-card hover:shadow-md transition-shadow"
+                >
+                  {item.image_url && (
+                    <img src={item.image_url} alt={item.name} className="w-24 h-24 rounded-xl object-cover flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-3 h-3 rounded-sm border-2 flex-shrink-0 ${
+                          item.is_veg ? "border-green-600" : "border-red-500"
+                        }`}>
+                          <span className={`block w-1.5 h-1.5 rounded-full m-auto mt-[1px] ${
+                            item.is_veg ? "bg-green-600" : "bg-red-500"
+                          }`} />
+                        </span>
+                        <span className="font-semibold text-foreground text-sm truncate">{item.name}</span>
                       </div>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => addToCart(item)} className="h-8 text-xs border-primary text-primary">
-                        <Plus className="w-3 h-3 mr-1" /> ADD
-                      </Button>
-                    )}
+                      {item.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>}
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="font-display font-bold text-foreground text-base">₹{item.price}</span>
+                      {inCart ? (
+                        <motion.div
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center gap-1 bg-primary rounded-xl overflow-hidden"
+                        >
+                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-primary-foreground hover:bg-primary/80 transition-colors">
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="text-sm font-bold text-primary-foreground w-6 text-center">{inCart.quantity}</span>
+                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-primary-foreground hover:bg-primary/80 transition-colors">
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </motion.div>
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => addToCart(item)}
+                          className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 border-primary text-primary text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> ADD
+                        </motion.button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </AnimatePresence>
       </div>
 
       {/* Cart bar */}
-      {cartCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-primary p-4 z-50">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            <div className="text-primary-foreground">
-              <span className="font-bold">{cartCount} item{cartCount > 1 ? "s" : ""}</span>
-              <span className="mx-2">|</span>
-              <span className="font-display font-bold">₹{total.toFixed(0)}</span>
+      <AnimatePresence>
+        {cartCount > 0 && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 right-0 bg-primary p-4 z-50 shadow-2xl"
+          >
+            <div className="max-w-lg mx-auto flex items-center justify-between">
+              <div className="text-primary-foreground">
+                <span className="font-bold">{cartCount} item{cartCount > 1 ? "s" : ""}</span>
+                <span className="mx-2 opacity-50">|</span>
+                <span className="font-display font-bold text-lg">₹{total.toFixed(0)}</span>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCartOpen(true)}
+                className="flex items-center gap-2 bg-primary-foreground text-primary px-4 py-2 rounded-xl font-bold text-sm"
+              >
+                View Cart <ShoppingCart className="w-4 h-4" />
+              </motion.button>
             </div>
-            <Button
-              variant="hero-outline"
-              size="sm"
-              onClick={() => setCartOpen(true)}
-            >
-              View Cart <ShoppingCart className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cart drawer */}
-      {cartOpen && (
-        <div className="fixed inset-0 z-50 bg-foreground/50" onClick={() => setCartOpen(false)}>
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-bold text-foreground">Your Cart</h2>
-              <button onClick={() => setCartOpen(false)} className="text-muted-foreground"><X className="w-5 h-5" /></button>
-            </div>
+      <AnimatePresence>
+        {cartOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm"
+            onClick={() => setCartOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[85vh] overflow-y-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display text-xl font-bold text-foreground">Your Cart</h2>
+                <button onClick={() => setCartOpen(false)} className="text-muted-foreground p-1 hover:text-foreground transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="space-y-3 mb-6">
-              {cart.map((item) => (
-                <div key={item.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground">₹{(Number(item.price) * item.quantity).toFixed(0)}</span>
-                    <div className="flex items-center gap-1 bg-muted rounded-lg px-1">
-                      <button onClick={() => updateQty(item.id, -1)} className="p-1"><Minus className="w-3 h-3" /></button>
-                      <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQty(item.id, 1)} className="p-1"><Plus className="w-3 h-3" /></button>
+              <div className="space-y-3 mb-5">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-sm ${item.is_veg ? "bg-green-600" : "bg-red-500"}`} />
+                      <div>
+                        <p className="font-medium text-foreground text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-foreground text-sm">₹{(Number(item.price) * item.quantity).toFixed(0)}</span>
+                      <div className="flex items-center gap-0.5 bg-muted rounded-lg overflow-hidden">
+                        <button onClick={() => updateQty(item.id, -1)} className="p-1.5 hover:bg-muted-foreground/10"><Minus className="w-3 h-3" /></button>
+                        <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
+                        <button onClick={() => updateQty(item.id, 1)} className="p-1.5 hover:bg-muted-foreground/10"><Plus className="w-3 h-3" /></button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-border pt-4 mb-4">
-              <div className="flex justify-between font-display font-bold text-lg text-foreground">
-                <span>Total</span>
-                <span>₹{total.toFixed(0)}</span>
+                ))}
               </div>
-            </div>
 
-            <input
-              type="tel"
-              placeholder="Phone number (optional — for WhatsApp update)"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full border border-border rounded-lg px-4 py-3 text-sm mb-4 bg-background"
-            />
+              {/* Order notes */}
+              <textarea
+                placeholder="Special instructions (e.g. extra spicy, no onion)..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={300}
+                rows={2}
+                className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-3 bg-background text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
 
-            <Button variant="hero" className="w-full h-14 text-base" onClick={placeOrder} disabled={ordering}>
-              {ordering ? "Placing Order..." : `Place Order — ₹${total.toFixed(0)}`}
-            </Button>
-          </div>
-        </div>
-      )}
+              <div className="border-t border-border pt-4 mb-4">
+                <div className="flex justify-between font-display font-bold text-lg text-foreground">
+                  <span>Total</span>
+                  <span>₹{total.toFixed(0)}</span>
+                </div>
+              </div>
+
+              <input
+                type="tel"
+                placeholder="Phone number (optional — for updates)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-4 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+
+              <Button variant="hero" className="w-full h-14 text-base rounded-xl" onClick={placeOrder} disabled={ordering}>
+                {ordering ? "Placing Order..." : `Place Order — ₹${total.toFixed(0)}`}
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Order history drawer */}
+      <AnimatePresence>
+        {showHistory && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm"
+            onClick={() => setShowHistory(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[60vh] overflow-y-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display text-lg font-bold text-foreground">Your Orders</h2>
+                <button onClick={() => setShowHistory(false)} className="text-muted-foreground"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-3">
+                {pastOrders.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between bg-muted rounded-xl p-3">
+                    <div>
+                      <p className="font-semibold text-foreground text-sm">Order #{o.id.slice(0, 8)}</p>
+                      <p className="text-xs text-muted-foreground">{o.itemCount} item{o.itemCount > 1 ? "s" : ""} • {o.time}</p>
+                    </div>
+                    <span className="font-display font-bold text-foreground">₹{o.total.toFixed(0)}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
