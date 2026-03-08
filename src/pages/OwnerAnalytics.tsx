@@ -1,11 +1,12 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { IndianRupee, ShoppingBag, TrendingUp, Utensils, Download, Star, MessageSquare, MessageCircle } from "lucide-react";
+import { IndianRupee, ShoppingBag, TrendingUp, Utensils, Download, Star, MessageSquare, MessageCircle, Send, Reply } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"];
@@ -23,6 +24,86 @@ const COLORS = [
 ];
 
 type Period = "today" | "7days" | "30days";
+
+// Review type with reply fields (not yet in generated types)
+type ReviewWithReply = Review & { owner_reply?: string | null; replied_at?: string | null };
+
+const ReviewCard = ({ review, onReplied }: { review: ReviewWithReply; onReplied: (id: string, text: string) => void }) => {
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyText, setReplyText] = useState((review as any).owner_reply || "");
+  const [sending, setSending] = useState(false);
+
+  const submitReply = async () => {
+    if (!replyText.trim()) return;
+    setSending(true);
+    const { error } = await supabase
+      .from("customer_reviews")
+      .update({ owner_reply: replyText.trim(), replied_at: new Date().toISOString() } as any)
+      .eq("id", review.id);
+    setSending(false);
+    if (error) {
+      toast("Failed to send reply");
+      return;
+    }
+    toast.success("Reply sent!");
+    setShowReplyInput(false);
+    onReplied(review.id, replyText.trim());
+  };
+
+  const hasReply = !!(review as any).owner_reply;
+
+  return (
+    <div className="border-b border-border pb-3 last:border-0">
+      <div className="flex items-center gap-1 mb-1">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star key={s} className={`w-3 h-3 ${s <= review.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />
+        ))}
+        <span className="text-xs text-muted-foreground ml-2">
+          {new Date(review.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+        </span>
+      </div>
+      {review.customer_name && <p className="text-xs font-semibold text-foreground">{review.customer_name}</p>}
+      <p className="text-xs text-muted-foreground">{review.comment}</p>
+
+      {hasReply && !showReplyInput && (
+        <div className="mt-2 ml-3 pl-2 border-l-2 border-primary/30">
+          <p className="text-xs text-foreground font-medium">Your reply:</p>
+          <p className="text-xs text-muted-foreground">{(review as any).owner_reply}</p>
+          <button onClick={() => setShowReplyInput(true)} className="text-xs text-primary mt-1 hover:underline">Edit</button>
+        </div>
+      )}
+
+      {!hasReply && !showReplyInput && (
+        <button
+          onClick={() => setShowReplyInput(true)}
+          className="mt-1.5 flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <Reply className="w-3 h-3" /> Reply
+        </button>
+      )}
+
+      {showReplyInput && (
+        <div className="mt-2 flex gap-1.5">
+          <input
+            type="text"
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Write a reply..."
+            className="flex-1 text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+            onKeyDown={(e) => e.key === "Enter" && submitReply()}
+          />
+          <button
+            onClick={submitReply}
+            disabled={sending || !replyText.trim()}
+            className="p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const OwnerAnalytics = () => {
   const { user } = useAuth();
@@ -365,29 +446,20 @@ const OwnerAnalytics = () => {
               </div>
             </Card>
 
-            {/* Recent Reviews */}
+            {/* Recent Reviews with Reply */}
             <Card className="p-5">
               <h2 className="font-display font-bold text-foreground mb-4 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" /> Recent Feedback
               </h2>
               {reviews.filter((r) => r.comment).length > 0 ? (
-                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
                   {reviews
                     .filter((r) => r.comment)
                     .slice(0, 10)
                     .map((r) => (
-                      <div key={r.id} className="border-b border-border pb-2 last:border-0">
-                        <div className="flex items-center gap-1 mb-1">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`w-3 h-3 ${s <= r.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />
-                          ))}
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {new Date(r.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                          </span>
-                        </div>
-                        {r.customer_name && <p className="text-xs font-semibold text-foreground">{r.customer_name}</p>}
-                        <p className="text-xs text-muted-foreground">{r.comment}</p>
-                      </div>
+                      <ReviewCard key={r.id} review={r} onReplied={(id, text) => {
+                        setReviews(prev => prev.map(rv => rv.id === id ? { ...rv, owner_reply: text, replied_at: new Date().toISOString() } : rv));
+                      }} />
                     ))}
                 </div>
               ) : (
