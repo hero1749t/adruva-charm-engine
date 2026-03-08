@@ -5,27 +5,25 @@ const Footer = () => {
     <footer className="bg-secondary text-secondary-foreground">
       <div className="container-main section-padding pb-8">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12">
-          {/* Brand */}
           <div>
             <a href="#" className="font-display text-2xl font-bold">
-              <span className="text-primary">ADRU</span>
-              <span className="text-secondary-foreground">vaa</span>
+              <span className="text-primary">Adruva</span>
+              <span className="text-secondary-foreground"> Solution</span>
             </a>
             <p className="mt-4 text-secondary-foreground/60 text-sm leading-relaxed">
-              Built for Bharat's restaurants. Chote se dhaba se lekar bade restaurant tak — sabko digital banao.
+              Your digital partner for restaurants. We build websites, ordering systems & marketing that bring more customers to your door.
             </p>
           </div>
 
-          {/* Product */}
           <div>
             <h4 className="font-display font-bold text-sm uppercase tracking-wider mb-4 text-secondary-foreground/80">
-              Product
+              Services
             </h4>
             <ul className="space-y-3">
-              {["Digital Menu", "QR Ordering", "Owner Dashboard", "UPI Payments", "Analytics", "Kitchen Display"].map(
+              {["Restaurant Website", "Online Ordering", "WhatsApp Orders", "Google Maps SEO", "Social Media Ads", "AI Chatbot"].map(
                 (item) => (
                   <li key={item}>
-                    <a href="#features" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors">
+                    <a href="#services" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors">
                       {item}
                     </a>
                   </li>
@@ -34,25 +32,23 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Outlet Types */}
           <div>
             <h4 className="font-display font-bold text-sm uppercase tracking-wider mb-4 text-secondary-foreground/80">
-              Outlet Types
+              We Serve
             </h4>
             <ul className="space-y-3">
-              {["Restaurants", "Cafes", "Dhabas", "Cloud Kitchens", "Food Courts", "Food Trucks"].map(
+              {["Restaurants", "Cafes", "Hotels", "Cloud Kitchens", "Food Brands", "Dhabas"].map(
                 (item) => (
                   <li key={item}>
-                    <a href="#outlet-types" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors">
+                    <span className="text-sm text-secondary-foreground/60">
                       {item}
-                    </a>
+                    </span>
                   </li>
                 )
               )}
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
             <h4 className="font-display font-bold text-sm uppercase tracking-wider mb-4 text-secondary-foreground/80">
               Contact
@@ -64,7 +60,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-3 text-sm text-secondary-foreground/60">
                 <Mail className="w-4 h-4 text-primary" />
-                hello@adruvaa.in
+                hello@adruva.in
               </li>
               <li className="flex items-start gap-3 text-sm text-secondary-foreground/60">
                 <MapPin className="w-4 h-4 text-primary mt-0.5" />
@@ -76,7 +72,7 @@ const Footer = () => {
 
         <div className="mt-16 pt-8 border-t border-secondary-foreground/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-secondary-foreground/40">
-            © 2026 Adruvaa. All rights reserved. Built for Bharat 🇮🇳
+            © 2026 Adruva Solution. All rights reserved. Built for Bharat 🇮🇳
           </p>
           <div className="flex gap-6">
             {["Privacy Policy", "Terms of Service"].map((item) => (

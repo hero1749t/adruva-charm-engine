@@ -5,10 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Outlet Types", href: "#outlet-types" },
+  { label: "Services", href: "#services" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Why Adruva", href: "#why-choose" },
+  { label: "Contact", href: "#lead-form" },
 ];
 
 const Navbar = () => {
@@ -33,11 +33,10 @@ const Navbar = () => {
           onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
           className="font-display text-2xl font-bold tracking-tight"
         >
-          <span className="text-primary">ADRU</span>
-          <span className="text-secondary">vaa</span>
+          <span className="text-primary">Adruva</span>
+          <span className="text-foreground"> Solution</span>
         </a>
 
-        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <a
@@ -59,13 +58,12 @@ const Navbar = () => {
           <Button
             variant="hero"
             size="lg"
-            onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}
           >
-            Book a Free Demo
+            Free Consultation
           </Button>
         </div>
 
-        {/* Mobile toggle */}
         <button
           className="md:hidden text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -74,7 +72,6 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -94,9 +91,9 @@ const Navbar = () => {
           <Button
             variant="hero"
             className="w-full mt-2"
-            onClick={() => { setMobileOpen(false); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}
+            onClick={() => { setMobileOpen(false); document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" }); }}
           >
-            Book a Free Demo
+            Free Consultation
           </Button>
         </motion.div>
       )}
