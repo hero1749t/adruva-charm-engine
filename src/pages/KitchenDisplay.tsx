@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Bell, BellOff } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"];
@@ -24,12 +25,44 @@ const statusFlow: Record<string, string> = {
   ready: "served",
 };
 
+const playNotificationSound = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const gainNode = ctx.createGain();
+    gainNode.connect(ctx.destination);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+
+    // Three-tone chime
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
+      osc.connect(gainNode);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.3);
+    });
+  } catch {}
+};
+
+const sendBrowserNotification = (order: { table_number: number | null; order_items: OrderItem[] }) => {
+  if (Notification.permission !== "granted") return;
+  const items = order.order_items.map((i) => `${i.quantity}× ${i.item_name}`).join(", ");
+  new Notification(`🔔 New Order — Table ${order.table_number || "?"}`, {
+    body: items || "New order received",
+    icon: "/favicon.ico",
+    tag: "new-order",
+  });
+};
+
 const KitchenDisplay = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [now, setNow] = useState(Date.now());
+  const [notifEnabled, setNotifEnabled] = useState(Notification.permission === "granted");
+  const prevOrderIdsRef = useRef<Set<string>>(new Set());
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("orders")
@@ -37,10 +70,23 @@ const KitchenDisplay = () => {
       .eq("owner_id", user.id)
       .in("status", ["new", "accepted", "preparing", "ready"])
       .order("created_at", { ascending: true });
-    if (data) setOrders(data as OrderWithItems[]);
-  };
+    if (data) {
+      const fetched = data as OrderWithItems[];
+      // Detect new orders
+      const newOrders = fetched.filter(
+        (o) => o.status === "new" && !prevOrderIdsRef.current.has(o.id)
+      );
+      if (newOrders.length > 0 && prevOrderIdsRef.current.size > 0) {
+        playNotificationSound();
+        newOrders.forEach((o) => sendBrowserNotification(o));
+        toast.success(`🔔 ${newOrders.length} new order${newOrders.length > 1 ? "s" : ""}!`);
+      }
+      prevOrderIdsRef.current = new Set(fetched.map((o) => o.id));
+      setOrders(fetched);
+    }
+  }, [user]);
 
-  useEffect(() => { fetchOrders(); }, [user]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   // Realtime
   useEffect(() => {
@@ -49,18 +95,26 @@ const KitchenDisplay = () => {
       .channel("kitchen-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` }, () => {
         fetchOrders();
-        // Play a sound for new orders
-        try { new Audio("data:audio/wav;base64,UklGRl9vT19teleXBl...").play().catch(() => {}); } catch {}
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, fetchOrders]);
 
   // Tick every 30s to update timers
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const requestNotifPermission = async () => {
+    const result = await Notification.requestPermission();
+    setNotifEnabled(result === "granted");
+    if (result === "granted") {
+      toast.success("Notifications enabled!");
+    } else {
+      toast.error("Notification permission denied");
+    }
+  };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     await supabase.from("orders").update({ status: newStatus as Order["status"] }).eq("id", orderId);
@@ -96,6 +150,15 @@ const KitchenDisplay = () => {
         <h1 className="font-display text-2xl font-bold text-foreground">🍳 Kitchen Display</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{orders.length} active</span>
+          <Button
+            variant={notifEnabled ? "outline" : "default"}
+            size="sm"
+            onClick={notifEnabled ? undefined : requestNotifPermission}
+            className="gap-1.5"
+          >
+            {notifEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            {notifEnabled ? "Notifications On" : "Enable Notifications"}
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchOrders}>Refresh</Button>
         </div>
       </div>
