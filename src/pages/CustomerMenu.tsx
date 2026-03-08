@@ -8,6 +8,8 @@ import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
+import CustomerReceipt from "@/components/CustomerReceipt";
+import CustomerReview from "@/components/CustomerReview";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
@@ -27,6 +29,11 @@ const CustomerMenu = () => {
   const [restaurantName, setRestaurantName] = useState("");
   const [upiId, setUpiId] = useState<string | null>(null);
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
+  const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
+  const [restaurantAddress, setRestaurantAddress] = useState<string | null>(null);
+  const [restaurantGst, setRestaurantGst] = useState<string | null>(null);
+  const [orderItems, setOrderItems] = useState<{ name: string; quantity: number; price: number }[]>([]);
+  const [orderCreatedAt, setOrderCreatedAt] = useState("");
   const [ordering, setOrdering] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState(0);
@@ -42,10 +49,13 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!ownerId) return;
-    supabase.from("profiles").select("restaurant_name, upi_id, phone").eq("user_id", ownerId).single().then(({ data }) => {
+    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number").eq("user_id", ownerId).single().then(({ data }: any) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
+      if (data?.restaurant_logo_url) setRestaurantLogo(data.restaurant_logo_url);
+      if (data?.address) setRestaurantAddress(data.address);
+      if (data?.gst_number) setRestaurantGst(data.gst_number);
     });
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
@@ -203,6 +213,8 @@ const CustomerMenu = () => {
     setOrderPlaced(order.id);
     setOrderPlacedAt(Date.now());
     setOrderTotal(total);
+    setOrderItems(cart.map(c => ({ name: c.name, quantity: c.quantity, price: Number(c.price) })));
+    setOrderCreatedAt(new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
     setCart([]);
     setCartOpen(false);
     setOrdering(false);
@@ -341,13 +353,35 @@ const CustomerMenu = () => {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 transition-colors"
+              className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-green-500 hover:bg-green-600 text-primary-foreground font-semibold py-3 px-4 transition-colors"
             >
               📱 Notify on WhatsApp
             </a>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); }}>
+          {/* Receipt */}
+          <CustomerReceipt
+            orderId={orderPlaced}
+            restaurantName={restaurantName}
+            tableNumber={tableNumber}
+            items={orderItems}
+            total={orderTotal}
+            gstNumber={restaurantGst}
+            address={restaurantAddress}
+            phone={ownerPhone}
+            createdAt={orderCreatedAt}
+          />
+
+          {/* Review - show after served */}
+          {(liveStatus === "served" || liveStatus === "ready") && ownerId && (
+            <CustomerReview
+              orderId={orderPlaced}
+              ownerId={ownerId}
+              onSubmitted={() => {}}
+            />
+          )}
+
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); setOrderItems([]); setOrderCreatedAt(""); }}>
             Order More
           </Button>
         </div>
@@ -361,9 +395,14 @@ const CustomerMenu = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-secondary px-4 py-3 text-secondary-foreground shadow-lg">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-lg font-bold tracking-tight">{restaurantName || "Menu"}</h1>
-            {tableNumber > 0 && <p className="text-xs text-secondary-foreground/60">Table {tableNumber}</p>}
+          <div className="flex items-center gap-3">
+            {restaurantLogo && (
+              <img src={restaurantLogo} alt="Logo" className="w-9 h-9 rounded-lg object-cover border border-secondary-foreground/20" />
+            )}
+            <div>
+              <h1 className="font-display text-lg font-bold tracking-tight">{restaurantName || "Menu"}</h1>
+              {tableNumber > 0 && <p className="text-xs text-secondary-foreground/60">Table {tableNumber}</p>}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {pastOrders.length > 0 && (
