@@ -99,6 +99,29 @@ const CustomerMenu = () => {
     }
   }, []);
 
+  // Estimated prep time based on item count (base 10min + 3min per item, max 45min)
+  const estimatedMinutes = useMemo(() => {
+    const itemCount = pastOrders.length > 0 ? pastOrders[0].itemCount : cart.reduce((s, c) => s + c.quantity, 0);
+    return Math.min(45, 10 + itemCount * 3);
+  }, [pastOrders, cart]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!orderPlacedAt || liveStatus === "ready" || liveStatus === "served" || liveStatus === "cancelled") {
+      setTimeLeft(null);
+      return;
+    }
+    const estimatedMs = estimatedMinutes * 60 * 1000;
+    const tick = () => {
+      const elapsed = Date.now() - orderPlacedAt;
+      const remaining = Math.max(0, estimatedMs - elapsed);
+      setTimeLeft(Math.ceil(remaining / 1000));
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [orderPlacedAt, estimatedMinutes, liveStatus]);
+
   // Real-time order tracking
   useEffect(() => {
     if (!orderPlaced) return;
