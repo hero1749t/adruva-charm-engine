@@ -127,7 +127,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
                 </span>
               ) : null}
             </div>
-            {link.label}
+            <span className="truncate max-w-[3.5rem]">{link.label}</span>
           </NavLink>
         ))}
       </nav>
