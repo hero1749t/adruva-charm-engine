@@ -23,6 +23,7 @@ const CustomerMenu = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
+  const [upiId, setUpiId] = useState<string | null>(null);
   const [ordering, setOrdering] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
