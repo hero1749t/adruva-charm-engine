@@ -178,6 +178,7 @@ const CustomerMenu = () => {
     ]);
 
     setOrderPlaced(order.id);
+    setOrderPlacedAt(Date.now());
     setOrderTotal(total);
     setCart([]);
     setCartOpen(false);
