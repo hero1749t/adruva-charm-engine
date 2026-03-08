@@ -54,6 +54,49 @@ const CustomerMenu = () => {
     });
   }, [ownerId]);
 
+  // Play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Pleasant notification chime (two-tone)
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.15); // G5
+      oscillator.frequency.setValueAtTime(987.77, audioContext.currentTime + 0.3); // B5
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (e) {
+      console.log("Audio notification not supported");
+    }
+  };
+
+  // Show browser notification
+  const showBrowserNotification = () => {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("🎉 Your order is ready!", {
+        body: `Table ${tableNumber} - Pick up your order!`,
+        icon: "/favicon.ico",
+        tag: "order-ready",
+      });
+    }
+  };
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Real-time order tracking
   useEffect(() => {
     if (!orderPlaced) return;
@@ -63,11 +106,19 @@ const CustomerMenu = () => {
     const channel = supabase
       .channel(`order-track-${orderPlaced}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderPlaced}` }, (payload) => {
-        setLiveStatus((payload.new as any).status);
+        const newStatus = (payload.new as any).status;
+        setLiveStatus(newStatus);
+        
+        // Trigger alerts when order is ready
+        if (newStatus === "ready") {
+          playNotificationSound();
+          showBrowserNotification();
+          toast.success("🎉 Your order is ready!", { duration: 5000 });
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [orderPlaced]);
+  }, [orderPlaced, tableNumber]);
 
   const addToCart = (item: MenuItem) => {
     setCart((prev) => {
