@@ -45,10 +45,10 @@ const HeroSection = () => {
               custom={2}
               className="mt-8 flex flex-wrap gap-4"
             >
-              <Button variant="hero" size="lg" className="h-14 px-8 text-base">
+              <Button variant="hero" size="lg" className="h-14 px-8 text-base" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}>
                 Free Demo Le
               </Button>
-              <Button variant="hero-outline" size="lg" className="h-14 px-8 text-base">
+              <Button variant="hero-outline" size="lg" className="h-14 px-8 text-base" onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}>
                 Features Dekho
               </Button>
             </motion.div>
