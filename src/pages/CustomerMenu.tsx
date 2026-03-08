@@ -29,6 +29,11 @@ const CustomerMenu = () => {
   const [restaurantName, setRestaurantName] = useState("");
   const [upiId, setUpiId] = useState<string | null>(null);
   const [ownerPhone, setOwnerPhone] = useState<string | null>(null);
+  const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
+  const [restaurantAddress, setRestaurantAddress] = useState<string | null>(null);
+  const [restaurantGst, setRestaurantGst] = useState<string | null>(null);
+  const [orderItems, setOrderItems] = useState<{ name: string; quantity: number; price: number }[]>([]);
+  const [orderCreatedAt, setOrderCreatedAt] = useState("");
   const [ordering, setOrdering] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState(0);
