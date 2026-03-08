@@ -2,6 +2,8 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Receipt, Download, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface ReceiptItem {
   name: string;
