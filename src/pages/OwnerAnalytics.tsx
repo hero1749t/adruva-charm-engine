@@ -56,6 +56,16 @@ const OwnerAnalytics = () => {
         setOrders((data as OrderWithItems[]) || []);
         setLoading(false);
       });
+
+    supabase
+      .from("customer_reviews")
+      .select("*")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setReviews(data || []);
+      });
   }, [user, period]);
 
   const stats = useMemo(() => {
