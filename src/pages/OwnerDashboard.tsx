@@ -32,6 +32,7 @@ const OwnerDashboard = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [filter, setFilter] = useState<string>("active");
+  const [loading, setLoading] = useState(true);
 
   const fetchOrders = async () => {
     if (!user) return;
