@@ -15,6 +15,7 @@ import OwnerSettings from "./pages/OwnerSettings";
 import CustomerMenu from "./pages/CustomerMenu";
 import KitchenDisplay from "./pages/KitchenDisplay";
 import OwnerAnalytics from "./pages/OwnerAnalytics";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
