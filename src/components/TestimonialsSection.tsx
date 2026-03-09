@@ -25,7 +25,7 @@ const testimonials = [
     image: testimonial2,
     highlight: "1 ghante mein setup ho gaya!",
     quote:
-      "Mujhe technology ka zyada pata nahi tha, but Adruvaa itna simple hai ki maine khud 1 ghante mein setup kar liya. Menu upload kiya, QR generate kiye, aur bass! Customers ko bahut pasand aaya digital menu.",
+      "Mujhe technology ka zyada pata nahi tha, but Adruva Resto itna simple hai ki maine khud 1 ghante mein setup kar liya. Menu upload kiya, QR generate kiye, aur bass! Customers ko bahut pasand aaya digital menu.",
     rating: 5,
     metric: "1hr",
     metricLabel: "Setup Time",
