@@ -8,7 +8,7 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <a href="#" className="font-display text-2xl font-bold">
               <span className="text-primary">Adruva</span>
-              <span className="text-secondary-foreground"> Solution</span>
+              <span className="text-secondary-foreground"> Resto</span>
             </a>
             <p className="mt-4 text-secondary-foreground/50 text-sm leading-relaxed">
               Digital Marketing & Website Agency for restaurants. We help food businesses grow online.
