@@ -39,7 +39,7 @@ const Footer = () => {
             <ul className="space-y-3">
               {[
                 { label: "Pricing", href: "#pricing" },
-                { label: "Why Adruva", href: "#why-choose" },
+                { label: "Why Adruva Resto", href: "#why-choose" },
                 { label: "Contact Us", href: "#lead-form" },
               ].map((item) => (
                 <li key={item.label}>
