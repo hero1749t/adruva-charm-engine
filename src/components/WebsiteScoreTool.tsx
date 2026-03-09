@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Smartphone, Gauge, Search, UtensilsCrossed, Eye, AlertTriangle, CheckCircle2, Loader2, ArrowRight, Lightbulb } from "lucide-react";
+import { Globe, Smartphone, Gauge, Search, UtensilsCrossed, Eye, AlertTriangle, CheckCircle2, Loader2, ArrowRight, Lightbulb, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,124 @@ const categoryIcons: Record<string, typeof Globe> = {
   "Google Visibility": Eye,
 };
 
+const scanSteps = [
+  { icon: Globe, label: "Fetching website...", delay: 0 },
+  { icon: Smartphone, label: "Checking mobile optimization...", delay: 1500 },
+  { icon: Gauge, label: "Measuring page speed...", delay: 3000 },
+  { icon: Search, label: "Analyzing SEO...", delay: 4500 },
+  { icon: UtensilsCrossed, label: "Scanning for online menu...", delay: 6000 },
+  { icon: Eye, label: "Checking Google visibility...", delay: 7500 },
+  { icon: Shield, label: "Generating report...", delay: 9000 },
+];
+
+const ScanningAnimation = ({ url }: { url: string }) => {
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const timers = scanSteps.map((step, i) =>
+      setTimeout(() => setActiveStep(i), step.delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="max-w-2xl mx-auto mt-10"
+    >
+      {/* Scanning card */}
+      <div className="relative bg-secondary-foreground/5 border border-secondary-foreground/10 rounded-2xl p-8 overflow-hidden">
+        {/* Scanning line */}
+        <motion.div
+          className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent"
+          animate={{ top: ["0%", "100%", "0%"] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        />
+
+        {/* URL being scanned */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Loader2 className="w-4 h-4 text-primary" />
+            </motion.div>
+            <span className="text-sm font-medium text-primary">Scanning in progress</span>
+          </div>
+          <p className="text-xs text-secondary-foreground/40 font-mono">{url}</p>
+        </div>
+
+        {/* Steps */}
+        <div className="space-y-3">
+          {scanSteps.map((step, i) => {
+            const Icon = step.icon;
+            const isActive = i === activeStep;
+            const isDone = i < activeStep;
+
+            return (
+              <motion.div
+                key={step.label}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{
+                  opacity: i <= activeStep ? 1 : 0.3,
+                  x: 0,
+                }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className={`flex items-center gap-3 py-2 px-3 rounded-lg transition-colors ${
+                  isActive ? "bg-primary/10" : ""
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                  isDone ? "bg-green-500/20" : isActive ? "bg-primary/20" : "bg-secondary-foreground/5"
+                }`}>
+                  {isDone ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  ) : isActive ? (
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.8, repeat: Infinity }}>
+                      <Icon className="w-4 h-4 text-primary" />
+                    </motion.div>
+                  ) : (
+                    <Icon className="w-4 h-4 text-secondary-foreground/30" />
+                  )}
+                </div>
+                <span className={`text-sm font-medium ${
+                  isDone ? "text-green-500" : isActive ? "text-secondary-foreground" : "text-secondary-foreground/30"
+                }`}>
+                  {step.label}
+                </span>
+                {isActive && (
+                  <motion.div
+                    className="ml-auto flex gap-1"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  </motion.div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-6 w-full h-1.5 rounded-full bg-secondary-foreground/10 overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            initial={{ width: "0%" }}
+            animate={{ width: `${((activeStep + 1) / scanSteps.length) * 100}%` }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 const getScoreColor = (score: number, max: number) => {
   const pct = (score / max) * 100;
   if (pct >= 80) return "text-green-500";
@@ -47,6 +165,7 @@ const WebsiteScoreTool = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [scanUrl, setScanUrl] = useState("");
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
