@@ -62,7 +62,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-3 text-sm text-secondary-foreground/50">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                hello@adruva.in
+                <a href="mailto:adruvaadsagency@gmail.com" className="hover:text-primary transition-colors">adruvaadsagency@gmail.com</a>
               </li>
               <li className="flex items-start gap-3 text-sm text-secondary-foreground/50">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
