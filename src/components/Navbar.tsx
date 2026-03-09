@@ -8,7 +8,7 @@ const navLinks = [
   { label: "Services", href: "#services" },
   { label: "Demo", href: "#demo" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Why Adruva", href: "#why-choose" },
+  { label: "Why Adruva Resto", href: "#why-choose" },
   { label: "Contact", href: "#lead-form" },
 ];
 

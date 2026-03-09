@@ -74,7 +74,7 @@ const Footer = () => {
 
         <div className="mt-16 pt-8 border-t border-secondary-foreground/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-secondary-foreground/30">
-            © 2026 Adruva Solution. All rights reserved.
+            © 2026 Adruva Resto. All rights reserved.
           </p>
           <div className="flex gap-6">
             {["Privacy Policy", "Terms of Service"].map((item) => (

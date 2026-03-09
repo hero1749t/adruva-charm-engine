@@ -50,7 +50,7 @@ const HeroSection = () => {
             custom={1}
             className="mt-6 text-lg md:text-xl text-secondary-foreground/60 max-w-2xl mx-auto leading-relaxed"
           >
-            Get a modern restaurant website and attract more customers with Adruva Solution. From digital menus to online ordering — we handle everything.
+            Get a modern restaurant website and attract more customers with Adruva Resto. From digital menus to online ordering — we handle everything.
           </motion.p>
 
           <motion.div
