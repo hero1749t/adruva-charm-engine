@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Globe, UtensilsCrossed, ShoppingCart, MessageCircle, Search, CheckCircle2 } from "lucide-react";
+import { Globe, UtensilsCrossed, ShoppingCart, MessageCircle, Search, MapPin, CheckCircle2 } from "lucide-react";
 
 const services = [
   {
@@ -26,6 +26,11 @@ const services = [
     icon: Search,
     title: "Google SEO Setup",
     description: "Get found on Google Maps when people search for restaurants nearby.",
+  },
+  {
+    icon: MapPin,
+    title: "Local SEO",
+    description: "Google My Business setup, local citations & map listings to attract nearby hungry customers.",
   },
 ];
 
