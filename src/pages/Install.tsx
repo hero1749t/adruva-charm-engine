@@ -41,7 +41,7 @@ const Install = () => {
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
           <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4" />
           <h1 className="font-display text-2xl font-bold text-foreground mb-2">App Installed! 🎉</h1>
-          <p className="text-muted-foreground">Adruvaa aapke home screen pe ready hai.</p>
+          <p className="text-muted-foreground">Adruva Resto aapke home screen pe ready hai.</p>
           <Button variant="hero" className="mt-6" onClick={() => window.location.href = "/owner/dashboard"}>
             Open Dashboard
           </Button>
