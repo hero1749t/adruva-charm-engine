@@ -174,8 +174,8 @@ const WebsiteScoreTool = () => {
     setLoading(true);
     setError("");
     setResult(null);
-
-    try {
+    const formattedUrl = url.trim().startsWith("http") ? url.trim() : `https://${url.trim()}`;
+    setScanUrl(formattedUrl);
       const { data, error: fnError } = await supabase.functions.invoke("analyze-website", {
         body: { url: url.trim() },
       });
