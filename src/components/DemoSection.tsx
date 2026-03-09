@@ -1,7 +1,37 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Smartphone, Monitor } from "lucide-react";
+import { Smartphone, Monitor, LayoutDashboard, UtensilsCrossed, CreditCard } from "lucide-react";
+import { useState } from "react";
+
+const demos = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    video: "/feature-dashboard.mp4",
+    title: "Live Owner Dashboard",
+    description: "Real-time orders, revenue tracking & analytics — sab ek screen pe",
+  },
+  {
+    id: "menu",
+    label: "Digital Menu",
+    icon: UtensilsCrossed,
+    video: "/feature-menu.mp4",
+    title: "QR Digital Menu",
+    description: "Customer QR scan kare, menu dekhe, aur seedha order de — no app needed",
+  },
+  {
+    id: "payment",
+    label: "Payment",
+    icon: CreditCard,
+    video: "/feature-payment.mp4",
+    title: "UPI & Online Payment",
+    description: "Instant UPI payments, bill generation, aur payment tracking built-in",
+  },
+];
 
 const DemoSection = () => {
+  const [activeDemo, setActiveDemo] = useState(0);
+
   return (
     <section id="demo" className="section-padding bg-muted">
       <div className="container-main">
@@ -23,6 +53,27 @@ const DemoSection = () => {
             Here's a preview of the kind of website we build for restaurants
           </p>
         </motion.div>
+
+        {/* Tab buttons */}
+        <div className="flex justify-center gap-2 md:gap-4 mb-8">
+          {demos.map((demo, i) => {
+            const Icon = demo.icon;
+            return (
+              <button
+                key={demo.id}
+                onClick={() => setActiveDemo(i)}
+                className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                  activeDemo === i
+                    ? "bg-primary text-primary-foreground shadow-button"
+                    : "bg-card text-muted-foreground border border-border hover:border-primary/30 hover:text-foreground"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{demo.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -51,7 +102,8 @@ const DemoSection = () => {
             {/* Preview content */}
             <div className="aspect-video bg-secondary relative overflow-hidden">
               <video
-                src="/hero-video.mp4"
+                key={demos[activeDemo].video}
+                src={demos[activeDemo].video}
                 autoPlay
                 loop
                 muted
@@ -60,12 +112,12 @@ const DemoSection = () => {
               />
               {/* Overlay gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-transparent to-transparent" />
-              <div className="absolute bottom-8 left-8 right-8">
-                <p className="font-display text-xl md:text-2xl font-bold text-secondary-foreground">
-                  Your Restaurant Name
+              <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8">
+                <p className="font-display text-lg md:text-2xl font-bold text-secondary-foreground">
+                  {demos[activeDemo].title}
                 </p>
-                <p className="text-sm text-secondary-foreground/60 mt-1">
-                  Professional website with digital menu, online ordering & more
+                <p className="text-xs md:text-sm text-secondary-foreground/60 mt-1">
+                  {demos[activeDemo].description}
                 </p>
               </div>
             </div>
