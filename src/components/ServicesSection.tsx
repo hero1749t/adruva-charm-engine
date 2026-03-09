@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Globe, UtensilsCrossed, ShoppingCart, MessageCircle, Search, CheckCircle2 } from "lucide-react";
+import { Globe, UtensilsCrossed, ShoppingCart, MessageCircle, Search, MapPin, CheckCircle2 } from "lucide-react";
 
 const services = [
   {
