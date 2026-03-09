@@ -20,7 +20,7 @@ const Footer = () => {
               Services
             </h4>
             <ul className="space-y-3">
-              {["Restaurant Website", "Digital Menu", "Online Ordering", "WhatsApp Orders", "Google SEO", "Social Media Ads"].map(
+              {["Restaurant Website", "Digital Menu", "Online Ordering", "WhatsApp Orders", "Google SEO", "Local SEO"].map(
                 (item) => (
                   <li key={item}>
                     <a href="#services" className="text-sm text-secondary-foreground/50 hover:text-primary transition-colors">
