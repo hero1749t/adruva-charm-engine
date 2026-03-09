@@ -13,7 +13,7 @@ const testimonials = [
     image: testimonial1,
     highlight: "Staff efficiency 2x ho gayi!",
     quote:
-      "Pehle sab kuch kagaz pe hota tha — galat orders, confusion, aur daily revenue ka koi idea nahi. Adruvaa lagane ke 2 hafte mein sab badal gaya. Ab customer khud QR scan karke order karta hai, aur mujhe dashboard pe sab dikhta hai.",
+      "Pehle sab kuch kagaz pe hota tha — galat orders, confusion, aur daily revenue ka koi idea nahi. Adruva Resto lagane ke 2 hafte mein sab badal gaya. Ab customer khud QR scan karke order karta hai, aur mujhe dashboard pe sab dikhta hai.",
     rating: 5,
     metric: "2x",
     metricLabel: "Staff Efficiency",
