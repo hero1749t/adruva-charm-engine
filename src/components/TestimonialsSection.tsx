@@ -13,7 +13,7 @@ const testimonials = [
     image: testimonial1,
     highlight: "Staff efficiency 2x ho gayi!",
     quote:
-      "Pehle sab kuch kagaz pe hota tha — galat orders, confusion, aur daily revenue ka koi idea nahi. Adruvaa lagane ke 2 hafte mein sab badal gaya. Ab customer khud QR scan karke order karta hai, aur mujhe dashboard pe sab dikhta hai.",
+      "Pehle sab kuch kagaz pe hota tha — galat orders, confusion, aur daily revenue ka koi idea nahi. Adruva Resto lagane ke 2 hafte mein sab badal gaya. Ab customer khud QR scan karke order karta hai, aur mujhe dashboard pe sab dikhta hai.",
     rating: 5,
     metric: "2x",
     metricLabel: "Staff Efficiency",
@@ -25,7 +25,7 @@ const testimonials = [
     image: testimonial2,
     highlight: "1 ghante mein setup ho gaya!",
     quote:
-      "Mujhe technology ka zyada pata nahi tha, but Adruvaa itna simple hai ki maine khud 1 ghante mein setup kar liya. Menu upload kiya, QR generate kiye, aur bass! Customers ko bahut pasand aaya digital menu.",
+      "Mujhe technology ka zyada pata nahi tha, but Adruva Resto itna simple hai ki maine khud 1 ghante mein setup kar liya. Menu upload kiya, QR generate kiye, aur bass! Customers ko bahut pasand aaya digital menu.",
     rating: 5,
     metric: "1hr",
     metricLabel: "Setup Time",
@@ -77,7 +77,7 @@ const TestimonialsSection = () => {
           </span>
           <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
             Restaurant owners jo{" "}
-            <span className="text-primary">Adruvaa</span> pe bharosa karte hain
+            <span className="text-primary">Adruva Resto</span> pe bharosa karte hain
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
             Real results, real restaurant owners — unhi ki zubaani suniye

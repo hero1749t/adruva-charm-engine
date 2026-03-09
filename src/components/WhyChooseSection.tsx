@@ -20,11 +20,11 @@ const WhyChooseSection = () => {
           className="text-center mb-12"
         >
           <span className="inline-block px-4 py-1.5 rounded-full bg-red-brand-light text-primary text-sm font-semibold tracking-wide uppercase">
-            Why Adruva
+            Why Adruva Resto
           </span>
           <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
             Why Restaurant Owners{" "}
-            <span className="gradient-text">Choose Adruva</span>
+            <span className="gradient-text">Choose Adruva Resto</span>
           </h2>
         </motion.div>
 

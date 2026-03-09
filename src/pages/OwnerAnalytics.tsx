@@ -232,7 +232,7 @@ const OwnerAnalytics = () => {
       `🏆 *Top Dishes:*`,
       topItems || "  No data",
       ``,
-      `— Powered by ADRUvaa 🍽️`,
+      `— Powered by Adruva Resto 🍽️`,
     ].join("\n");
 
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");

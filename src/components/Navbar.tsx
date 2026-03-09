@@ -8,7 +8,7 @@ const navLinks = [
   { label: "Services", href: "#services" },
   { label: "Demo", href: "#demo" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Why Adruva", href: "#why-choose" },
+  { label: "Why Adruva Resto", href: "#why-choose" },
   { label: "Contact", href: "#lead-form" },
 ];
 
@@ -35,7 +35,7 @@ const Navbar = () => {
           className="font-display text-xl font-bold tracking-tight"
         >
           <span className="text-primary">Adruva</span>
-          <span className="text-foreground"> Solution</span>
+          <span className="text-foreground"> Resto</span>
         </a>
 
         <div className="hidden lg:flex items-center gap-6">

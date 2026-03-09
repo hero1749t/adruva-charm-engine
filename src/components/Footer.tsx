@@ -8,7 +8,7 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <a href="#" className="font-display text-2xl font-bold">
               <span className="text-primary">Adruva</span>
-              <span className="text-secondary-foreground"> Solution</span>
+              <span className="text-secondary-foreground"> Resto</span>
             </a>
             <p className="mt-4 text-secondary-foreground/50 text-sm leading-relaxed">
               Digital Marketing & Website Agency for restaurants. We help food businesses grow online.
@@ -39,7 +39,7 @@ const Footer = () => {
             <ul className="space-y-3">
               {[
                 { label: "Pricing", href: "#pricing" },
-                { label: "Why Adruva", href: "#why-choose" },
+                { label: "Why Adruva Resto", href: "#why-choose" },
                 { label: "Contact Us", href: "#lead-form" },
               ].map((item) => (
                 <li key={item.label}>
@@ -74,7 +74,7 @@ const Footer = () => {
 
         <div className="mt-16 pt-8 border-t border-secondary-foreground/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-secondary-foreground/30">
-            © 2026 Adruva Solution. All rights reserved.
+            © 2026 Adruva Resto. All rights reserved.
           </p>
           <div className="flex gap-6">
             {["Privacy Policy", "Terms of Service"].map((item) => (

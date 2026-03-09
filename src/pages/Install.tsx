@@ -41,7 +41,7 @@ const Install = () => {
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
           <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4" />
           <h1 className="font-display text-2xl font-bold text-foreground mb-2">App Installed! 🎉</h1>
-          <p className="text-muted-foreground">Adruvaa aapke home screen pe ready hai.</p>
+          <p className="text-muted-foreground">Adruva Resto aapke home screen pe ready hai.</p>
           <Button variant="hero" className="mt-6" onClick={() => window.location.href = "/owner/dashboard"}>
             Open Dashboard
           </Button>
@@ -56,7 +56,7 @@ const Install = () => {
         <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Smartphone className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="font-display text-2xl font-bold text-foreground mb-2">Install Adruvaa</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground mb-2">Install Adruva Resto</h1>
         <p className="text-muted-foreground text-sm mb-8">
           Apne phone ke home screen pe add karo — instant access, fast loading, offline support.
         </p>
