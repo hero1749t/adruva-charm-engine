@@ -77,7 +77,7 @@ const TestimonialsSection = () => {
           </span>
           <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
             Restaurant owners jo{" "}
-            <span className="text-primary">Adruvaa</span> pe bharosa karte hain
+            <span className="text-primary">Adruva Resto</span> pe bharosa karte hain
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
             Real results, real restaurant owners — unhi ki zubaani suniye
