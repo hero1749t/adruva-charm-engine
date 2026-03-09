@@ -1,0 +1,300 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Globe, Smartphone, Gauge, Search, UtensilsCrossed, Eye, AlertTriangle, CheckCircle2, Loader2, ArrowRight, Lightbulb } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Category {
+  name: string;
+  score: number;
+  maxScore: number;
+  issues: string[];
+  suggestions: string[];
+}
+
+interface AnalysisResult {
+  overallScore: number;
+  categories: Category[];
+  url: string;
+}
+
+const categoryIcons: Record<string, typeof Globe> = {
+  "Mobile Optimization": Smartphone,
+  "Page Speed": Gauge,
+  "SEO": Search,
+  "Online Menu": UtensilsCrossed,
+  "Google Visibility": Eye,
+};
+
+const getScoreColor = (score: number, max: number) => {
+  const pct = (score / max) * 100;
+  if (pct >= 80) return "text-green-500";
+  if (pct >= 50) return "text-yellow-500";
+  return "text-primary";
+};
+
+const getOverallGrade = (score: number) => {
+  if (score >= 80) return { label: "Great", color: "text-green-500", bg: "bg-green-500" };
+  if (score >= 60) return { label: "Good", color: "text-yellow-500", bg: "bg-yellow-500" };
+  if (score >= 40) return { label: "Needs Work", color: "text-orange-500", bg: "bg-orange-500" };
+  return { label: "Poor", color: "text-primary", bg: "bg-primary" };
+};
+
+const WebsiteScoreTool = () => {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState("");
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+
+  const handleAnalyze = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-website", {
+        body: { url: url.trim() },
+      });
+
+      if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error || "Analysis failed");
+
+      setResult(data as AnalysisResult);
+    } catch (err) {
+      console.error("Analysis error:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const grade = result ? getOverallGrade(result.overallScore) : null;
+
+  return (
+    <section id="website-score" className="section-padding bg-secondary">
+      <div className="container-main">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold tracking-wide uppercase">
+            Free Website Audit
+          </span>
+          <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-secondary-foreground">
+            Your Restaurant Website{" "}
+            <span className="gradient-text">Score</span>
+          </h2>
+          <p className="mt-3 text-secondary-foreground/60 max-w-xl mx-auto">
+            Enter your website URL and get an instant score with actionable improvements
+          </p>
+        </motion.div>
+
+        {/* URL Input */}
+        <motion.form
+          onSubmit={handleAnalyze}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3 mb-12"
+        >
+          <div className="flex-1 relative">
+            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-foreground/30" />
+            <Input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="e.g. www.myrestaurant.com"
+              className="h-14 pl-12 pr-4 rounded-xl bg-secondary-foreground/5 border-secondary-foreground/10 text-secondary-foreground placeholder:text-secondary-foreground/30 focus:border-primary text-base"
+              disabled={loading}
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="hero"
+            size="lg"
+            className="h-14 px-8 rounded-xl text-base gap-2 shrink-0"
+            disabled={loading || !url.trim()}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                Analyze My Website
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
+          </Button>
+        </motion.form>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-8 p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm text-center"
+          >
+            {error}
+          </motion.div>
+        )}
+
+        {/* Results */}
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6 }}
+              className="max-w-4xl mx-auto"
+            >
+              {/* Overall Score */}
+              <div className="text-center mb-10">
+                <div className="relative inline-flex items-center justify-center w-40 h-40 mb-4">
+                  <svg className="w-40 h-40 -rotate-90" viewBox="0 0 128 128">
+                    <circle cx="64" cy="64" r="56" fill="none" stroke="hsl(var(--secondary-foreground) / 0.1)" strokeWidth="10" />
+                    <circle
+                      cx="64" cy="64" r="56" fill="none"
+                      stroke="currentColor"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(result.overallScore / 100) * 352} 352`}
+                      className={grade!.color}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={`font-display text-4xl font-bold ${grade!.color}`}>
+                      {result.overallScore}
+                    </span>
+                    <span className="text-xs text-secondary-foreground/50">/100</span>
+                  </div>
+                </div>
+                <p className={`font-display text-xl font-bold ${grade!.color}`}>
+                  {grade!.label}
+                </p>
+                <p className="text-sm text-secondary-foreground/50 mt-1">
+                  {result.url}
+                </p>
+              </div>
+
+              {/* Category Breakdown */}
+              <div className="grid gap-4 mb-10">
+                {result.categories.map((cat) => {
+                  const Icon = categoryIcons[cat.name] || Globe;
+                  const pct = Math.round((cat.score / cat.maxScore) * 100);
+                  const isExpanded = expandedCat === cat.name;
+                  const totalIssues = cat.issues.length;
+
+                  return (
+                    <motion.div
+                      key={cat.name}
+                      layout
+                      className="bg-secondary-foreground/5 rounded-2xl border border-secondary-foreground/10 overflow-hidden"
+                    >
+                      <button
+                        onClick={() => setExpandedCat(isExpanded ? null : cat.name)}
+                        className="w-full p-5 flex items-center gap-4 text-left hover:bg-secondary-foreground/[0.03] transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-display font-bold text-secondary-foreground text-sm">
+                              {cat.name}
+                            </span>
+                            <span className={`font-display font-bold text-sm ${getScoreColor(cat.score, cat.maxScore)}`}>
+                              {cat.score}/{cat.maxScore}
+                            </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-secondary-foreground/10 overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.8, delay: 0.2 }}
+                              className={`h-full rounded-full ${
+                                pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-yellow-500" : "bg-primary"
+                              }`}
+                            />
+                          </div>
+                        </div>
+                        {totalIssues > 0 && (
+                          <span className="shrink-0 text-xs text-secondary-foreground/40 font-medium">
+                            {totalIssues} issue{totalIssues > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </button>
+
+                      <AnimatePresence>
+                        {isExpanded && (cat.issues.length > 0 || cat.suggestions.length > 0) && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-5 pb-5 space-y-3">
+                              {cat.issues.map((issue, i) => (
+                                <div key={i} className="flex gap-2 items-start text-sm">
+                                  <AlertTriangle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                                  <span className="text-secondary-foreground/70">{issue}</span>
+                                </div>
+                              ))}
+                              {cat.suggestions.map((sug, i) => (
+                                <div key={`s-${i}`} className="flex gap-2 items-start text-sm">
+                                  <Lightbulb className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                                  <span className="text-secondary-foreground/60">{sug}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-center p-8 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20"
+              >
+                <h3 className="font-display text-xl md:text-2xl font-bold text-secondary-foreground mb-3">
+                  Want to fix these issues?
+                </h3>
+                <p className="text-secondary-foreground/60 text-sm mb-6 max-w-md mx-auto">
+                  Our team will optimize your restaurant website for better rankings, more customers, and more orders.
+                </p>
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="h-14 px-8 text-base rounded-xl gap-2"
+                  onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  Fix My Website with Adruva Resto
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+};
+
+export default WebsiteScoreTool;
