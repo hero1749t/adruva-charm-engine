@@ -27,6 +27,11 @@ const services = [
     title: "Google SEO Setup",
     description: "Get found on Google Maps when people search for restaurants nearby.",
   },
+  {
+    icon: MapPin,
+    title: "Local SEO",
+    description: "Google My Business setup, local citations & map listings to attract nearby hungry customers.",
+  },
 ];
 
 const ServicesSection = () => {
