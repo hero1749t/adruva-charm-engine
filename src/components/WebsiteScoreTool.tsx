@@ -259,6 +259,11 @@ const WebsiteScoreTool = () => {
           </Button>
         </motion.form>
 
+        {/* Scanning Animation */}
+        <AnimatePresence>
+          {loading && <ScanningAnimation url={scanUrl} />}
+        </AnimatePresence>
+
         {error && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
