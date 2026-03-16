@@ -208,8 +208,8 @@ const OwnerStaff = () => {
         </div>
       </div>
 
-      {/* Role legend */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      {/* Role legend - hidden on mobile, visible on tablet+ */}
+      <div className="hidden sm:flex flex-wrap gap-3 mb-6">
         {Object.entries(roleDescriptions).map(([role, desc]) => (
           <div key={role} className="flex items-center gap-2 text-sm">
             <Badge className={roleColors[role]}>{role}</Badge>
