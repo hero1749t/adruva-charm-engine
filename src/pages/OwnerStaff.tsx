@@ -137,14 +137,14 @@ const OwnerStaff = () => {
   return (
     <OwnerLayout>
       <div className="mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-6 h-6 text-primary" />
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               Staff Management
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage your restaurant team and their access levels
+              Apni team manage karo aur access control karo
             </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -208,8 +208,8 @@ const OwnerStaff = () => {
         </div>
       </div>
 
-      {/* Role legend */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      {/* Role legend - hidden on mobile, visible on tablet+ */}
+      <div className="hidden sm:flex flex-wrap gap-3 mb-6">
         {Object.entries(roleDescriptions).map(([role, desc]) => (
           <div key={role} className="flex items-center gap-2 text-sm">
             <Badge className={roleColors[role]}>{role}</Badge>
@@ -243,52 +243,61 @@ const OwnerStaff = () => {
           {staff.map((member) => (
             <div
               key={member.id}
-              className={`bg-card rounded-xl border border-border p-4 flex items-center gap-4 ${
+              className={`bg-card rounded-xl border border-border p-4 ${
                 !member.is_active ? "opacity-50" : ""
               }`}
             >
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <UserCog className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-display font-bold text-foreground truncate">{member.name}</span>
-                  {!member.is_active && (
-                    <Badge variant="secondary" className="text-xs">Inactive</Badge>
+              {/* Top row: avatar + name + badge */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <UserCog className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-display font-bold text-foreground truncate">{member.name}</span>
+                    {!member.is_active && (
+                      <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                    )}
+                  </div>
+                  {member.phone && (
+                    <p className="text-sm text-muted-foreground">{member.phone}</p>
                   )}
                 </div>
-                {member.phone && (
-                  <p className="text-sm text-muted-foreground">{member.phone}</p>
-                )}
+                <Badge className={`${roleColors[member.role]} text-xs flex-shrink-0`}>{member.role}</Badge>
               </div>
-              <Select
-                value={member.role}
-                onValueChange={(v) => updateRole(member.id, v as StaffRole)}
-              >
-                <SelectTrigger className="w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="kitchen">Kitchen</SelectItem>
-                  <SelectItem value="cashier">Cashier</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toggleActive(member.id, member.is_active)}
-              >
-                {member.is_active ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => deleteStaff(member.id, member.name)}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+
+              {/* Bottom row: actions */}
+              <div className="flex items-center gap-2 pt-3 border-t border-border">
+                <Select
+                  value={member.role}
+                  onValueChange={(v) => updateRole(member.id, v as StaffRole)}
+                >
+                  <SelectTrigger className="w-28 h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="kitchen">Kitchen</SelectItem>
+                    <SelectItem value="cashier">Cashier</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-9 flex-1"
+                  onClick={() => toggleActive(member.id, member.is_active)}
+                >
+                  {member.is_active ? "Deactivate" : "Activate"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive h-9 px-2"
+                  onClick={() => deleteStaff(member.id, member.name)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>

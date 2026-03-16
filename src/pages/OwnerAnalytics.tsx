@@ -346,8 +346,8 @@ const OwnerAnalytics = () => {
             <Card className="p-4">
               <h2 className="font-display font-bold text-foreground mb-4">Top Dishes</h2>
               {stats.topDishes.length > 0 ? (
-                <div className="flex items-center gap-4">
-                  <ResponsiveContainer width="50%" height={220}>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <ResponsiveContainer width="100%" height={180} className="sm:w-1/2">
                     <PieChart>
                       <Pie
                         data={stats.topDishes}
@@ -355,7 +355,7 @@ const OwnerAnalytics = () => {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius={80}
+                        outerRadius={70}
                         strokeWidth={2}
                       >
                         {stats.topDishes.map((_, i) => (
@@ -365,7 +365,7 @@ const OwnerAnalytics = () => {
                       <Tooltip formatter={(v: number, name: string) => [`${v} sold`, name]} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="flex-1 space-y-2">
+                  <div className="w-full sm:flex-1 space-y-2">
                     {stats.topDishes.map((dish, i) => (
                       <div key={dish.name} className="flex items-center gap-2 text-sm">
                         <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
@@ -400,7 +400,7 @@ const OwnerAnalytics = () => {
             )}
           </Card>
           {/* Reviews Section */}
-          <div className="grid lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {/* Average Rating Card */}
             <Card className="p-5 flex flex-col items-center justify-center text-center">
               <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">

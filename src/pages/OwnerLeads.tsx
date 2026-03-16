@@ -99,35 +99,60 @@ const OwnerLeads = () => {
             ) : leads.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Abhi tak koi demo request nahi aayi</p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Restaurant</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {leads.map((lead) => (
-                      <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.name}</TableCell>
-                        <TableCell>
-                          <a href={`tel:${lead.phone}`} className="text-primary hover:underline flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {lead.phone}
-                          </a>
-                        </TableCell>
-                        <TableCell>{lead.restaurant_name}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {format(new Date(lead.created_at), "dd MMM yyyy, hh:mm a")}
-                        </TableCell>
+              <>
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Restaurant</TableHead>
+                        <TableHead>Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {leads.map((lead) => (
+                        <TableRow key={lead.id}>
+                          <TableCell className="font-medium">{lead.name}</TableCell>
+                          <TableCell>
+                            <a href={`tel:${lead.phone}`} className="text-primary hover:underline flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {lead.phone}
+                            </a>
+                          </TableCell>
+                          <TableCell>{lead.restaurant_name}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {format(new Date(lead.created_at), "dd MMM yyyy, hh:mm a")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="sm:hidden space-y-3">
+                  {leads.map((lead) => (
+                    <div key={lead.id} className="border border-border rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-foreground">{lead.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(lead.created_at), "dd MMM")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Store className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">{lead.restaurant_name}</span>
+                      </div>
+                      <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 text-sm text-primary font-medium">
+                        <Phone className="w-3.5 h-3.5" />
+                        {lead.phone}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
