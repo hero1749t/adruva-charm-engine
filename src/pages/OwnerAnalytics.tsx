@@ -400,7 +400,7 @@ const OwnerAnalytics = () => {
             )}
           </Card>
           {/* Reviews Section */}
-          <div className="grid lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {/* Average Rating Card */}
             <Card className="p-5 flex flex-col items-center justify-center text-center">
               <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
