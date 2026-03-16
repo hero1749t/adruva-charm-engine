@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ImagePlus } from "lucide-react";
+import { Plus, Pencil, Trash2, ImagePlus, Upload } from "lucide-react";
+import MenuItemCard from "@/components/menu/MenuItemCard";
+import CSVImportDialog from "@/components/menu/CSVImportDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
@@ -18,6 +20,7 @@ const OwnerMenu = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const [csvOpen, setCsvOpen] = useState(false);
 
   // Category form
   const [catDialogOpen, setCatDialogOpen] = useState(false);
@@ -87,11 +90,8 @@ const OwnerMenu = () => {
 
   const saveItem = async () => {
     if (!user || !selectedCat || !itemForm.name || !itemForm.price) return;
-
     let imageUrl = editingItem?.image_url || null;
-    if (itemForm.image) {
-      imageUrl = await uploadImage(itemForm.image);
-    }
+    if (itemForm.image) imageUrl = await uploadImage(itemForm.image);
 
     const payload = {
       name: itemForm.name,
@@ -109,7 +109,6 @@ const OwnerMenu = () => {
     } else {
       await supabase.from("menu_items").insert(payload);
     }
-
     setItemDialogOpen(false);
     toast.success("Item saved");
     fetchData();
@@ -130,31 +129,37 @@ const OwnerMenu = () => {
 
   return (
     <OwnerLayout>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-foreground">Menu Manager</h1>
-        <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" onClick={() => { setCatName(""); setEditingCat(null); }}>
-              <Plus className="w-4 h-4 mr-1" /> Add Category
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingCat ? "Edit" : "Add"} Category</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <Input placeholder="Category name (e.g. Starters, Main Course)" value={catName} onChange={(e) => setCatName(e.target.value)} />
-              <Button variant="hero" onClick={saveCategory} className="w-full">Save</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+      {/* Header */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Menu Manager</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)}>
+            <Upload className="w-4 h-4 mr-1" /> Import CSV
+          </Button>
+          <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" onClick={() => { setCatName(""); setEditingCat(null); }}>
+                <Plus className="w-4 h-4 mr-1" /> Category
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingCat ? "Edit" : "Add"} Category</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <Input placeholder="Category name (e.g. Starters)" value={catName} onChange={(e) => setCatName(e.target.value)} />
+                <Button variant="hero" onClick={saveCategory} className="w-full">Save</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-        <Button variant={!selectedCat ? "default" : "outline"} size="sm" onClick={() => setSelectedCat(null)}>All</Button>
+      {/* Category tabs - horizontal scrollable */}
+      <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+        <Button variant={!selectedCat ? "default" : "outline"} size="sm" onClick={() => setSelectedCat(null)} className="flex-shrink-0">All</Button>
         {categories.map((cat) => (
-          <div key={cat.id} className="flex items-center gap-1">
+          <div key={cat.id} className="flex items-center gap-0.5 flex-shrink-0">
             <Button
               variant={selectedCat === cat.id ? "default" : "outline"}
               size="sm"
@@ -174,57 +179,38 @@ const OwnerMenu = () => {
 
       {/* Add item button */}
       {selectedCat && (
-        <Button variant="hero" size="sm" onClick={() => openItemDialog()} className="mb-4">
+        <Button variant="hero" size="sm" onClick={() => openItemDialog()} className="mb-4 w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-1" /> Add Item
         </Button>
       )}
 
       {!selectedCat && categories.length === 0 && (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg">Start by adding a category</p>
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-base">Start by adding a category ya CSV import karo</p>
           <p className="text-sm mt-2">E.g. Starters, Main Course, Beverages</p>
         </div>
       )}
 
-      {/* Items grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Items list - single column on mobile, grid on larger */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredItems.map((item) => (
-          <div key={item.id} className={`bg-card rounded-xl border border-border p-4 shadow-card ${!item.is_available ? "opacity-60" : ""}`}>
-            {item.image_url && (
-              <img src={item.image_url} alt={item.name} className="w-full h-32 object-cover rounded-lg mb-3" />
-            )}
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`w-3 h-3 rounded-sm border ${item.is_veg ? "border-green-600 bg-green-600" : "border-red-600 bg-red-600"}`} />
-                  <span className="font-semibold text-foreground">{item.name}</span>
-                </div>
-                {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
-                <p className="font-display font-bold text-foreground mt-2">₹{item.price}</p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <Switch checked={item.is_available} onCheckedChange={() => toggleAvailability(item)} />
-                <div className="flex gap-1">
-                  <button onClick={() => openItemDialog(item)} className="text-muted-foreground hover:text-foreground p-1">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => deleteItem(item.id)} className="text-muted-foreground hover:text-destructive p-1">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <MenuItemCard
+            key={item.id}
+            item={item}
+            onToggle={toggleAvailability}
+            onEdit={openItemDialog}
+            onDelete={deleteItem}
+          />
         ))}
       </div>
 
       {/* Item dialog */}
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingItem ? "Edit" : "Add"} Menu Item</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-3 mt-3">
             <Input placeholder="Item name" value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} />
             <Input placeholder="Description (optional)" value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} />
             <Input type="number" placeholder="Price (₹)" value={itemForm.price} onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })} />
@@ -232,9 +218,9 @@ const OwnerMenu = () => {
               <span className="text-sm text-foreground">Vegetarian?</span>
               <Switch checked={itemForm.is_veg} onCheckedChange={(v) => setItemForm({ ...itemForm, is_veg: v })} />
             </div>
-            <label className="flex items-center gap-3 cursor-pointer border border-dashed border-border rounded-lg p-4 hover:bg-muted transition-colors">
-              <ImagePlus className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
+            <label className="flex items-center gap-3 cursor-pointer border border-dashed border-border rounded-lg p-3 hover:bg-muted transition-colors">
+              <ImagePlus className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm text-muted-foreground truncate">
                 {itemForm.image ? itemForm.image.name : "Upload photo"}
               </span>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => setItemForm({ ...itemForm, image: e.target.files?.[0] || null })} />
@@ -243,6 +229,17 @@ const OwnerMenu = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* CSV Import Dialog */}
+      {user && (
+        <CSVImportDialog
+          open={csvOpen}
+          onOpenChange={setCsvOpen}
+          userId={user.id}
+          categories={categories}
+          onImportComplete={fetchData}
+        />
+      )}
     </OwnerLayout>
   );
 };
