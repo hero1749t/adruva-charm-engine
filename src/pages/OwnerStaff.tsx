@@ -137,14 +137,14 @@ const OwnerStaff = () => {
   return (
     <OwnerLayout>
       <div className="mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-6 h-6 text-primary" />
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               Staff Management
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage your restaurant team and their access levels
+              Apni team manage karo aur access control karo
             </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
