@@ -88,6 +88,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredients: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string
+          current_stock: number
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          name: string
+          owner_id: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string
+          current_stock?: number
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          name: string
+          owner_id: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string
+          current_stock?: number
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          name?: string
+          owner_id?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           created_at: string
@@ -313,6 +352,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      recipe_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          menu_item_id: string
+          owner_id: string
+          quantity_used: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          menu_item_id: string
+          owner_id: string
+          quantity_used?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          menu_item_id?: string
+          owner_id?: string
+          quantity_used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restaurant_tables: {
         Row: {
