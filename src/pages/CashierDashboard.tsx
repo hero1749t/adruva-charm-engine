@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStaffRole } from "@/hooks/useStaffRole";
@@ -6,6 +6,7 @@ import OwnerLayout from "@/components/OwnerLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { IndianRupee, Receipt, Printer } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
@@ -30,6 +31,8 @@ const CashierDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("billing");
   const [profile, setProfile] = useState<{ restaurant_name?: string | null; address?: string | null; phone?: string | null; gst_number?: string | null }>({});
+  const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem("auto_print_on_served") === "true");
+  const prevOrdersRef = useRef<OrderWithItems[]>([]);
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -84,10 +87,24 @@ const CashierDashboard = () => {
     setupRealtime();
   }, [user]);
 
+  const toggleAutoPrint = (checked: boolean) => {
+    setAutoPrint(checked);
+    localStorage.setItem("auto_print_on_served", String(checked));
+    toast.success(checked ? "Auto-print ON — receipt will print on served" : "Auto-print OFF");
+  };
+
   const markServed = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
     const { error } = await supabase.from("orders").update({ status: "served" as Order["status"] }).eq("id", orderId);
     if (error) toast.error("Failed to update");
-    else { toast.success("Order marked as served"); fetchOrders(); }
+    else {
+      toast.success("Order marked as served");
+      // Auto-print receipt
+      if (autoPrint && order) {
+        handlePrintReceipt(order);
+      }
+      fetchOrders();
+    }
   };
 
   const updatePayment = async (orderId: string, method: string) => {
@@ -140,7 +157,13 @@ const CashierDashboard = () => {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-xl font-bold text-foreground">Billing & Orders</h2>
-          <PrinterSetup />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Auto Print</span>
+              <Switch checked={autoPrint} onCheckedChange={toggleAutoPrint} className="scale-90" />
+            </div>
+            <PrinterSetup />
+          </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map((tab) => (
