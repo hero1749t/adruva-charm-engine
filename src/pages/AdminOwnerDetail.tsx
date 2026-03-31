@@ -47,6 +47,15 @@ interface UsageData {
   ingredients: number;
 }
 
+interface RecentOrder {
+  id: string;
+  table_number: number | null;
+  status: string;
+  total_amount: number;
+  payment_method: string | null;
+  created_at: string;
+}
+
 const UsageCard = ({ icon: Icon, label, current, max, color }: {
   icon: React.ElementType; label: string; current: number; max: number | null; color: string;
 }) => {
