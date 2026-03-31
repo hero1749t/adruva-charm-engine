@@ -17,6 +17,7 @@ const OwnerSettings = () => {
     phone: "",
     address: "",
     gst_number: "",
+    gst_percentage: "5",
     opening_hours: "",
     closing_hours: "",
   });
