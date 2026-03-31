@@ -98,11 +98,45 @@ const CustomerMenu = () => {
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
       supabase.from("menu_items").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order"),
-    ]).then(([catRes, itemRes]) => {
+      supabase.from("menu_customization").select("*").eq("owner_id", ownerId).maybeSingle(),
+    ]).then(([catRes, itemRes, styleRes]) => {
       if (catRes.data) setCategories(catRes.data);
       if (itemRes.data) setItems(itemRes.data);
+      if (styleRes.data) setMenuStyle(styleRes.data as any);
     });
   }, [ownerId]);
+
+  // Load custom Google Fonts for menu personalization
+  useEffect(() => {
+    if (!menuStyle) return;
+    const fonts = new Set([menuStyle.font_heading, menuStyle.font_body].filter(f => f && f !== "Inter"));
+    if (fonts.size === 0) return;
+    const families = Array.from(fonts).map(f => f.replace(/ /g, "+") + ":wght@400;500;600;700").join("&family=");
+    const linkId = "custom-menu-fonts";
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement("link");
+      link.id = linkId;
+      link.rel = "stylesheet";
+      link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+      document.head.appendChild(link);
+    }
+  }, [menuStyle]);
+
+  // Build custom style object from owner's menu personalization
+  const customStyle = useMemo(() => {
+    if (!menuStyle) return {};
+    return {
+      "--cm-primary": menuStyle.primary_color,
+      "--cm-secondary": menuStyle.secondary_color,
+      "--cm-bg": menuStyle.background_color,
+      "--cm-text": menuStyle.text_color,
+      "--cm-accent": menuStyle.accent_color,
+      "--cm-font-heading": menuStyle.font_heading,
+      "--cm-font-body": menuStyle.font_body,
+    } as React.CSSProperties;
+  }, [menuStyle]);
+
+  const cm = !!menuStyle; // whether custom menu style is active
 
   // Play notification sound
   const playNotificationSound = () => {
