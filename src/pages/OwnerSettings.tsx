@@ -44,6 +44,12 @@ const OwnerSettings = () => {
           closing_hours: (data as any).closing_hours || "",
         });
         if (data.restaurant_logo_url) setLogoUrl(data.restaurant_logo_url);
+        if ((data as any).gps_latitude) {
+          setGpsLat((data as any).gps_latitude);
+          setGpsLng((data as any).gps_longitude);
+          setGpsCoords(`${(data as any).gps_latitude}, ${(data as any).gps_longitude}`);
+        }
+        if ((data as any).gps_range_meters) setGpsRange((data as any).gps_range_meters);
       }
     });
   }, [user]);
