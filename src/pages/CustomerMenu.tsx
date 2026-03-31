@@ -782,20 +782,72 @@ const CustomerMenu = () => {
                 className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-3 bg-background text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
-              <div className="border-t border-border pt-4 mb-4">
-                <div className="flex justify-between font-display font-bold text-lg text-foreground">
+              {/* Phone number — moved before promo */}
+              <input
+                type="tel"
+                placeholder="Phone number (for updates & promo codes)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-3 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+
+              {/* Promo code */}
+              <div className="mb-3">
+                {promoApplied ? (
+                  <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">{promoApplied.code}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({promoApplied.discount_type === "percentage" ? `${promoApplied.discount_value}% off` : `₹${promoApplied.discount_value} off`})
+                      </span>
+                    </div>
+                    <button onClick={removePromo} className="text-muted-foreground hover:text-destructive">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Promo code"
+                        value={promoCode}
+                        onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(null); }}
+                        className="w-full border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono uppercase"
+                      />
+                    </div>
+                    <button
+                      onClick={applyPromo}
+                      disabled={promoChecking || !promoCode.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+                    >
+                      {promoChecking ? "..." : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {promoError && <p className="text-xs text-destructive mt-1.5">{promoError}</p>}
+              </div>
+
+              {/* Total breakdown */}
+              <div className="border-t border-border pt-4 mb-4 space-y-1.5">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(0)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-primary font-medium">
+                    <span>Discount ({promoApplied?.code})</span>
+                    <span>-₹{discountAmount.toFixed(0)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-display font-bold text-lg text-foreground pt-1">
                   <span>Total</span>
                   <span>₹{total.toFixed(0)}</span>
                 </div>
               </div>
 
-              <input
-                type="tel"
-                placeholder="Phone number (optional — for updates)"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-4 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
 
               {!gpsVerified ? (
                 <div className="space-y-3">
