@@ -242,22 +242,81 @@ const CustomerMenu = () => {
     return () => { supabase.removeChannel(channel); };
   }, [orderPlaced, tableNumber]);
 
-  const addToCart = (item: MenuItem) => {
-    setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
-      if (existing) return prev.map((c) => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
-      return [...prev, { ...item, quantity: 1 }];
+  const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
+  const [combos, setCombos] = useState<(ComboRow & { items: { name: string; quantity: number }[] })[]>([]);
+
+  // Fetch combos
+  useEffect(() => {
+    if (!ownerId) return;
+    supabase.from("menu_combos").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order").then(async ({ data }) => {
+      if (!data || data.length === 0) return;
+      const { data: comboItems } = await supabase
+        .from("combo_items")
+        .select("combo_id, quantity, menu_item_id, menu_items(name)")
+        .in("combo_id", data.map(c => c.id)) as any;
+      setCombos(data.map(c => ({
+        ...c,
+        items: (comboItems || []).filter((ci: any) => ci.combo_id === c.id).map((ci: any) => ({
+          name: ci.menu_items?.name || "Item",
+          quantity: ci.quantity,
+        })),
+      })));
     });
+  }, [ownerId]);
+
+  const addToCart = (item: MenuItem) => {
+    // Open customize modal - it will auto-add if no variants/addons
+    setCustomizeItem(item);
+  };
+
+  const handleCustomizeAdd = (item: MenuItem, variants: SelectedVariant[], addons: SelectedAddon[], extraPrice: number) => {
+    const cartKey = item.id + "|" + variants.map(v => v.optionName).join(",") + "|" + addons.map(a => a.optionName).join(",");
+    setCart((prev) => {
+      const existing = prev.find((c) => c.cartKey === cartKey);
+      if (existing) return prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...prev, { ...item, quantity: 1, cartKey, selectedVariants: variants, selectedAddons: addons, extraPrice }];
+    });
+    setCustomizeItem(null);
     toast.success(`${item.name} added`, { duration: 1500 });
   };
 
-  const updateQty = (itemId: string, delta: number) => {
+  const addComboToCart = (combo: ComboRow) => {
+    const cartKey = "combo-" + combo.id;
+    setCart((prev) => {
+      const existing = prev.find((c) => c.cartKey === cartKey);
+      if (existing) return prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...prev, {
+        id: combo.id,
+        name: combo.name,
+        price: combo.combo_price,
+        image_url: combo.image_url,
+        description: combo.description,
+        is_veg: true,
+        is_available: true,
+        category_id: "",
+        owner_id: combo.owner_id,
+        sort_order: 0,
+        created_at: "",
+        updated_at: "",
+        quantity: 1,
+        cartKey,
+        selectedVariants: [],
+        selectedAddons: [],
+        extraPrice: 0,
+        isCombo: true,
+        comboPrice: Number(combo.combo_price),
+      } as CartItem];
+    });
+    toast.success(`${combo.name} added`, { duration: 1500 });
+  };
+
+  const updateQty = (cartKey: string, delta: number) => {
     setCart((prev) =>
-      prev.map((c) => c.id === itemId ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter((c) => c.quantity > 0)
+      prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter((c) => c.quantity > 0)
     );
   };
 
-  const subtotal = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
+  const subtotal = cart.reduce((sum, c) => (Number(c.price) + c.extraPrice) * c.quantity + sum, 0);
   const discountAmount = promoApplied
     ? promoApplied.discount_type === "percentage"
       ? Math.round(subtotal * promoApplied.discount_value / 100)
