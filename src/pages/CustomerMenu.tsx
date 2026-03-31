@@ -209,8 +209,55 @@ const CustomerMenu = () => {
     );
   };
 
-  const total = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
+  const subtotal = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
+  const discountAmount = promoApplied
+    ? promoApplied.discount_type === "percentage"
+      ? Math.round(subtotal * promoApplied.discount_value / 100)
+      : Math.min(promoApplied.discount_value, subtotal)
+    : 0;
+  const total = subtotal - discountAmount;
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    if (!phone.trim()) { setPromoError("Enter your phone number first to apply coupon"); return; }
+    setPromoChecking(true);
+    setPromoError(null);
+    // Check coupon exists and is active
+    const { data: coupon } = await supabase
+      .from("discount_coupons")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .eq("code", promoCode.toUpperCase().trim())
+      .eq("is_active", true)
+      .single() as any;
+    if (!coupon) { setPromoError("Invalid or expired coupon code"); setPromoChecking(false); return; }
+    const now = new Date();
+    if (now < new Date(coupon.valid_from) || now > new Date(coupon.valid_until)) {
+      setPromoError("This coupon has expired"); setPromoChecking(false); return;
+    }
+    if (subtotal < coupon.min_order_amount) {
+      setPromoError(`Minimum order ₹${coupon.min_order_amount} required`); setPromoChecking(false); return;
+    }
+    // Check usage count
+    const { count } = await supabase
+      .from("coupon_usage")
+      .select("*", { count: "exact", head: true })
+      .eq("coupon_id", coupon.id)
+      .eq("customer_phone", phone.trim()) as any;
+    if ((count || 0) >= coupon.max_uses_per_person) {
+      setPromoError("You've already used this coupon maximum times"); setPromoChecking(false); return;
+    }
+    setPromoApplied({ id: coupon.id, code: coupon.code, discount_type: coupon.discount_type, discount_value: coupon.discount_value });
+    toast.success(`Coupon applied! ${coupon.discount_type === "percentage" ? `${coupon.discount_value}% off` : `₹${coupon.discount_value} off`}`);
+    setPromoChecking(false);
+  };
+
+  const removePromo = () => {
+    setPromoApplied(null);
+    setPromoCode("");
+    setPromoError(null);
+  };
 
   // Haversine distance calculation
   const getDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
