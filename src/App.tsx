@@ -29,6 +29,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPlans from "./pages/AdminPlans";
 import AdminOwners from "./pages/AdminOwners";
+import AdminOwnerDetail from "./pages/AdminOwnerDetail";
 import AdminGuard from "./components/AdminGuard";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
             <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
             <Route path="/admin/owners" element={<AdminGuard><AdminOwners /></AdminGuard>} />
+            <Route path="/admin/owners/:ownerId" element={<AdminGuard><AdminOwnerDetail /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

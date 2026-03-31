@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Users, Package, Calendar, Search } from "lucide-react";
+import { Users, Package, Calendar, Search, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
 interface Owner {
@@ -40,6 +41,7 @@ interface Plan {
 
 const AdminOwners = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -147,8 +149,11 @@ const AdminOwners = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">Joined: {format(new Date(owner.created_at), "dd MMM yyyy")}</p>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/admin/owners/${owner.user_id}`)}>
+                  <Eye className="w-3 h-3 mr-1" /> View Details
+                </Button>
               </CardContent>
             </Card>
           );
