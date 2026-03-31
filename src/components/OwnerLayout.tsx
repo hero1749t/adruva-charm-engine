@@ -44,6 +44,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/owner/analytics", icon: BarChart3, label: "Analytics", visible: canViewAnalytics },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu", visible: canManageMenu },
     { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen", visible: isOwner || isManager || isKitchen },
+    { to: "/owner/inventory", icon: Package, label: "Inventory", visible: isOwner || isManager },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR", visible: isOwner || isManager },
     { to: "/owner/leads", icon: Users, label: "Leads", visible: isOwner },
     { to: "/owner/staff", icon: Shield, label: "Staff", visible: canManageStaff },
