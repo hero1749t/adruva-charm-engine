@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ const roleDescriptions: Record<string, string> = {
 
 const OwnerStaff = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const { canManageStaff } = useStaffRole();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,10 @@ const OwnerStaff = () => {
   const handleAddStaff = async () => {
     if (!user || !form.name.trim() || !form.email.trim()) {
       toast.error("Name and email are required");
+      return;
+    }
+    if (plan.hasPlan && staff.length >= plan.maxStaff) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxStaff} staff members. Upgrade to add more.`);
       return;
     }
 

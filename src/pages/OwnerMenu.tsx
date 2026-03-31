@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
 
 const OwnerMenu = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -84,6 +86,10 @@ const OwnerMenu = () => {
 
   const saveItem = async () => {
     if (!user || !selectedCat || !itemForm.name || !itemForm.price) return;
+    if (!editingItem && plan.hasPlan && items.length >= plan.maxMenuItems) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxMenuItems} menu items. Upgrade to add more.`);
+      return;
+    }
     let imageUrl = editingItem?.image_url || null;
     if (itemForm.image) imageUrl = await uploadImage(itemForm.image);
     const payload = {

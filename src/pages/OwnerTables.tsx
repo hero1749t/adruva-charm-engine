@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const statusCycle: Record<string, string> = {
 
 const OwnerTables = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState("1");
@@ -65,6 +67,10 @@ const OwnerTables = () => {
     const count = parseInt(newCount);
     if (isNaN(count) || count < 1 || count > 50) {
       toast.error("Enter a number between 1 and 50");
+      return;
+    }
+    if (plan.hasPlan && tables.length + count > plan.maxTables) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxTables} tables. You have ${tables.length}. Upgrade to add more.`);
       return;
     }
     const maxNum = tables.length > 0 ? Math.max(...tables.map((t) => t.table_number)) : 0;
