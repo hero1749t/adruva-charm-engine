@@ -21,6 +21,7 @@ interface CustomerReceiptProps {
   address?: string | null;
   phone?: string | null;
   createdAt: string;
+  gstPercentage?: number;
 }
 
 const CustomerReceipt = ({
@@ -33,10 +34,11 @@ const CustomerReceipt = ({
   address,
   phone,
   createdAt,
+  gstPercentage = 5,
 }: CustomerReceiptProps) => {
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const gstRate = 0.05;
+  const gstRate = gstPercentage / 100;
   const subtotal = total / (1 + gstRate);
   const gstAmount = total - subtotal;
 
