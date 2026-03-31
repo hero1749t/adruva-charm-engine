@@ -51,9 +51,11 @@ export const generateReceiptHTML = (data: {
   total: number;
   paymentMethod?: string | null;
   createdAt: string;
+  gstPercentage?: number;
 }, paperWidth: "58mm" | "80mm" = "80mm") => {
   const maxWidth = paperWidth === "58mm" ? "48mm" : "72mm";
-  const gstRate = 0.05;
+  const gstPct = data.gstPercentage ?? 5;
+  const gstRate = gstPct / 100;
   const subtotal = data.total / (1 + gstRate);
   const gstAmount = data.total - subtotal;
 
