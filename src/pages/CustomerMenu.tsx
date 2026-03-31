@@ -330,6 +330,16 @@ const CustomerMenu = () => {
     }));
     await supabase.from("order_items").insert(orderItems);
 
+    // Record coupon usage if applied
+    if (promoApplied && phone.trim()) {
+      await supabase.from("coupon_usage").insert({
+        coupon_id: promoApplied.id,
+        owner_id: ownerId,
+        customer_phone: phone.trim(),
+        order_id: order.id,
+      } as any);
+    }
+
     // Save to session history
     setPastOrders((prev) => [
       { id: order.id, total, itemCount: cartCount, time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
@@ -345,6 +355,9 @@ const CustomerMenu = () => {
     setCartOpen(false);
     setOrdering(false);
     setNotes("");
+    setPromoApplied(null);
+    setPromoCode("");
+  };
   };
 
   // Filtered items with search + veg filter
