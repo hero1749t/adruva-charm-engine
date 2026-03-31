@@ -39,6 +39,7 @@ const roleDescriptions: Record<string, string> = {
 
 const OwnerStaff = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const { canManageStaff } = useStaffRole();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
