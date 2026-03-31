@@ -215,6 +215,55 @@ const AdminOwnerDetail = () => {
           <UsageCard icon={Package} label="Ingredients" current={usage.ingredients} max={null} color="bg-teal-500/10 text-teal-500" />
         </div>
       )}
+
+      {/* Recent Orders */}
+      {recentOrders.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-bold font-display mb-3">Recent Orders</h2>
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Order ID</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Table</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Amount</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Payment</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map((order) => (
+                    <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{order.id.slice(0, 8)}…</td>
+                      <td className="px-4 py-2.5">{order.table_number ?? "—"}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs ${
+                            order.status === "served" ? "bg-green-500/10 text-green-600" :
+                            order.status === "cancelled" ? "bg-destructive/10 text-destructive" :
+                            order.status === "preparing" ? "bg-yellow-500/10 text-yellow-600" :
+                            order.status === "ready" ? "bg-blue-500/10 text-blue-600" :
+                            order.status === "new" ? "bg-primary/10 text-primary" :
+                            ""
+                          }`}
+                        >
+                          {order.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium">₹{order.total_amount}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground capitalize">{order.payment_method || "—"}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{format(new Date(order.created_at), "dd MMM, HH:mm")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
