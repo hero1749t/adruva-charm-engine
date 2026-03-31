@@ -11,8 +11,13 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ImagePlus, Upload, Search } from "lucide-react";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CSVImportDialog from "@/components/menu/CSVImportDialog";
+import ComboManager from "@/components/menu/ComboManager";
+import TagManager from "@/components/menu/TagManager";
+import VariantManager from "@/components/menu/VariantManager";
+import AddonManager from "@/components/menu/AddonManager";
 import PlanUsageBadge from "@/components/PlanUsageBadge";
 import type { Database } from "@/integrations/supabase/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
