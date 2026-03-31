@@ -149,8 +149,11 @@ const AdminOwners = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">Joined: {format(new Date(owner.created_at), "dd MMM yyyy")}</p>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/admin/owners/${owner.user_id}`)}>
+                  <Eye className="w-3 h-3 mr-1" /> View Details
+                </Button>
               </CardContent>
             </Card>
           );
