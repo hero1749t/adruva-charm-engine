@@ -53,6 +53,8 @@ const CustomerMenu = () => {
   const [gpsVerified, setGpsVerified] = useState(false);
   const [gpsChecking, setGpsChecking] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [restaurantGstPct, setRestaurantGstPct] = useState<number>(5);
+  const [livePaymentMethod, setLivePaymentMethod] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
