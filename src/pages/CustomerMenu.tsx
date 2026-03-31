@@ -748,18 +748,20 @@ const CustomerMenu = () => {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 bg-primary p-4 z-50 shadow-2xl"
+            className={cm ? "fixed bottom-0 left-0 right-0 p-4 z-50 shadow-2xl" : "fixed bottom-0 left-0 right-0 bg-primary p-4 z-50 shadow-2xl"}
+            style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}
           >
             <div className="max-w-lg mx-auto flex items-center justify-between">
-              <div className="text-primary-foreground">
+              <div className="text-white">
                 <span className="font-bold">{cartCount} item{cartCount > 1 ? "s" : ""}</span>
                 <span className="mx-2 opacity-50">|</span>
-                <span className="font-display font-bold text-lg">₹{total.toFixed(0)}</span>
+                <span className="font-bold text-lg" style={cm ? { fontFamily: menuStyle!.font_heading } : undefined}>₹{total.toFixed(0)}</span>
               </div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCartOpen(true)}
-                className="flex items-center gap-2 bg-primary-foreground text-primary px-4 py-2 rounded-xl font-bold text-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
+                style={cm ? { backgroundColor: "#fff", color: menuStyle!.primary_color } : undefined}
               >
                 View Cart <ShoppingCart className="w-4 h-4" />
               </motion.button>
