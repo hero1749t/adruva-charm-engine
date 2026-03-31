@@ -387,6 +387,7 @@ export type Database = {
           gps_longitude: number | null
           gps_range_meters: number
           gst_number: string | null
+          gst_percentage: number
           id: string
           opening_hours: string | null
           phone: string | null
@@ -405,6 +406,7 @@ export type Database = {
           gps_longitude?: number | null
           gps_range_meters?: number
           gst_number?: string | null
+          gst_percentage?: number
           id?: string
           opening_hours?: string | null
           phone?: string | null
@@ -423,6 +425,7 @@ export type Database = {
           gps_longitude?: number | null
           gps_range_meters?: number
           gst_number?: string | null
+          gst_percentage?: number
           id?: string
           opening_hours?: string | null
           phone?: string | null
