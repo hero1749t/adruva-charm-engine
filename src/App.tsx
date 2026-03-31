@@ -29,6 +29,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPlans from "./pages/AdminPlans";
 import AdminOwners from "./pages/AdminOwners";
+import AdminOwnerDetail from "./pages/AdminOwnerDetail";
 import AdminGuard from "./components/AdminGuard";
 
 const queryClient = new QueryClient();
