@@ -25,6 +25,11 @@ import OwnerRooms from "./pages/OwnerRooms";
 import OwnerChain from "./pages/OwnerChain";
 import Install from "./pages/Install";
 import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminPlans from "./pages/AdminPlans";
+import AdminOwners from "./pages/AdminOwners";
+import AdminGuard from "./components/AdminGuard";
 
 const queryClient = new QueryClient();
 
