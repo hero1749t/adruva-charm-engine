@@ -358,7 +358,6 @@ const CustomerMenu = () => {
     setPromoApplied(null);
     setPromoCode("");
   };
-  };
 
   // Filtered items with search + veg filter
   const filteredItems = useMemo(() => {
