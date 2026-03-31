@@ -11,8 +11,13 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ImagePlus, Upload, Search } from "lucide-react";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CSVImportDialog from "@/components/menu/CSVImportDialog";
+import ComboManager from "@/components/menu/ComboManager";
+import TagManager from "@/components/menu/TagManager";
+import VariantManager from "@/components/menu/VariantManager";
+import AddonManager from "@/components/menu/AddonManager";
 import PlanUsageBadge from "@/components/PlanUsageBadge";
 import type { Database } from "@/integrations/supabase/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
@@ -246,28 +251,58 @@ const OwnerMenu = () => {
               <p className="text-sm">{searchQuery ? "No items match your search" : "No items in this category"}</p>
             </div>
           )}
+
+          {/* Combos Section */}
+          {user && (
+            <div className="mt-6">
+              <ComboManager userId={user.id} allItems={items} onDataChange={fetchData} />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Item dialog */}
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingItem ? "Edit" : "Add"} Menu Item</DialogTitle></DialogHeader>
-          <div className="space-y-3 mt-3">
-            <Input placeholder="Item name" value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} />
-            <Input placeholder="Description (optional)" value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} />
-            <Input type="number" placeholder="Price (₹)" value={itemForm.price} onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })} />
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-foreground">Vegetarian?</span>
-              <Switch checked={itemForm.is_veg} onCheckedChange={(v) => setItemForm({ ...itemForm, is_veg: v })} />
-            </div>
-            <label className="flex items-center gap-3 cursor-pointer border border-dashed border-border rounded-lg p-3 hover:bg-accent transition-colors">
-              <ImagePlus className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              <span className="text-sm text-muted-foreground truncate">{itemForm.image ? itemForm.image.name : "Upload photo"}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => setItemForm({ ...itemForm, image: e.target.files?.[0] || null })} />
-            </label>
-            <Button onClick={saveItem} className="w-full">Save Item</Button>
-          </div>
+          <Tabs defaultValue="basic" className="mt-3">
+            <TabsList className="w-full">
+              <TabsTrigger value="basic" className="flex-1 text-xs">Basic</TabsTrigger>
+              {editingItem && <TabsTrigger value="tags" className="flex-1 text-xs">Tags</TabsTrigger>}
+              {editingItem && <TabsTrigger value="variants" className="flex-1 text-xs">Variants</TabsTrigger>}
+              {editingItem && <TabsTrigger value="addons" className="flex-1 text-xs">Addons</TabsTrigger>}
+            </TabsList>
+            <TabsContent value="basic" className="space-y-3 mt-3">
+              <Input placeholder="Item name" value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} />
+              <Input placeholder="Description (optional)" value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} />
+              <Input type="number" placeholder="Price (₹)" value={itemForm.price} onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })} />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-foreground">Vegetarian?</span>
+                <Switch checked={itemForm.is_veg} onCheckedChange={(v) => setItemForm({ ...itemForm, is_veg: v })} />
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer border border-dashed border-border rounded-lg p-3 hover:bg-accent transition-colors">
+                <ImagePlus className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm text-muted-foreground truncate">{itemForm.image ? itemForm.image.name : "Upload photo"}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => setItemForm({ ...itemForm, image: e.target.files?.[0] || null })} />
+              </label>
+              <Button onClick={saveItem} className="w-full">Save Item</Button>
+            </TabsContent>
+            {editingItem && user && (
+              <TabsContent value="tags" className="mt-3">
+                <TagManager userId={user.id} menuItemId={editingItem.id} />
+              </TabsContent>
+            )}
+            {editingItem && user && (
+              <TabsContent value="variants" className="mt-3">
+                <VariantManager userId={user.id} menuItemId={editingItem.id} />
+              </TabsContent>
+            )}
+            {editingItem && user && (
+              <TabsContent value="addons" className="mt-3">
+                <AddonManager userId={user.id} menuItemId={editingItem.id} />
+              </TabsContent>
+            )}
+          </Tabs>
         </DialogContent>
       </Dialog>
 

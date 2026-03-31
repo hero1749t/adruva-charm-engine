@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_groups: {
+        Row: {
+          created_at: string
+          id: string
+          max_selections: number | null
+          name: string
+          owner_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_selections?: number | null
+          name: string
+          owner_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_selections?: number | null
+          name?: string
+          owner_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      addon_options: {
+        Row: {
+          addon_group_id: string
+          created_at: string
+          id: string
+          is_available: boolean
+          name: string
+          price: number
+          sort_order: number
+        }
+        Insert: {
+          addon_group_id: string
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+        }
+        Update: {
+          addon_group_id?: string
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_options_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_users: {
         Row: {
           created_at: string | null
@@ -31,6 +96,42 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      combo_items: {
+        Row: {
+          combo_id: string
+          id: string
+          menu_item_id: string
+          quantity: number
+        }
+        Insert: {
+          combo_id: string
+          id?: string
+          menu_item_id: string
+          quantity?: number
+        }
+        Update: {
+          combo_id?: string
+          id?: string
+          menu_item_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combo_items_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "menu_combos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combo_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coupon_usage: {
         Row: {
@@ -265,6 +366,30 @@ export type Database = {
         }
         Relationships: []
       }
+      item_tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           created_at: string
@@ -294,6 +419,153 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      menu_combos: {
+        Row: {
+          combo_price: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          owner_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          combo_price: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          owner_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          combo_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          owner_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      menu_customization: {
+        Row: {
+          accent_color: string
+          background_color: string
+          created_at: string
+          font_body: string
+          font_heading: string
+          id: string
+          owner_id: string
+          primary_color: string
+          secondary_color: string
+          text_color: string
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string
+          background_color?: string
+          created_at?: string
+          font_body?: string
+          font_heading?: string
+          id?: string
+          owner_id: string
+          primary_color?: string
+          secondary_color?: string
+          text_color?: string
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string
+          background_color?: string
+          created_at?: string
+          font_body?: string
+          font_heading?: string
+          id?: string
+          owner_id?: string
+          primary_color?: string
+          secondary_color?: string
+          text_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      menu_item_addon_groups: {
+        Row: {
+          addon_group_id: string
+          id: string
+          menu_item_id: string
+        }
+        Insert: {
+          addon_group_id: string
+          id?: string
+          menu_item_id: string
+        }
+        Update: {
+          addon_group_id?: string
+          id?: string
+          menu_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_addon_groups_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_addon_groups_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_item_tags: {
+        Row: {
+          id: string
+          menu_item_id: string
+          tag_id: string
+        }
+        Insert: {
+          id?: string
+          menu_item_id: string
+          tag_id: string
+        }
+        Update: {
+          id?: string
+          menu_item_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_tags_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "item_tags"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       menu_items: {
         Row: {
@@ -837,6 +1109,79 @@ export type Database = {
           price?: number
         }
         Relationships: []
+      }
+      variant_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          menu_item_id: string
+          name: string
+          owner_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          menu_item_id: string
+          name: string
+          owner_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          menu_item_id?: string
+          name?: string
+          owner_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_groups_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      variant_options: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          price: number
+          sort_order: number
+          variant_group_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          sort_order?: number
+          variant_group_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          sort_order?: number
+          variant_group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_options_variant_group_id_fkey"
+            columns: ["variant_group_id"]
+            isOneToOne: false
+            referencedRelation: "variant_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

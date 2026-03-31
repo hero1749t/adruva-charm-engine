@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Upload, X, Store, Clock, Phone, CreditCard, MapPin, FileText, Image, Navigation, Loader2, Radar } from "lucide-react";
 import CouponManager from "@/components/settings/CouponManager";
+import MenuCustomization from "@/components/settings/MenuCustomization";
 import { Slider } from "@/components/ui/slider";
 
 const OwnerSettings = () => {
@@ -302,6 +303,9 @@ const OwnerSettings = () => {
               <Field icon={CreditCard} label="UPI ID" field="upi_id" placeholder="e.g. restaurant@upi" />
             </CardContent>
           </Card>
+
+          {/* Menu Personalization */}
+          {user && <MenuCustomization userId={user.id} />}
 
           {/* Discount Coupons */}
           {user && <CouponManager userId={user.id} />}
