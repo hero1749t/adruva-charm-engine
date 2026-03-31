@@ -22,6 +22,8 @@ const OwnerSettings = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [detectingGPS, setDetectingGPS] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
