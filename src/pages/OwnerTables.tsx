@@ -32,6 +32,7 @@ const statusCycle: Record<string, string> = {
 
 const OwnerTables = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState("1");
