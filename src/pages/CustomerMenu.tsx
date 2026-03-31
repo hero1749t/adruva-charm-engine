@@ -4,16 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2, Ticket, Check } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2, Ticket, Check, Package } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
 import CustomerReceipt from "@/components/CustomerReceipt";
 import CustomerReview from "@/components/CustomerReview";
+import ItemCustomizeModal, { type SelectedVariant, type SelectedAddon } from "@/components/menu/ItemCustomizeModal";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
-type CartItem = MenuItem & { quantity: number };
+type ComboRow = Database["public"]["Tables"]["menu_combos"]["Row"];
+type CartItem = MenuItem & {
+  quantity: number;
+  cartKey: string; // unique key for variant/addon combos
+  selectedVariants: SelectedVariant[];
+  selectedAddons: SelectedAddon[];
+  extraPrice: number; // variant + addon extra per unit
+  isCombo?: boolean;
+  comboPrice?: number;
+};
 type PastOrder = { id: string; total: number; itemCount: number; time: string };
 
 const CustomerMenu = () => {
