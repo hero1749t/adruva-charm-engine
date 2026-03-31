@@ -304,6 +304,9 @@ const OwnerSettings = () => {
             </CardContent>
           </Card>
 
+          {/* Menu Personalization */}
+          {user && <MenuCustomization userId={user.id} />}
+
           {/* Discount Coupons */}
           {user && <CouponManager userId={user.id} />}
 
