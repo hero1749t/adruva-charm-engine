@@ -67,13 +67,14 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!ownerId) return;
-    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number, gps_latitude, gps_longitude, gps_range_meters").eq("user_id", ownerId).single().then(({ data }: any) => {
+    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number, gps_latitude, gps_longitude, gps_range_meters, gst_percentage").eq("user_id", ownerId).single().then(({ data }: any) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
       if (data?.restaurant_logo_url) setRestaurantLogo(data.restaurant_logo_url);
       if (data?.address) setRestaurantAddress(data.address);
       if (data?.gst_number) setRestaurantGst(data.gst_number);
+      if (data?.gst_percentage != null) setRestaurantGstPct(data.gst_percentage);
       if (data?.gps_latitude != null) {
         setRestaurantGpsLat(data.gps_latitude);
         setRestaurantGpsLng(data.gps_longitude);
