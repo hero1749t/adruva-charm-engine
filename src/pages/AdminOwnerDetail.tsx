@@ -134,6 +134,7 @@ const AdminOwnerDetail = () => {
         categories: catsRes.count || 0,
         ingredients: ingredientsRes.count || 0,
       });
+      if (recentRes.data) setRecentOrders(recentRes.data as RecentOrder[]);
 
       setLoading(false);
     };
