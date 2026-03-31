@@ -83,6 +83,7 @@ const OwnerSettings = () => {
     setLoading(true);
     const updateData = {
       ...form,
+      gst_percentage: parseFloat(form.gst_percentage) || 5,
       gps_latitude: gpsLat,
       gps_longitude: gpsLng,
       gps_range_meters: gpsRange,
