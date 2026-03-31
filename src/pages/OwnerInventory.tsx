@@ -43,7 +43,7 @@ const OwnerInventory = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "low" | "recipes">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "low" | "recipes" | "history">("all");
 
   // Ingredient form
   const [ingredientDialogOpen, setIngredientDialogOpen] = useState(false);
