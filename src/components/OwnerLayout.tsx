@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStaffRole } from "@/hooks/useStaffRole";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
