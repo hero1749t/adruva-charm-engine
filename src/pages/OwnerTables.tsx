@@ -69,6 +69,10 @@ const OwnerTables = () => {
       toast.error("Enter a number between 1 and 50");
       return;
     }
+    if (plan.hasPlan && tables.length + count > plan.maxTables) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxTables} tables. You have ${tables.length}. Upgrade to add more.`);
+      return;
+    }
     const maxNum = tables.length > 0 ? Math.max(...tables.map((t) => t.table_number)) : 0;
     const newTables = Array.from({ length: count }, (_, i) => ({
       owner_id: user.id,
