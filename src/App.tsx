@@ -21,6 +21,8 @@ import OwnerLeads from "./pages/OwnerLeads";
 import OwnerStaff from "./pages/OwnerStaff";
 import OwnerInventory from "./pages/OwnerInventory";
 import OwnerExpenses from "./pages/OwnerExpenses";
+import OwnerRooms from "./pages/OwnerRooms";
+import OwnerChain from "./pages/OwnerChain";
 import Install from "./pages/Install";
 import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
 
