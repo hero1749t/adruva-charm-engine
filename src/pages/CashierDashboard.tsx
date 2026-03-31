@@ -157,7 +157,13 @@ const CashierDashboard = () => {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-xl font-bold text-foreground">Billing & Orders</h2>
-          <PrinterSetup />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Auto Print</span>
+              <Switch checked={autoPrint} onCheckedChange={toggleAutoPrint} className="scale-90" />
+            </div>
+            <PrinterSetup />
+          </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map((tab) => (
