@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      coupon_usage: {
+        Row: {
+          coupon_id: string
+          customer_phone: string
+          id: string
+          order_id: string
+          owner_id: string
+          used_at: string
+        }
+        Insert: {
+          coupon_id: string
+          customer_phone: string
+          id?: string
+          order_id: string
+          owner_id: string
+          used_at?: string
+        }
+        Update: {
+          coupon_id?: string
+          customer_phone?: string
+          id?: string
+          order_id?: string
+          owner_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "discount_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_reviews: {
         Row: {
           comment: string | null
@@ -85,6 +127,48 @@ export type Database = {
           name?: string
           phone?: string
           restaurant_name?: string
+        }
+        Relationships: []
+      }
+      discount_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          max_uses_per_person: number
+          min_order_amount: number
+          owner_id: string
+          valid_from: string
+          valid_until: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_uses_per_person?: number
+          min_order_amount?: number
+          owner_id: string
+          valid_from?: string
+          valid_until: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_uses_per_person?: number
+          min_order_amount?: number
+          owner_id?: string
+          valid_from?: string
+          valid_until?: string
         }
         Relationships: []
       }

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2 } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2, Ticket, Check } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
@@ -55,6 +55,11 @@ const CustomerMenu = () => {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [restaurantGstPct, setRestaurantGstPct] = useState<number>(5);
   const [livePaymentMethod, setLivePaymentMethod] = useState<string | null>(null);
+  // Promo code states
+  const [promoCode, setPromoCode] = useState("");
+  const [promoApplied, setPromoApplied] = useState<{ id: string; code: string; discount_type: string; discount_value: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -204,8 +209,55 @@ const CustomerMenu = () => {
     );
   };
 
-  const total = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
+  const subtotal = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
+  const discountAmount = promoApplied
+    ? promoApplied.discount_type === "percentage"
+      ? Math.round(subtotal * promoApplied.discount_value / 100)
+      : Math.min(promoApplied.discount_value, subtotal)
+    : 0;
+  const total = subtotal - discountAmount;
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    if (!phone.trim()) { setPromoError("Enter your phone number first to apply coupon"); return; }
+    setPromoChecking(true);
+    setPromoError(null);
+    // Check coupon exists and is active
+    const { data: coupon } = await supabase
+      .from("discount_coupons")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .eq("code", promoCode.toUpperCase().trim())
+      .eq("is_active", true)
+      .single() as any;
+    if (!coupon) { setPromoError("Invalid or expired coupon code"); setPromoChecking(false); return; }
+    const now = new Date();
+    if (now < new Date(coupon.valid_from) || now > new Date(coupon.valid_until)) {
+      setPromoError("This coupon has expired"); setPromoChecking(false); return;
+    }
+    if (subtotal < coupon.min_order_amount) {
+      setPromoError(`Minimum order ₹${coupon.min_order_amount} required`); setPromoChecking(false); return;
+    }
+    // Check usage count
+    const { count } = await supabase
+      .from("coupon_usage")
+      .select("*", { count: "exact", head: true })
+      .eq("coupon_id", coupon.id)
+      .eq("customer_phone", phone.trim()) as any;
+    if ((count || 0) >= coupon.max_uses_per_person) {
+      setPromoError("You've already used this coupon maximum times"); setPromoChecking(false); return;
+    }
+    setPromoApplied({ id: coupon.id, code: coupon.code, discount_type: coupon.discount_type, discount_value: coupon.discount_value });
+    toast.success(`Coupon applied! ${coupon.discount_type === "percentage" ? `${coupon.discount_value}% off` : `₹${coupon.discount_value} off`}`);
+    setPromoChecking(false);
+  };
+
+  const removePromo = () => {
+    setPromoApplied(null);
+    setPromoCode("");
+    setPromoError(null);
+  };
 
   // Haversine distance calculation
   const getDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -278,6 +330,16 @@ const CustomerMenu = () => {
     }));
     await supabase.from("order_items").insert(orderItems);
 
+    // Record coupon usage if applied
+    if (promoApplied && phone.trim()) {
+      await supabase.from("coupon_usage").insert({
+        coupon_id: promoApplied.id,
+        owner_id: ownerId,
+        customer_phone: phone.trim(),
+        order_id: order.id,
+      } as any);
+    }
+
     // Save to session history
     setPastOrders((prev) => [
       { id: order.id, total, itemCount: cartCount, time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
@@ -293,6 +355,9 @@ const CustomerMenu = () => {
     setCartOpen(false);
     setOrdering(false);
     setNotes("");
+    setPromoApplied(null);
+    setPromoCode("");
+  };
   };
 
   // Filtered items with search + veg filter
@@ -717,20 +782,72 @@ const CustomerMenu = () => {
                 className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-3 bg-background text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
-              <div className="border-t border-border pt-4 mb-4">
-                <div className="flex justify-between font-display font-bold text-lg text-foreground">
+              {/* Phone number — moved before promo */}
+              <input
+                type="tel"
+                placeholder="Phone number (for updates & promo codes)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-3 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+
+              {/* Promo code */}
+              <div className="mb-3">
+                {promoApplied ? (
+                  <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary">{promoApplied.code}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({promoApplied.discount_type === "percentage" ? `${promoApplied.discount_value}% off` : `₹${promoApplied.discount_value} off`})
+                      </span>
+                    </div>
+                    <button onClick={removePromo} className="text-muted-foreground hover:text-destructive">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Promo code"
+                        value={promoCode}
+                        onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(null); }}
+                        className="w-full border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono uppercase"
+                      />
+                    </div>
+                    <button
+                      onClick={applyPromo}
+                      disabled={promoChecking || !promoCode.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+                    >
+                      {promoChecking ? "..." : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {promoError && <p className="text-xs text-destructive mt-1.5">{promoError}</p>}
+              </div>
+
+              {/* Total breakdown */}
+              <div className="border-t border-border pt-4 mb-4 space-y-1.5">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(0)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-primary font-medium">
+                    <span>Discount ({promoApplied?.code})</span>
+                    <span>-₹{discountAmount.toFixed(0)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-display font-bold text-lg text-foreground pt-1">
                   <span>Total</span>
                   <span>₹{total.toFixed(0)}</span>
                 </div>
               </div>
 
-              <input
-                type="tel"
-                placeholder="Phone number (optional — for updates)"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-4 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
 
               {!gpsVerified ? (
                 <div className="space-y-3">
