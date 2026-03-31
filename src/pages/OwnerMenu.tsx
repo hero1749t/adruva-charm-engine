@@ -18,6 +18,7 @@ type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
 
 const OwnerMenu = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
