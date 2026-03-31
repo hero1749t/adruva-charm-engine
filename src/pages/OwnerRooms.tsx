@@ -59,6 +59,10 @@ const OwnerRooms = () => {
       toast.error("Enter a number between 1 and 50");
       return;
     }
+    if (plan.hasPlan && rooms.length + count > plan.maxRooms) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxRooms} rooms. You have ${rooms.length}. Upgrade to add more.`);
+      return;
+    }
     const maxNum = rooms.length > 0 ? Math.max(...rooms.map((r) => r.room_number)) : 0;
     const newRooms = Array.from({ length: count }, (_, i) => ({
       owner_id: user.id,
