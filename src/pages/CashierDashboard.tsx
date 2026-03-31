@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { IndianRupee, Receipt } from "lucide-react";
+import { IndianRupee, Receipt, Printer } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import PrinterSetup, { generateReceiptHTML, printReceipt } from "@/components/billing/PrinterSetup";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"];
 type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
