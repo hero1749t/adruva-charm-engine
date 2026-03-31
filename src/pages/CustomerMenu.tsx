@@ -685,7 +685,8 @@ const CustomerMenu = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex gap-3 bg-card rounded-2xl border border-border p-3 shadow-card hover:shadow-md transition-shadow"
+                  className={cm ? "flex gap-3 rounded-2xl p-3 transition-shadow" : "flex gap-3 bg-card rounded-2xl border border-border p-3 shadow-card hover:shadow-md transition-shadow"}
+                  style={cm ? { backgroundColor: menuStyle!.accent_color + "10", border: `1px solid ${menuStyle!.accent_color}25` } : undefined}
                 >
                   {item.image_url && (
                     <img src={item.image_url} alt={item.name} className="w-24 h-24 rounded-xl object-cover flex-shrink-0" />
@@ -700,23 +701,24 @@ const CustomerMenu = () => {
                             item.is_veg ? "bg-green-600" : "bg-red-500"
                           }`} />
                         </span>
-                        <span className="font-semibold text-foreground text-sm truncate">{item.name}</span>
+                        <span className="font-semibold text-sm truncate" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_heading } : undefined}>{item.name}</span>
                       </div>
-                      {item.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>}
+                      {item.description && <p className="text-xs mt-0.5 line-clamp-2" style={cm ? { color: menuStyle!.text_color + "99" } : undefined}>{item.description}</p>}
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="font-display font-bold text-foreground text-base">₹{item.price}</span>
+                      <span className="font-bold text-base" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_heading } : undefined}>₹{item.price}</span>
                       {inCart ? (
                         <motion.div
                           initial={{ scale: 0.8 }}
                           animate={{ scale: 1 }}
-                          className="flex items-center gap-1 bg-primary rounded-xl overflow-hidden"
+                          className="flex items-center gap-1 rounded-xl overflow-hidden"
+                          style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}
                         >
-                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-primary-foreground hover:bg-primary/80 transition-colors">
+                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
                             <Minus className="w-4 h-4" />
                           </button>
-                          <span className="text-sm font-bold text-primary-foreground w-6 text-center">{inCart.quantity}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-primary-foreground hover:bg-primary/80 transition-colors">
+                          <span className="text-sm font-bold text-white w-6 text-center">{inCart.quantity}</span>
+                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
                             <Plus className="w-4 h-4" />
                           </button>
                         </motion.div>
@@ -724,7 +726,8 @@ const CustomerMenu = () => {
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           onClick={() => addToCart(item)}
-                          className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 border-primary text-primary text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
+                          className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 text-xs font-bold transition-colors"
+                          style={cm ? { borderColor: menuStyle!.primary_color, color: menuStyle!.primary_color } : undefined}
                         >
                           <Plus className="w-3.5 h-3.5" /> ADD
                         </motion.button>
