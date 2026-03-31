@@ -174,7 +174,9 @@ const CustomerMenu = () => {
       .channel(`order-track-${orderPlaced}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderPlaced}` }, (payload) => {
         const newStatus = (payload.new as any).status;
+        const newPayment = (payload.new as any).payment_method;
         setLiveStatus(newStatus);
+        setLivePaymentMethod(newPayment);
         
         // Trigger alerts when order is ready
         if (newStatus === "ready") {
