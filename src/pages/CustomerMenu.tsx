@@ -756,7 +756,8 @@ const CustomerMenu = () => {
           )}
           <div className="space-y-3">
             {filteredItems.map((item) => {
-              const inCart = cart.find((c) => c.id === item.id);
+              const itemCartEntries = cart.filter((c) => c.id === item.id && !c.isCombo);
+              const totalInCart = itemCartEntries.reduce((s, c) => s + c.quantity, 0);
               return (
                 <motion.div
                   key={item.id}
@@ -786,22 +787,13 @@ const CustomerMenu = () => {
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <span className="font-bold text-base" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_heading } : undefined}>₹{item.price}</span>
-                      {inCart ? (
-                        <motion.div
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          className="flex items-center gap-1 rounded-xl overflow-hidden"
-                          style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}
-                        >
-                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="text-sm font-bold text-white w-6 text-center">{inCart.quantity}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </motion.div>
-                      ) : (
+                      <div className="flex items-center gap-2">
+                        {totalInCart > 0 && (
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={cm ? { backgroundColor: menuStyle!.primary_color + "20", color: menuStyle!.primary_color } : undefined}>
+                            {!cm && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full">{totalInCart} in cart</span>}
+                            {cm && `${totalInCart} in cart`}
+                          </span>
+                        )}
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           onClick={() => addToCart(item)}
@@ -810,13 +802,71 @@ const CustomerMenu = () => {
                         >
                           <Plus className="w-3.5 h-3.5" /> ADD
                         </motion.button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
               );
             })}
           </div>
+
+          {/* Combos section */}
+          {combos.length > 0 && !searchQuery && (
+            <div className="mt-6 mb-4">
+              <h2 className="font-bold text-lg mb-3 flex items-center gap-2" style={cm ? { fontFamily: menuStyle!.font_heading, color: menuStyle!.text_color } : undefined}>
+                <Package className="w-5 h-5" style={cm ? { color: menuStyle!.primary_color } : undefined} />
+                {!cm && <Package className="w-5 h-5 text-primary absolute" />}
+                Combo Deals
+              </h2>
+              <div className="space-y-3">
+                {combos.map((combo) => {
+                  const comboInCart = cart.find(c => c.cartKey === "combo-" + combo.id);
+                  return (
+                    <motion.div
+                      key={combo.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cm ? "rounded-2xl p-4 transition-shadow" : "bg-card rounded-2xl border border-border p-4 shadow-card"}
+                      style={cm ? { backgroundColor: menuStyle!.accent_color + "10", border: `1px solid ${menuStyle!.accent_color}25` } : undefined}
+                    >
+                      <div className="flex gap-3">
+                        {combo.image_url && (
+                          <img src={combo.image_url} alt={combo.name} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-bold text-sm" style={cm ? { fontFamily: menuStyle!.font_heading, color: menuStyle!.text_color } : undefined}>{combo.name}</h3>
+                          {combo.description && <p className="text-xs mt-0.5 opacity-60">{combo.description}</p>}
+                          <p className="text-xs mt-1 opacity-70">
+                            {combo.items.map(i => `${i.quantity}x ${i.name}`).join(" + ")}
+                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="font-bold text-base" style={cm ? { color: menuStyle!.primary_color, fontFamily: menuStyle!.font_heading } : undefined}>₹{combo.combo_price}</span>
+                            {comboInCart ? (
+                              <div className="flex items-center gap-1 rounded-xl overflow-hidden" style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}>
+                                {!cm && <div className="absolute inset-0 bg-primary rounded-xl" />}
+                                <button onClick={() => updateQty("combo-" + combo.id, -1)} className="relative px-2 py-1.5 text-white hover:opacity-80"><Minus className="w-4 h-4" /></button>
+                                <span className="relative text-sm font-bold text-white w-6 text-center">{comboInCart.quantity}</span>
+                                <button onClick={() => updateQty("combo-" + combo.id, 1)} className="relative px-2 py-1.5 text-white hover:opacity-80"><Plus className="w-4 h-4" /></button>
+                              </div>
+                            ) : (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => addComboToCart(combo)}
+                                className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 text-xs font-bold transition-colors"
+                                style={cm ? { borderColor: menuStyle!.primary_color, color: menuStyle!.primary_color } : undefined}
+                              >
+                                <Plus className="w-3.5 h-3.5" /> ADD
+                              </motion.button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </AnimatePresence>
       </div>
 
