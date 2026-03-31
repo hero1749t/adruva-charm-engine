@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Plus, UserCog, Trash2, Shield } from "lucide-react";
 import { useStaffRole, type StaffRole } from "@/hooks/useStaffRole";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 
 interface StaffMember {
   id: string;
