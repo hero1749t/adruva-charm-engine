@@ -108,6 +108,16 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
           ))}
 
           <div className="mt-auto pt-4 border-t border-border space-y-1">
+            {plan.hasPlan && (
+              <div className="px-3 py-2 mb-2">
+                <Badge variant="outline" className="text-xs">{plan.planName}</Badge>
+                {plan.expiresAt && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Exp: {new Date(plan.expiresAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
             <a href="https://wa.me/918383877088" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
               <MessageCircle className="w-4 h-4 text-success" /> WhatsApp Support
