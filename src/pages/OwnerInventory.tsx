@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Package, AlertTriangle, Pencil, Trash2, Link, Search } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil, Trash2, Link, Search, Clock } from "lucide-react";
+import StockMovementHistory from "@/components/inventory/StockMovementHistory";
 import type { Database } from "@/integrations/supabase/types";
 
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
@@ -42,7 +43,7 @@ const OwnerInventory = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "low" | "recipes">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "low" | "recipes" | "history">("all");
 
   // Ingredient form
   const [ingredientDialogOpen, setIngredientDialogOpen] = useState(false);
@@ -122,8 +123,19 @@ const OwnerInventory = () => {
 
   const updateStock = async () => {
     if (!stockIngredient || !stockAmount) return;
-    const newStock = stockIngredient.current_stock + parseFloat(stockAmount);
+    const amt = parseFloat(stockAmount);
+    const newStock = stockIngredient.current_stock + amt;
     await supabase.from("ingredients").update({ current_stock: Math.max(0, newStock) }).eq("id", stockIngredient.id);
+    // Log manual movement
+    if (user) {
+      await supabase.from("stock_movements").insert({
+        owner_id: user.id,
+        ingredient_id: stockIngredient.id,
+        quantity_changed: amt,
+        movement_type: amt >= 0 ? "manual_add" : "manual_deduct",
+        note: amt >= 0 ? "Manual stock added" : "Manual stock deducted",
+      } as any);
+    }
     setStockDialogOpen(false);
     toast.success("Stock updated"); fetchData();
   };
@@ -166,7 +178,14 @@ const OwnerInventory = () => {
     { key: "all" as const, label: "All Ingredients", count: ingredients.length },
     { key: "low" as const, label: "⚠️ Low Stock", count: lowStockItems.length },
     { key: "recipes" as const, label: "🔗 Recipes", count: recipeIngredients.length },
+    { key: "history" as const, label: "📜 History", count: 0 },
   ];
+
+  const ingredientNameMap = useMemo(() => {
+    const map: Record<string, { name: string; unit: string }> = {};
+    ingredients.forEach(i => { map[i.id] = { name: i.name, unit: i.unit }; });
+    return map;
+  }, [ingredients]);
 
   return (
     <OwnerLayout>
@@ -229,7 +248,7 @@ const OwnerInventory = () => {
       </div>
 
       {/* ALL / LOW STOCK TAB */}
-      {activeTab !== "recipes" && (
+      {(activeTab === "all" || activeTab === "low") && (
         <>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -318,6 +337,11 @@ const OwnerInventory = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* HISTORY TAB */}
+      {activeTab === "history" && (
+        <StockMovementHistory ingredientNames={ingredientNameMap} />
       )}
 
       {/* Add/Edit Ingredient Dialog */}
