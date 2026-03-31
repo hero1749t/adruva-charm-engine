@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ImagePlus, Upload, Search } from "lucide-react";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CSVImportDialog from "@/components/menu/CSVImportDialog";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
