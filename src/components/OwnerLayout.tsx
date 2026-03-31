@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStaffRole } from "@/hooks/useStaffRole";
+import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package, Wallet, DoorOpen, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { isOwner, isManager, isKitchen, isCashier, canViewAnalytics, canManageMenu, canManageStaff } = useStaffRole();
+  const { plan } = useOwnerPlan();
   const [newOrderCount, setNewOrderCount] = useState(0);
 
   const fetchNewOrderCount = async () => {
