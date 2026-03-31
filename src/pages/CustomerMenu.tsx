@@ -714,9 +714,26 @@ const CustomerMenu = () => {
                 className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-4 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
-              <Button variant="hero" className="w-full h-14 text-base rounded-xl" onClick={placeOrder} disabled={ordering}>
-                {ordering ? "Placing Order..." : `Place Order — ₹${total.toFixed(0)}`}
-              </Button>
+              {!gpsVerified ? (
+                <div className="space-y-3">
+                  <div className="bg-accent/50 border border-border rounded-xl p-4 text-center">
+                    <MapPin className="w-6 h-6 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium text-foreground">Location Verification Required</p>
+                    <p className="text-xs text-muted-foreground mt-1">Enable GPS to confirm you're at the restaurant</p>
+                  </div>
+                  {gpsError && (
+                    <p className="text-xs text-destructive text-center">{gpsError}</p>
+                  )}
+                  <Button variant="hero" className="w-full h-14 text-base rounded-xl gap-2" onClick={verifyGPS} disabled={gpsChecking}>
+                    {gpsChecking ? <Loader2 className="w-5 h-5 animate-spin" /> : <MapPin className="w-5 h-5" />}
+                    {gpsChecking ? "Verifying Location..." : "Verify My Location"}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="hero" className="w-full h-14 text-base rounded-xl" onClick={placeOrder} disabled={ordering}>
+                  {ordering ? "Placing Order..." : `Place Order — ₹${total.toFixed(0)}`}
+                </Button>
+              )}
             </motion.div>
           </motion.div>
         )}
