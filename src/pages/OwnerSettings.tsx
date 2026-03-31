@@ -262,7 +262,7 @@ const OwnerSettings = () => {
                     <span className="text-sm font-semibold text-foreground min-w-[60px] text-right">{gpsRange}m</span>
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>50m</span>
+                    <span>1m</span>
                     <span>500m</span>
                     <span>1km</span>
                   </div>
