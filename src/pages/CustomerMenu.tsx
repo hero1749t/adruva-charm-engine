@@ -4,16 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2, Ticket, Check } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2, Ticket, Check, Package } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
 import CustomerReceipt from "@/components/CustomerReceipt";
 import CustomerReview from "@/components/CustomerReview";
+import ItemCustomizeModal, { type SelectedVariant, type SelectedAddon } from "@/components/menu/ItemCustomizeModal";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
-type CartItem = MenuItem & { quantity: number };
+type ComboRow = Database["public"]["Tables"]["menu_combos"]["Row"];
+type CartItem = MenuItem & {
+  quantity: number;
+  cartKey: string; // unique key for variant/addon combos
+  selectedVariants: SelectedVariant[];
+  selectedAddons: SelectedAddon[];
+  extraPrice: number; // variant + addon extra per unit
+  isCombo?: boolean;
+  comboPrice?: number;
+};
 type PastOrder = { id: string; total: number; itemCount: number; time: string };
 
 const CustomerMenu = () => {
@@ -232,22 +242,81 @@ const CustomerMenu = () => {
     return () => { supabase.removeChannel(channel); };
   }, [orderPlaced, tableNumber]);
 
-  const addToCart = (item: MenuItem) => {
-    setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
-      if (existing) return prev.map((c) => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
-      return [...prev, { ...item, quantity: 1 }];
+  const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
+  const [combos, setCombos] = useState<(ComboRow & { items: { name: string; quantity: number }[] })[]>([]);
+
+  // Fetch combos
+  useEffect(() => {
+    if (!ownerId) return;
+    supabase.from("menu_combos").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order").then(async ({ data }) => {
+      if (!data || data.length === 0) return;
+      const { data: comboItems } = await supabase
+        .from("combo_items")
+        .select("combo_id, quantity, menu_item_id, menu_items(name)")
+        .in("combo_id", data.map(c => c.id)) as any;
+      setCombos(data.map(c => ({
+        ...c,
+        items: (comboItems || []).filter((ci: any) => ci.combo_id === c.id).map((ci: any) => ({
+          name: ci.menu_items?.name || "Item",
+          quantity: ci.quantity,
+        })),
+      })));
     });
+  }, [ownerId]);
+
+  const addToCart = (item: MenuItem) => {
+    // Open customize modal - it will auto-add if no variants/addons
+    setCustomizeItem(item);
+  };
+
+  const handleCustomizeAdd = (item: MenuItem, variants: SelectedVariant[], addons: SelectedAddon[], extraPrice: number) => {
+    const cartKey = item.id + "|" + variants.map(v => v.optionName).join(",") + "|" + addons.map(a => a.optionName).join(",");
+    setCart((prev) => {
+      const existing = prev.find((c) => c.cartKey === cartKey);
+      if (existing) return prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...prev, { ...item, quantity: 1, cartKey, selectedVariants: variants, selectedAddons: addons, extraPrice }];
+    });
+    setCustomizeItem(null);
     toast.success(`${item.name} added`, { duration: 1500 });
   };
 
-  const updateQty = (itemId: string, delta: number) => {
+  const addComboToCart = (combo: ComboRow) => {
+    const cartKey = "combo-" + combo.id;
+    setCart((prev) => {
+      const existing = prev.find((c) => c.cartKey === cartKey);
+      if (existing) return prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...prev, {
+        id: combo.id,
+        name: combo.name,
+        price: combo.combo_price,
+        image_url: combo.image_url,
+        description: combo.description,
+        is_veg: true,
+        is_available: true,
+        category_id: "",
+        owner_id: combo.owner_id,
+        sort_order: 0,
+        created_at: "",
+        updated_at: "",
+        quantity: 1,
+        cartKey,
+        selectedVariants: [],
+        selectedAddons: [],
+        extraPrice: 0,
+        isCombo: true,
+        comboPrice: Number(combo.combo_price),
+      } as CartItem];
+    });
+    toast.success(`${combo.name} added`, { duration: 1500 });
+  };
+
+  const updateQty = (cartKey: string, delta: number) => {
     setCart((prev) =>
-      prev.map((c) => c.id === itemId ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter((c) => c.quantity > 0)
+      prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter((c) => c.quantity > 0)
     );
   };
 
-  const subtotal = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
+  const subtotal = cart.reduce((sum, c) => (Number(c.price) + c.extraPrice) * c.quantity + sum, 0);
   const discountAmount = promoApplied
     ? promoApplied.discount_type === "percentage"
       ? Math.round(subtotal * promoApplied.discount_value / 100)
@@ -359,13 +428,20 @@ const CustomerMenu = () => {
       return;
     }
 
-    const orderItems = cart.map((c) => ({
-      order_id: order.id,
-      menu_item_id: c.id,
-      item_name: c.name,
-      item_price: Number(c.price),
-      quantity: c.quantity,
-    }));
+    const orderItems = cart.map((c) => {
+      const extras = [
+        ...c.selectedVariants.map(v => v.optionName),
+        ...c.selectedAddons.map(a => a.optionName),
+      ];
+      const itemName = extras.length > 0 ? `${c.name} (${extras.join(", ")})` : c.name;
+      return {
+        order_id: order.id,
+        menu_item_id: c.isCombo ? c.id : c.id, // combo items still reference the combo id
+        item_name: itemName,
+        item_price: Number(c.price) + c.extraPrice,
+        quantity: c.quantity,
+      };
+    });
     await supabase.from("order_items").insert(orderItems);
 
     // Record coupon usage if applied
@@ -387,7 +463,10 @@ const CustomerMenu = () => {
     setOrderPlaced(order.id);
     setOrderPlacedAt(Date.now());
     setOrderTotal(total);
-    setOrderItems(cart.map(c => ({ name: c.name, quantity: c.quantity, price: Number(c.price) })));
+    setOrderItems(cart.map(c => {
+      const extras = [...c.selectedVariants.map(v => v.optionName), ...c.selectedAddons.map(a => a.optionName)];
+      return { name: extras.length > 0 ? `${c.name} (${extras.join(", ")})` : c.name, quantity: c.quantity, price: Number(c.price) + c.extraPrice };
+    }));
     setOrderCreatedAt(new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
     setCart([]);
     setCartOpen(false);
@@ -677,7 +756,8 @@ const CustomerMenu = () => {
           )}
           <div className="space-y-3">
             {filteredItems.map((item) => {
-              const inCart = cart.find((c) => c.id === item.id);
+              const itemCartEntries = cart.filter((c) => c.id === item.id && !c.isCombo);
+              const totalInCart = itemCartEntries.reduce((s, c) => s + c.quantity, 0);
               return (
                 <motion.div
                   key={item.id}
@@ -707,22 +787,13 @@ const CustomerMenu = () => {
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <span className="font-bold text-base" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_heading } : undefined}>₹{item.price}</span>
-                      {inCart ? (
-                        <motion.div
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          className="flex items-center gap-1 rounded-xl overflow-hidden"
-                          style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}
-                        >
-                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="text-sm font-bold text-white w-6 text-center">{inCart.quantity}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </motion.div>
-                      ) : (
+                      <div className="flex items-center gap-2">
+                        {totalInCart > 0 && (
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={cm ? { backgroundColor: menuStyle!.primary_color + "20", color: menuStyle!.primary_color } : undefined}>
+                            {!cm && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full">{totalInCart} in cart</span>}
+                            {cm && `${totalInCart} in cart`}
+                          </span>
+                        )}
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           onClick={() => addToCart(item)}
@@ -731,13 +802,71 @@ const CustomerMenu = () => {
                         >
                           <Plus className="w-3.5 h-3.5" /> ADD
                         </motion.button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
               );
             })}
           </div>
+
+          {/* Combos section */}
+          {combos.length > 0 && !searchQuery && (
+            <div className="mt-6 mb-4">
+              <h2 className="font-bold text-lg mb-3 flex items-center gap-2" style={cm ? { fontFamily: menuStyle!.font_heading, color: menuStyle!.text_color } : undefined}>
+                <Package className="w-5 h-5" style={cm ? { color: menuStyle!.primary_color } : undefined} />
+                {!cm && <Package className="w-5 h-5 text-primary absolute" />}
+                Combo Deals
+              </h2>
+              <div className="space-y-3">
+                {combos.map((combo) => {
+                  const comboInCart = cart.find(c => c.cartKey === "combo-" + combo.id);
+                  return (
+                    <motion.div
+                      key={combo.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cm ? "rounded-2xl p-4 transition-shadow" : "bg-card rounded-2xl border border-border p-4 shadow-card"}
+                      style={cm ? { backgroundColor: menuStyle!.accent_color + "10", border: `1px solid ${menuStyle!.accent_color}25` } : undefined}
+                    >
+                      <div className="flex gap-3">
+                        {combo.image_url && (
+                          <img src={combo.image_url} alt={combo.name} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-bold text-sm" style={cm ? { fontFamily: menuStyle!.font_heading, color: menuStyle!.text_color } : undefined}>{combo.name}</h3>
+                          {combo.description && <p className="text-xs mt-0.5 opacity-60">{combo.description}</p>}
+                          <p className="text-xs mt-1 opacity-70">
+                            {combo.items.map(i => `${i.quantity}x ${i.name}`).join(" + ")}
+                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="font-bold text-base" style={cm ? { color: menuStyle!.primary_color, fontFamily: menuStyle!.font_heading } : undefined}>₹{combo.combo_price}</span>
+                            {comboInCart ? (
+                              <div className="flex items-center gap-1 rounded-xl overflow-hidden" style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}>
+                                {!cm && <div className="absolute inset-0 bg-primary rounded-xl" />}
+                                <button onClick={() => updateQty("combo-" + combo.id, -1)} className="relative px-2 py-1.5 text-white hover:opacity-80"><Minus className="w-4 h-4" /></button>
+                                <span className="relative text-sm font-bold text-white w-6 text-center">{comboInCart.quantity}</span>
+                                <button onClick={() => updateQty("combo-" + combo.id, 1)} className="relative px-2 py-1.5 text-white hover:opacity-80"><Plus className="w-4 h-4" /></button>
+                              </div>
+                            ) : (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => addComboToCart(combo)}
+                                className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 text-xs font-bold transition-colors"
+                                style={cm ? { borderColor: menuStyle!.primary_color, color: menuStyle!.primary_color } : undefined}
+                              >
+                                <Plus className="w-3.5 h-3.5" /> ADD
+                              </motion.button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </AnimatePresence>
       </div>
 
@@ -797,25 +926,32 @@ const CustomerMenu = () => {
               </div>
 
               <div className="space-y-3 mb-5">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-sm ${item.is_veg ? "bg-green-600" : "bg-red-500"}`} />
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
+                {cart.map((item) => {
+                  const unitPrice = Number(item.price) + item.extraPrice;
+                  const extras = [...item.selectedVariants.map(v => v.optionName), ...item.selectedAddons.map(a => a.optionName)];
+                  return (
+                    <div key={item.cartKey} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${item.is_veg ? "bg-green-600" : "bg-red-500"}`} />
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground text-sm">{item.isCombo ? "🎁 " : ""}{item.name}</p>
+                          {extras.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground truncate">{extras.join(", ")}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">₹{unitPrice} × {item.quantity}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-bold text-foreground text-sm">₹{(unitPrice * item.quantity).toFixed(0)}</span>
+                        <div className="flex items-center gap-0.5 bg-muted rounded-lg overflow-hidden">
+                          <button onClick={() => updateQty(item.cartKey, -1)} className="p-1.5 hover:bg-muted-foreground/10"><Minus className="w-3 h-3" /></button>
+                          <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
+                          <button onClick={() => updateQty(item.cartKey, 1)} className="p-1.5 hover:bg-muted-foreground/10"><Plus className="w-3 h-3" /></button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground text-sm">₹{(Number(item.price) * item.quantity).toFixed(0)}</span>
-                      <div className="flex items-center gap-0.5 bg-muted rounded-lg overflow-hidden">
-                        <button onClick={() => updateQty(item.id, -1)} className="p-1.5 hover:bg-muted-foreground/10"><Minus className="w-3 h-3" /></button>
-                        <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQty(item.id, 1)} className="p-1.5 hover:bg-muted-foreground/10"><Plus className="w-3 h-3" /></button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Order notes */}
@@ -956,6 +1092,19 @@ const CustomerMenu = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Item customize modal */}
+      <AnimatePresence>
+        {customizeItem && ownerId && (
+          <ItemCustomizeModal
+            item={customizeItem}
+            ownerId={ownerId}
+            onClose={() => setCustomizeItem(null)}
+            onAdd={(variants, addons, extraPrice) => handleCustomizeAdd(customizeItem, variants, addons, extraPrice)}
+            menuStyle={menuStyle}
+          />
         )}
       </AnimatePresence>
     </div>
