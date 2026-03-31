@@ -83,7 +83,7 @@ const CustomerReceipt = ({
       itemLines,
       ``,
       `Subtotal: ₹${subtotal.toFixed(0)}`,
-      `GST (5%): ₹${gstAmount.toFixed(0)}`,
+      `GST (${gstPercentage}%): ₹${gstAmount.toFixed(0)}`,
       `*Total: ₹${total.toFixed(0)}*`,
       ``,
       `Thank you! 🙏`,
