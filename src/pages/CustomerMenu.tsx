@@ -55,6 +55,11 @@ const CustomerMenu = () => {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [restaurantGstPct, setRestaurantGstPct] = useState<number>(5);
   const [livePaymentMethod, setLivePaymentMethod] = useState<string | null>(null);
+  // Promo code states
+  const [promoCode, setPromoCode] = useState("");
+  const [promoApplied, setPromoApplied] = useState<{ id: string; code: string; discount_type: string; discount_value: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
