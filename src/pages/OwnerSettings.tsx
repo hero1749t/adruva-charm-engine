@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, X, Store, Clock, Phone, CreditCard, MapPin, FileText, Image } from "lucide-react";
+import { Upload, X, Store, Clock, Phone, CreditCard, MapPin, FileText, Image, Navigation, Loader2 } from "lucide-react";
 
 const OwnerSettings = () => {
   const { user } = useAuth();
@@ -22,6 +22,8 @@ const OwnerSettings = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [detectingGPS, setDetectingGPS] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,6 +73,38 @@ const OwnerSettings = () => {
     if (error) toast.error("Failed to save");
     else toast.success("Settings saved!");
     setLoading(false);
+  };
+
+  const detectGPS = async () => {
+    if (!navigator.geolocation) {
+      toast.error("GPS not supported on this device");
+      return;
+    }
+    setDetectingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setGpsCoords(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`, {
+            headers: { "Accept-Language": "en" },
+          });
+          const data = await res.json();
+          if (data.display_name) {
+            setForm((prev) => ({ ...prev, address: data.display_name }));
+            toast.success("Location detected!");
+          }
+        } catch {
+          toast.error("Could not fetch address");
+        }
+        setDetectingGPS(false);
+      },
+      (err) => {
+        toast.error(err.code === 1 ? "Location access denied" : "Could not detect location");
+        setDetectingGPS(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const Field = ({ icon: Icon, label, field, placeholder, type = "text" }: { icon: any; label: string; field: string; placeholder: string; type?: string }) => (
@@ -170,6 +204,24 @@ const OwnerSettings = () => {
             <CardContent className="space-y-4">
               <Field icon={FileText} label="GST Number" field="gst_number" placeholder="e.g. 29ABCDE1234F1Z5" />
               <Field icon={MapPin} label="Address" field="address" placeholder="e.g. 123, MG Road, Bengaluru" />
+
+              {/* GPS Auto-detect */}
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={detectGPS}
+                  disabled={detectingGPS}
+                  className="gap-1.5"
+                >
+                  {detectingGPS ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                  {detectingGPS ? "Detecting..." : "Auto-detect Location"}
+                </Button>
+                {gpsCoords && (
+                  <span className="text-xs text-muted-foreground">📍 {gpsCoords}</span>
+                )}
+              </div>
             </CardContent>
           </Card>
 
