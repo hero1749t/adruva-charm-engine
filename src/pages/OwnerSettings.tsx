@@ -221,6 +221,22 @@ const OwnerSettings = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Field icon={FileText} label="GST Number" field="gst_number" placeholder="e.g. 29ABCDE1234F1Z5" />
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  GST Percentage (%)
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={28}
+                  step={0.5}
+                  value={form.gst_percentage}
+                  onChange={(e) => setForm({ ...form, gst_percentage: e.target.value })}
+                  placeholder="e.g. 5"
+                  className="h-11"
+                />
+              </div>
               <Field icon={MapPin} label="Address" field="address" placeholder="e.g. 123, MG Road, Bengaluru" />
 
               {/* GPS Auto-detect */}
