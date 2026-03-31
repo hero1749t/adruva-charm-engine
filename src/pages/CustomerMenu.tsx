@@ -223,12 +223,13 @@ const CustomerMenu = () => {
         const { latitude, longitude } = position.coords;
         if (restaurantGpsLat != null && restaurantGpsLng != null) {
           const distance = getDistanceMeters(latitude, longitude, restaurantGpsLat, restaurantGpsLng);
-          if (distance <= restaurantGpsRange) {
+          const allowedRadius = restaurantGpsRange / 2; // diameter → radius
+          if (distance <= allowedRadius) {
             setGpsVerified(true);
             setGpsError(null);
             toast.success("Location verified! You can now place orders.");
           } else {
-            setGpsError(`You are ${Math.round(distance)}m away. Please be within ${restaurantGpsRange}m of the restaurant.`);
+            setGpsError(`You are ${Math.round(distance)}m away. Please be within ${restaurantGpsRange}m diameter zone of the restaurant.`);
           }
         }
         setGpsChecking(false);
