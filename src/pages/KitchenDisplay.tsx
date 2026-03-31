@@ -13,19 +13,16 @@ type Order = Database["public"]["Tables"]["orders"]["Row"];
 type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
 type OrderWithItems = Order & { order_items: OrderItem[] };
 
-const statusColors: Record<string, string> = {
-  new: "bg-primary text-primary-foreground",
-  accepted: "bg-blue-500 text-primary-foreground",
-  preparing: "bg-yellow-500 text-foreground",
-  ready: "bg-green-500 text-primary-foreground",
+const statusFlow: Record<string, string> = {
+  new: "accepted", accepted: "preparing", preparing: "ready", ready: "served",
 };
 
-const statusFlow: Record<string, string> = {
-  new: "accepted",
-  accepted: "preparing",
-  preparing: "ready",
-  ready: "served",
-};
+const columnConfig = [
+  { key: "new", label: "🔔 New", color: "border-primary", bgHeader: "bg-primary/10 text-primary" },
+  { key: "accepted", label: "👍 Accepted", color: "border-blue-500", bgHeader: "bg-blue-500/10 text-blue-600" },
+  { key: "preparing", label: "🍳 Preparing", color: "border-warning", bgHeader: "bg-warning/10 text-warning" },
+  { key: "ready", label: "✅ Ready", color: "border-success", bgHeader: "bg-success/10 text-success" },
+];
 
 const playNotificationSound = () => {
   try {
@@ -49,9 +46,7 @@ const sendBrowserNotification = (order: { table_number: number | null; order_ite
   if (Notification.permission !== "granted") return;
   const items = order.order_items.map((i) => `${i.quantity}× ${i.item_name}`).join(", ");
   new Notification(`🔔 New Order — Table ${order.table_number || "?"}`, {
-    body: items || "New order received",
-    icon: "/favicon.ico",
-    tag: "new-order",
+    body: items || "New order received", icon: "/favicon.ico", tag: "new-order",
   });
 };
 
@@ -63,22 +58,18 @@ const KitchenDisplay = () => {
   const [notifEnabled, setNotifEnabled] = useState(
     typeof Notification !== "undefined" && Notification.permission === "granted"
   );
-  const [activeTab, setActiveTab] = useState<string>("all");
   const prevOrderIdsRef = useRef<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("orders")
-      .select("*, order_items(*)")
+      .from("orders").select("*, order_items(*)")
       .eq("owner_id", user.id)
       .in("status", ["new", "accepted", "preparing", "ready"])
       .order("created_at", { ascending: true });
     if (data) {
       const fetched = data as OrderWithItems[];
-      const newOrders = fetched.filter(
-        (o) => o.status === "new" && !prevOrderIdsRef.current.has(o.id)
-      );
+      const newOrders = fetched.filter((o) => o.status === "new" && !prevOrderIdsRef.current.has(o.id));
       if (newOrders.length > 0 && prevOrderIdsRef.current.size > 0) {
         playNotificationSound();
         newOrders.forEach((o) => sendBrowserNotification(o));
@@ -94,8 +85,7 @@ const KitchenDisplay = () => {
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel("kitchen-realtime")
+    const channel = supabase.channel("kitchen-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` }, () => fetchOrders())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -110,9 +100,7 @@ const KitchenDisplay = () => {
     if (typeof Notification === "undefined") return;
     const result = await Notification.requestPermission();
     setNotifEnabled(result === "granted");
-    toast[result === "granted" ? "success" : "error"](
-      result === "granted" ? "Notifications enabled!" : "Permission denied"
-    );
+    toast[result === "granted" ? "success" : "error"](result === "granted" ? "Notifications enabled!" : "Permission denied");
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
@@ -127,145 +115,134 @@ const KitchenDisplay = () => {
     return `${mins}m`;
   };
 
-  const urgencyClass = (date: string) => {
+  const urgencyBorder = (date: string) => {
     const mins = Math.floor((now - new Date(date).getTime()) / 60000);
-    if (mins >= 15) return "border-destructive ring-2 ring-destructive/30";
-    if (mins >= 8) return "border-yellow-500 ring-2 ring-yellow-500/30";
-    return "border-border";
+    if (mins >= 15) return "ring-2 ring-destructive/40";
+    if (mins >= 8) return "ring-2 ring-warning/40";
+    return "";
   };
-
-  const tabs = [
-    { key: "all", label: "All Active" },
-    { key: "new", label: "🔔 New" },
-    { key: "accepted", label: "👍 Accepted" },
-    { key: "preparing", label: "🍳 Preparing" },
-    { key: "ready", label: "✅ Ready" },
-  ];
-
-  const filteredOrders = activeTab === "all" ? orders : orders.filter(o => o.status === activeTab);
 
   return (
     <OwnerLayout>
-      <div className="mb-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">Kitchen Display</h1>
-            <p className="text-sm text-muted-foreground">{orders.length} active orders</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={notifEnabled ? "outline" : "default"}
-              size="sm"
-              onClick={notifEnabled ? undefined : requestNotifPermission}
-              className="gap-1.5"
-            >
-              {notifEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-              <span className="hidden sm:inline">{notifEnabled ? "Notifications On" : "Enable Notifications"}</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={fetchOrders} className="gap-1.5">
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">Refresh</span>
-            </Button>
-          </div>
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Kitchen Display</h1>
+          <p className="text-sm text-muted-foreground">{orders.length} active orders</p>
         </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
-          {tabs.map((tab) => {
-            const count = tab.key === "all" ? orders.length : orders.filter(o => o.status === tab.key).length;
-            return (
-              <Button
-                key={tab.key}
-                variant={activeTab === tab.key ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveTab(tab.key)}
-                className="whitespace-nowrap"
-              >
-                {tab.label}
-                {count > 0 && (
-                  <Badge variant="secondary" className="ml-1.5 text-xs">{count}</Badge>
-                )}
-              </Button>
-            );
-          })}
+        <div className="flex items-center gap-2">
+          <Button variant={notifEnabled ? "outline" : "default"} size="sm"
+            onClick={notifEnabled ? undefined : requestNotifPermission} className="gap-1.5">
+            {notifEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            <span className="hidden sm:inline">{notifEnabled ? "On" : "Enable"}</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchOrders} className="gap-1.5">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Orders grid */}
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-3">
-              <div className="flex justify-between">
-                <Skeleton className="h-6 w-20" />
-                <Skeleton className="h-5 w-12" />
-              </div>
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-6 w-20" /><Skeleton className="h-20 w-full" />
             </div>
           ))}
-        </div>
-      ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg">No orders in this queue</p>
-          <p className="text-sm mt-2">Orders will appear here in real-time</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredOrders.map((order) => (
-            <div
-              key={order.id}
-              className={`bg-card rounded-xl border-2 p-4 shadow-card ${urgencyClass(order.created_at)}`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-display text-xl font-bold text-foreground">
-                    Table {order.table_number}
-                  </span>
-                  <Badge className={statusColors[order.status] || ""}>
-                    {order.status}
-                  </Badge>
-                </div>
-                <span className={`text-sm font-bold ${
-                  parseInt(minsAgo(order.created_at)) >= 15 ? "text-destructive" :
-                  parseInt(minsAgo(order.created_at)) >= 8 ? "text-yellow-600" :
-                  "text-muted-foreground"
-                }`}>
-                  {minsAgo(order.created_at)}
-                </span>
-              </div>
-
-              <div className="space-y-1.5 mb-3">
-                {order.order_items.map((item) => (
-                  <div key={item.id} className="flex items-start gap-2 text-sm">
-                    <span className="font-bold text-foreground min-w-[1.5rem]">{item.quantity}×</span>
-                    <span className="text-foreground font-medium">{item.item_name}</span>
+        <>
+          {/* Desktop: 4-column Kanban layout */}
+          <div className="hidden md:grid grid-cols-4 gap-4">
+            {columnConfig.map((col) => {
+              const colOrders = orders.filter(o => o.status === col.key);
+              return (
+                <div key={col.key} className="flex flex-col">
+                  <div className={`rounded-lg px-3 py-2 mb-3 text-sm font-semibold flex items-center justify-between ${col.bgHeader}`}>
+                    <span>{col.label}</span>
+                    <Badge variant="secondary" className="text-xs">{colOrders.length}</Badge>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-3 flex-1">
+                    {colOrders.map((order) => (
+                      <div key={order.id} className={`bg-card rounded-xl border border-border p-4 shadow-card ${urgencyBorder(order.created_at)}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-display text-lg font-bold text-foreground">T-{order.table_number}</span>
+                          <span className={`text-xs font-bold ${
+                            parseInt(minsAgo(order.created_at)) >= 15 ? "text-destructive" :
+                            parseInt(minsAgo(order.created_at)) >= 8 ? "text-warning" : "text-muted-foreground"
+                          }`}>{minsAgo(order.created_at)}</span>
+                        </div>
+                        <div className="space-y-1 mb-3">
+                          {order.order_items.map((item) => (
+                            <div key={item.id} className="flex gap-2 text-sm">
+                              <span className="font-bold text-foreground">{item.quantity}×</span>
+                              <span className="text-foreground">{item.item_name}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {order.notes && (
+                          <p className="text-xs text-muted-foreground bg-accent rounded-lg p-2 mb-3 italic">📝 {order.notes}</p>
+                        )}
+                        {statusFlow[order.status] && (
+                          <Button size="sm" className="w-full" onClick={() => updateStatus(order.id, statusFlow[order.status])}>
+                            Mark {statusFlow[order.status]}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {colOrders.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground text-xs">No orders</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-              {order.notes && (
-                <p className="text-xs text-muted-foreground bg-muted rounded-lg p-2 mb-3 italic">
-                  📝 {order.notes}
-                </p>
-              )}
-
-              <div className="flex items-center justify-between pt-3 border-t border-border">
-                <span className="font-display font-bold text-lg">₹{order.total_amount}</span>
-                {statusFlow[order.status] && (
-                  <Button
-                    size="sm"
-                    variant="hero"
-                    onClick={() => updateStatus(order.id, statusFlow[order.status])}
-                  >
-                    Mark {statusFlow[order.status]}
-                  </Button>
-                )}
+          {/* Mobile: Stacked cards with status badges */}
+          <div className="md:hidden space-y-3">
+            {orders.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p>No active orders</p>
               </div>
-            </div>
-          ))}
-        </div>
+            ) : orders.map((order) => {
+              const colCfg = columnConfig.find(c => c.key === order.status);
+              return (
+                <div key={order.id} className={`bg-card rounded-xl border border-border p-4 shadow-card ${urgencyBorder(order.created_at)}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-lg font-bold">T-{order.table_number}</span>
+                      <Badge className={colCfg?.bgHeader || ""}>{order.status}</Badge>
+                    </div>
+                    <span className={`text-xs font-bold ${
+                      parseInt(minsAgo(order.created_at)) >= 15 ? "text-destructive" :
+                      parseInt(minsAgo(order.created_at)) >= 8 ? "text-warning" : "text-muted-foreground"
+                    }`}>{minsAgo(order.created_at)}</span>
+                  </div>
+                  <div className="space-y-1 mb-3">
+                    {order.order_items.map((item) => (
+                      <div key={item.id} className="flex gap-2 text-sm">
+                        <span className="font-bold">{item.quantity}×</span>
+                        <span>{item.item_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {order.notes && (
+                    <p className="text-xs text-muted-foreground bg-accent rounded-lg p-2 mb-3 italic">📝 {order.notes}</p>
+                  )}
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <span className="font-display font-bold">₹{order.total_amount}</span>
+                    {statusFlow[order.status] && (
+                      <Button size="sm" onClick={() => updateStatus(order.id, statusFlow[order.status])}>
+                        Mark {statusFlow[order.status]}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </OwnerLayout>
   );
