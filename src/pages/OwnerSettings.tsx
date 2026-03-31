@@ -41,6 +41,7 @@ const OwnerSettings = () => {
           phone: data.phone || "",
           address: (data as any).address || "",
           gst_number: (data as any).gst_number || "",
+          gst_percentage: String((data as any).gst_percentage ?? 5),
           opening_hours: (data as any).opening_hours || "",
           closing_hours: (data as any).closing_hours || "",
         });
