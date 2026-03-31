@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2, Download, X, DoorOpen, RefreshCw, Link2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { format, differenceInDays } from "date-fns";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 
 interface Room {
   id: string;
