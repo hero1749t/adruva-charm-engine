@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
