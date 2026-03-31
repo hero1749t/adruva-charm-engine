@@ -60,6 +60,10 @@ const CustomerMenu = () => {
   const [promoApplied, setPromoApplied] = useState<{ id: string; code: string; discount_type: string; discount_value: number } | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    primary_color: string; secondary_color: string; background_color: string;
+    text_color: string; accent_color: string; font_heading: string; font_body: string;
+  } | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
