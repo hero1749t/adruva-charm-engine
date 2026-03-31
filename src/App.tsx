@@ -20,6 +20,7 @@ import OwnerAnalytics from "./pages/OwnerAnalytics";
 import OwnerLeads from "./pages/OwnerLeads";
 import OwnerStaff from "./pages/OwnerStaff";
 import OwnerInventory from "./pages/OwnerInventory";
+import OwnerExpenses from "./pages/OwnerExpenses";
 import Install from "./pages/Install";
 import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
 
