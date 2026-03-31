@@ -339,6 +339,11 @@ const OwnerInventory = () => {
         </>
       )}
 
+      {/* HISTORY TAB */}
+      {activeTab === "history" && (
+        <StockMovementHistory ingredientNames={ingredientNameMap} />
+      )}
+
       {/* Add/Edit Ingredient Dialog */}
       <Dialog open={ingredientDialogOpen} onOpenChange={setIngredientDialogOpen}>
         <DialogContent className="max-w-md">
