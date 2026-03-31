@@ -184,9 +184,14 @@ const CashierDashboard = () => {
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-border">
                 <span className="font-display font-bold text-xl">₹{order.total_amount}</span>
-                {order.status === "ready" && (
-                  <Button size="sm" onClick={() => markServed(order.id)}>Mark Served</Button>
-                )}
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handlePrintReceipt(order)} title="Print Receipt">
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  {order.status === "ready" && (
+                    <Button size="sm" onClick={() => markServed(order.id)}>Mark Served</Button>
+                  )}
+                </div>
               </div>
               {(order.status === "ready" || order.status === "served") && (
                 <div className="flex gap-2 mt-3 pt-3 border-t border-border">
