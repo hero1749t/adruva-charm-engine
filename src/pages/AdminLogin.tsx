@@ -24,7 +24,7 @@ const AdminLogin = () => {
       return;
     }
     // Check admin
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: data.user.id });
+    const { data: isAdmin } = await supabase.rpc("is_admin" as any, { _user_id: data.user.id });
     if (!isAdmin) {
       await supabase.auth.signOut();
       toast({ title: "Access denied", description: "You are not an admin.", variant: "destructive" });
