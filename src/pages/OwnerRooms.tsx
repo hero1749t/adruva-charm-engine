@@ -156,6 +156,11 @@ const OwnerRooms = () => {
         <p className="text-sm text-muted-foreground mt-1">Manage rooms, QR codes & bill linking</p>
       </div>
 
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={rooms.length} max={plan.maxRooms} label="Rooms Used" hasPlan={plan.hasPlan} planName={plan.planName} />
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[

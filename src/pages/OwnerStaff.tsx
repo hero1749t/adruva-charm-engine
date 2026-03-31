@@ -215,6 +215,11 @@ const OwnerStaff = () => {
         </div>
       </div>
 
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={staff.length} max={plan.maxStaff} label="Staff Used" hasPlan={plan.hasPlan} planName={plan.planName} />
+      </div>
+
       {/* Role legend - hidden on mobile, visible on tablet+ */}
       <div className="hidden sm:flex flex-wrap gap-3 mb-6">
         {Object.entries(roleDescriptions).map(([role, desc]) => (

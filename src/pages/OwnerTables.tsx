@@ -153,6 +153,11 @@ const OwnerTables = () => {
         </p>
       </div>
 
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={tables.length} max={plan.maxTables} label="Tables Used" hasPlan={plan.hasPlan} planName={plan.planName} />
+      </div>
+
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         {[
