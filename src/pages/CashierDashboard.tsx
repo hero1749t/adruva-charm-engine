@@ -31,6 +31,8 @@ const CashierDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("billing");
   const [profile, setProfile] = useState<{ restaurant_name?: string | null; address?: string | null; phone?: string | null; gst_number?: string | null }>({});
+  const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem("auto_print_on_served") === "true");
+  const prevOrdersRef = useRef<OrderWithItems[]>([]);
 
   const fetchOrders = async () => {
     if (!user) return;
