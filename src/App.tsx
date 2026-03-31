@@ -17,7 +17,7 @@ import CustomerMenu from "./pages/CustomerMenu";
 import KitchenDisplay from "./pages/KitchenDisplay";
 import CashierDashboard from "./pages/CashierDashboard";
 import OwnerAnalytics from "./pages/OwnerAnalytics";
-import OwnerLeads from "./pages/OwnerLeads";
+import OwnerCustomers from "./pages/OwnerCustomers";
 import OwnerStaff from "./pages/OwnerStaff";
 import OwnerInventory from "./pages/OwnerInventory";
 import OwnerExpenses from "./pages/OwnerExpenses";
