@@ -428,13 +428,20 @@ const CustomerMenu = () => {
       return;
     }
 
-    const orderItems = cart.map((c) => ({
-      order_id: order.id,
-      menu_item_id: c.id,
-      item_name: c.name,
-      item_price: Number(c.price),
-      quantity: c.quantity,
-    }));
+    const orderItems = cart.map((c) => {
+      const extras = [
+        ...c.selectedVariants.map(v => v.optionName),
+        ...c.selectedAddons.map(a => a.optionName),
+      ];
+      const itemName = extras.length > 0 ? `${c.name} (${extras.join(", ")})` : c.name;
+      return {
+        order_id: order.id,
+        menu_item_id: c.isCombo ? c.id : c.id, // combo items still reference the combo id
+        item_name: itemName,
+        item_price: Number(c.price) + c.extraPrice,
+        quantity: c.quantity,
+      };
+    });
     await supabase.from("order_items").insert(orderItems);
 
     // Record coupon usage if applied
