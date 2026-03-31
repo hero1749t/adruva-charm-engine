@@ -50,6 +50,8 @@ const App = () => (
             <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
             <Route path="/owner/inventory" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerInventory /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/expenses" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerExpenses /></RoleGuard></ProtectedRoute>} />
+            <Route path="/owner/rooms" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerRooms /></RoleGuard></ProtectedRoute>} />
+            <Route path="/owner/chain" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerChain /></RoleGuard></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
