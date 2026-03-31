@@ -463,7 +463,10 @@ const CustomerMenu = () => {
     setOrderPlaced(order.id);
     setOrderPlacedAt(Date.now());
     setOrderTotal(total);
-    setOrderItems(cart.map(c => ({ name: c.name, quantity: c.quantity, price: Number(c.price) })));
+    setOrderItems(cart.map(c => {
+      const extras = [...c.selectedVariants.map(v => v.optionName), ...c.selectedAddons.map(a => a.optionName)];
+      return { name: extras.length > 0 ? `${c.name} (${extras.join(", ")})` : c.name, quantity: c.quantity, price: Number(c.price) + c.extraPrice };
+    }));
     setOrderCreatedAt(new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
     setCart([]);
     setCartOpen(false);
