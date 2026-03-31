@@ -123,15 +123,12 @@ const OwnerMenu = () => {
 
   return (
     <OwnerLayout>
-      {/* Header */}
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Menu Manager</h1>
-        <div className="flex gap-2">
       {/* Plan usage indicator */}
       <div className="mb-4">
         <PlanUsageBadge current={items.length} max={plan.maxMenuItems} label="Menu Items Used" hasPlan={plan.hasPlan} planName={plan.planName} />
       </div>
-      {/* Header actions */}
+
+      {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Menu Manager</h1>
         <div className="flex gap-2">
