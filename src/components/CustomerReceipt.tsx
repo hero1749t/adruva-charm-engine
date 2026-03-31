@@ -158,7 +158,7 @@ const CustomerReceipt = ({
           <span>₹{subtotal.toFixed(0)}</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>GST (5%)</span>
+          <span>GST ({gstPercentage}%)</span>
           <span>₹{gstAmount.toFixed(0)}</span>
         </div>
 

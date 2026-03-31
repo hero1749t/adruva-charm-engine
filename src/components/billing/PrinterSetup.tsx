@@ -87,7 +87,7 @@ export const generateReceiptHTML = (data: {
     <div class="line"></div>
     <table>
       <tr><td>Subtotal</td><td style="text-align:right">₹${subtotal.toFixed(0)}</td></tr>
-      <tr><td>GST (5%)</td><td style="text-align:right">₹${gstAmount.toFixed(0)}</td></tr>
+      <tr><td>GST (${gstPct}%)</td><td style="text-align:right">₹${gstAmount.toFixed(0)}</td></tr>
     </table>
     <div class="line"></div>
     <table><tr class="total-row"><td>TOTAL</td><td style="text-align:right">₹${data.total.toFixed(0)}</td></tr></table>

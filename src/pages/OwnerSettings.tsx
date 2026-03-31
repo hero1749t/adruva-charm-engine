@@ -267,7 +267,7 @@ const OwnerSettings = () => {
                     <Radar className="w-4 h-4 text-primary" /> Order Diameter (GPS Verification)
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Customers must be within this range to place orders from tables/rooms
+                    Customers must be within this diameter zone to place orders from tables/rooms
                   </p>
                   <div className="flex items-center gap-4">
                     <Slider
