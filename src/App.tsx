@@ -59,6 +59,10 @@ const App = () => (
             <Route path="/owner/chain" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerChain /></RoleGuard></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/install" element={<Install />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+            <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
+            <Route path="/admin/owners" element={<AdminGuard><AdminOwners /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
