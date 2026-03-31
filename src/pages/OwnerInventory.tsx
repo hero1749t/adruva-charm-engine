@@ -178,7 +178,14 @@ const OwnerInventory = () => {
     { key: "all" as const, label: "All Ingredients", count: ingredients.length },
     { key: "low" as const, label: "⚠️ Low Stock", count: lowStockItems.length },
     { key: "recipes" as const, label: "🔗 Recipes", count: recipeIngredients.length },
+    { key: "history" as const, label: "📜 History", count: 0 },
   ];
+
+  const ingredientNameMap = useMemo(() => {
+    const map: Record<string, { name: string; unit: string }> = {};
+    ingredients.forEach(i => { map[i.id] = { name: i.name, unit: i.unit }; });
+    return map;
+  }, [ingredients]);
 
   return (
     <OwnerLayout>
