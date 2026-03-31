@@ -25,6 +25,9 @@ const OwnerSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [detectingGPS, setDetectingGPS] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<string | null>(null);
+  const [gpsLat, setGpsLat] = useState<number | null>(null);
+  const [gpsLng, setGpsLng] = useState<number | null>(null);
+  const [gpsRange, setGpsRange] = useState(200);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
