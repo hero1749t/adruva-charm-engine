@@ -21,6 +21,8 @@ import OwnerLeads from "./pages/OwnerLeads";
 import OwnerStaff from "./pages/OwnerStaff";
 import OwnerInventory from "./pages/OwnerInventory";
 import OwnerExpenses from "./pages/OwnerExpenses";
+import OwnerRooms from "./pages/OwnerRooms";
+import OwnerChain from "./pages/OwnerChain";
 import Install from "./pages/Install";
 import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
 
@@ -48,6 +50,8 @@ const App = () => (
             <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
             <Route path="/owner/inventory" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerInventory /></RoleGuard></ProtectedRoute>} />
             <Route path="/owner/expenses" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerExpenses /></RoleGuard></ProtectedRoute>} />
+            <Route path="/owner/rooms" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerRooms /></RoleGuard></ProtectedRoute>} />
+            <Route path="/owner/chain" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerChain /></RoleGuard></ProtectedRoute>} />
             <Route path="/menu/:ownerId" element={<CustomerMenu />} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />

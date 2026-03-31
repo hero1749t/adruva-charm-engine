@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStaffRole } from "@/hooks/useStaffRole";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package, Wallet } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package, Wallet, DoorOpen, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
@@ -46,9 +46,11 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen", visible: isOwner || isManager || isKitchen },
     { to: "/owner/inventory", icon: Package, label: "Inventory", visible: isOwner || isManager },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR", visible: isOwner || isManager },
+    { to: "/owner/rooms", icon: DoorOpen, label: "Rooms & QR", visible: isOwner || isManager },
     { to: "/owner/expenses", icon: Wallet, label: "Expenses", visible: isOwner || isManager },
     { to: "/owner/leads", icon: Users, label: "Leads", visible: isOwner },
     { to: "/owner/staff", icon: Shield, label: "Staff", visible: canManageStaff },
+    { to: "/owner/chain", icon: Building2, label: "Chain", visible: isOwner },
     { to: "/owner/settings", icon: Settings, label: "Settings", visible: isOwner },
     { to: "/install", icon: Download, label: "Install App" },
   ];
