@@ -926,25 +926,32 @@ const CustomerMenu = () => {
               </div>
 
               <div className="space-y-3 mb-5">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-sm ${item.is_veg ? "bg-green-600" : "bg-red-500"}`} />
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">₹{item.price} × {item.quantity}</p>
+                {cart.map((item) => {
+                  const unitPrice = Number(item.price) + item.extraPrice;
+                  const extras = [...item.selectedVariants.map(v => v.optionName), ...item.selectedAddons.map(a => a.optionName)];
+                  return (
+                    <div key={item.cartKey} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${item.is_veg ? "bg-green-600" : "bg-red-500"}`} />
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground text-sm">{item.isCombo ? "🎁 " : ""}{item.name}</p>
+                          {extras.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground truncate">{extras.join(", ")}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">₹{unitPrice} × {item.quantity}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-bold text-foreground text-sm">₹{(unitPrice * item.quantity).toFixed(0)}</span>
+                        <div className="flex items-center gap-0.5 bg-muted rounded-lg overflow-hidden">
+                          <button onClick={() => updateQty(item.cartKey, -1)} className="p-1.5 hover:bg-muted-foreground/10"><Minus className="w-3 h-3" /></button>
+                          <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
+                          <button onClick={() => updateQty(item.cartKey, 1)} className="p-1.5 hover:bg-muted-foreground/10"><Plus className="w-3 h-3" /></button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground text-sm">₹{(Number(item.price) * item.quantity).toFixed(0)}</span>
-                      <div className="flex items-center gap-0.5 bg-muted rounded-lg overflow-hidden">
-                        <button onClick={() => updateQty(item.id, -1)} className="p-1.5 hover:bg-muted-foreground/10"><Minus className="w-3 h-3" /></button>
-                        <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQty(item.id, 1)} className="p-1.5 hover:bg-muted-foreground/10"><Plus className="w-3 h-3" /></button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Order notes */}
