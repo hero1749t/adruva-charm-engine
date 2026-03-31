@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStaffRole } from "@/hooks/useStaffRole";
@@ -6,6 +6,7 @@ import OwnerLayout from "@/components/OwnerLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { IndianRupee, Receipt, Printer } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
