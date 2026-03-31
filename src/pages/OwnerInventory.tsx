@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Package, AlertTriangle, Pencil, Trash2, Link, Search } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil, Trash2, Link, Search, Clock } from "lucide-react";
+import StockMovementHistory from "@/components/inventory/StockMovementHistory";
 import type { Database } from "@/integrations/supabase/types";
 
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
