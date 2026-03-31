@@ -199,6 +199,45 @@ const CustomerMenu = () => {
   const total = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
 
+  // Haversine distance calculation
+  const getDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const verifyGPS = () => {
+    if (!navigator.geolocation) {
+      setGpsError("GPS not supported on this device");
+      return;
+    }
+    setGpsChecking(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (restaurantGpsLat != null && restaurantGpsLng != null) {
+          const distance = getDistanceMeters(latitude, longitude, restaurantGpsLat, restaurantGpsLng);
+          if (distance <= restaurantGpsRange) {
+            setGpsVerified(true);
+            setGpsError(null);
+            toast.success("Location verified! You can now place orders.");
+          } else {
+            setGpsError(`You are ${Math.round(distance)}m away. Please be within ${restaurantGpsRange}m of the restaurant.`);
+          }
+        }
+        setGpsChecking(false);
+      },
+      (err) => {
+        setGpsError(err.code === 1 ? "Location access denied. Please enable GPS." : "Could not detect your location. Try again.");
+        setGpsChecking(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const placeOrder = async () => {
     if (!ownerId || cart.length === 0) return;
     setOrdering(true);
