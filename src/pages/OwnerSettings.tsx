@@ -240,6 +240,34 @@ const OwnerSettings = () => {
                   <span className="text-xs text-muted-foreground">📍 {gpsCoords}</span>
                 )}
               </div>
+
+              {/* GPS Range for Order Verification */}
+              {gpsLat && (
+                <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Radar className="w-4 h-4 text-primary" /> Order Range (GPS Verification)
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Customers must be within this range to place orders from tables/rooms
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Slider
+                      value={[gpsRange]}
+                      onValueChange={(v) => setGpsRange(v[0])}
+                      min={50}
+                      max={1000}
+                      step={50}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-semibold text-foreground min-w-[60px] text-right">{gpsRange}m</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>50m</span>
+                    <span>500m</span>
+                    <span>1km</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
