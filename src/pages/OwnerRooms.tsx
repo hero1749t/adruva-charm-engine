@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 const OwnerRooms = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState("1");
@@ -55,6 +57,10 @@ const OwnerRooms = () => {
     const count = parseInt(newCount);
     if (isNaN(count) || count < 1 || count > 50) {
       toast.error("Enter a number between 1 and 50");
+      return;
+    }
+    if (plan.hasPlan && rooms.length + count > plan.maxRooms) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxRooms} rooms. You have ${rooms.length}. Upgrade to add more.`);
       return;
     }
     const maxNum = rooms.length > 0 ? Math.max(...rooms.map((r) => r.room_number)) : 0;
