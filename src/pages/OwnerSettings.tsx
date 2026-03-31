@@ -303,6 +303,9 @@ const OwnerSettings = () => {
             </CardContent>
           </Card>
 
+          {/* Discount Coupons */}
+          {user && <CouponManager userId={user.id} />}
+
           {/* Save */}
           <Button variant="hero" onClick={save} disabled={loading} className="w-full h-12">
             {loading ? "Saving..." : "Save Settings"}
