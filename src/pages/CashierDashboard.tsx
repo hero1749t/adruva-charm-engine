@@ -87,10 +87,24 @@ const CashierDashboard = () => {
     setupRealtime();
   }, [user]);
 
+  const toggleAutoPrint = (checked: boolean) => {
+    setAutoPrint(checked);
+    localStorage.setItem("auto_print_on_served", String(checked));
+    toast.success(checked ? "Auto-print ON — receipt will print on served" : "Auto-print OFF");
+  };
+
   const markServed = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
     const { error } = await supabase.from("orders").update({ status: "served" as Order["status"] }).eq("id", orderId);
     if (error) toast.error("Failed to update");
-    else { toast.success("Order marked as served"); fetchOrders(); }
+    else {
+      toast.success("Order marked as served");
+      // Auto-print receipt
+      if (autoPrint && order) {
+        handlePrintReceipt(order);
+      }
+      fetchOrders();
+    }
   };
 
   const updatePayment = async (orderId: string, method: string) => {
