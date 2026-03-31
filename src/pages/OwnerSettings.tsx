@@ -254,9 +254,9 @@ const OwnerSettings = () => {
                     <Slider
                       value={[gpsRange]}
                       onValueChange={(v) => setGpsRange(v[0])}
-                      min={50}
+                      min={1}
                       max={1000}
-                      step={50}
+                      step={1}
                       className="flex-1"
                     />
                     <span className="text-sm font-semibold text-foreground min-w-[60px] text-right">{gpsRange}m</span>
