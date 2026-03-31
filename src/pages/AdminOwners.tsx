@@ -41,6 +41,7 @@ interface Plan {
 
 const AdminOwners = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
