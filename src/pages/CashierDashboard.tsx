@@ -29,6 +29,7 @@ const CashierDashboard = () => {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("billing");
+  const [profile, setProfile] = useState<{ restaurant_name?: string | null; address?: string | null; phone?: string | null; gst_number?: string | null }>({});
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -36,6 +37,11 @@ const CashierDashboard = () => {
       .from("staff_members").select("restaurant_owner_id")
       .eq("user_id", user.id).eq("is_active", true).maybeSingle();
     const ownerId = staffData?.restaurant_owner_id || user.id;
+
+    // Fetch profile for receipt info
+    const { data: profileData } = await supabase.from("profiles").select("restaurant_name, address, phone, gst_number").eq("user_id", ownerId).maybeSingle();
+    if (profileData) setProfile(profileData);
+
     let query = supabase.from("orders").select("*, order_items(*)")
       .eq("owner_id", ownerId).order("created_at", { ascending: false });
     if (filter === "billing") query = query.in("status", ["ready", "served"]);
@@ -44,6 +50,22 @@ const CashierDashboard = () => {
     if (error) toast.error("Failed to load orders");
     else setOrders((data as OrderWithItems[]) || []);
     setLoading(false);
+  };
+
+  const handlePrintReceipt = (order: OrderWithItems) => {
+    const html = generateReceiptHTML({
+      restaurantName: profile.restaurant_name || "Restaurant",
+      address: profile.address,
+      phone: profile.phone,
+      gstNumber: profile.gst_number,
+      orderId: order.id,
+      tableNumber: order.table_number || 0,
+      items: order.order_items.map(i => ({ name: i.item_name, quantity: i.quantity, price: i.item_price })),
+      total: Number(order.total_amount),
+      paymentMethod: order.payment_method,
+      createdAt: new Date(order.created_at).toLocaleString("en-IN"),
+    });
+    printReceipt(html);
   };
 
   useEffect(() => { if (!roleLoading) { setLoading(true); fetchOrders(); } }, [user, filter, roleLoading]);
