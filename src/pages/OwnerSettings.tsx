@@ -264,7 +264,7 @@ const OwnerSettings = () => {
               {gpsLat && (
                 <div className="bg-muted/50 rounded-xl p-4 space-y-3">
                   <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Radar className="w-4 h-4 text-primary" /> Order Range (GPS Verification)
+                    <Radar className="w-4 h-4 text-primary" /> Order Diameter (GPS Verification)
                   </label>
                   <p className="text-xs text-muted-foreground">
                     Customers must be within this range to place orders from tables/rooms
