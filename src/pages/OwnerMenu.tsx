@@ -86,6 +86,10 @@ const OwnerMenu = () => {
 
   const saveItem = async () => {
     if (!user || !selectedCat || !itemForm.name || !itemForm.price) return;
+    if (!editingItem && plan.hasPlan && items.length >= plan.maxMenuItems) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxMenuItems} menu items. Upgrade to add more.`);
+      return;
+    }
     let imageUrl = editingItem?.image_url || null;
     if (itemForm.image) imageUrl = await uploadImage(itemForm.image);
     const payload = {

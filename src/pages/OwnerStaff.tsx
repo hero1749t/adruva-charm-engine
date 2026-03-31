@@ -68,6 +68,10 @@ const OwnerStaff = () => {
       toast.error("Name and email are required");
       return;
     }
+    if (plan.hasPlan && staff.length >= plan.maxStaff) {
+      toast.error(`Your ${plan.planName} plan allows max ${plan.maxStaff} staff members. Upgrade to add more.`);
+      return;
+    }
 
     setSubmitting(true);
 
