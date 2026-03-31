@@ -251,6 +251,13 @@ const OwnerMenu = () => {
               <p className="text-sm">{searchQuery ? "No items match your search" : "No items in this category"}</p>
             </div>
           )}
+
+          {/* Combos Section */}
+          {user && (
+            <div className="mt-6">
+              <ComboManager userId={user.id} allItems={items} onDataChange={fetchData} />
+            </div>
+          )}
         </div>
       </div>
 
