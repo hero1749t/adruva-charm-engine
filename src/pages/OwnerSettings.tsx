@@ -100,6 +100,8 @@ const OwnerSettings = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        setGpsLat(latitude);
+        setGpsLng(longitude);
         setGpsCoords(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`, {
