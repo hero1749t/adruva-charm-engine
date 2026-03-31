@@ -42,7 +42,7 @@ const CashierDashboard = () => {
     const ownerId = staffData?.restaurant_owner_id || user.id;
 
     // Fetch profile for receipt info
-    const { data: profileData } = await supabase.from("profiles").select("restaurant_name, address, phone, gst_number").eq("user_id", ownerId).maybeSingle();
+    const { data: profileData } = await supabase.from("profiles").select("restaurant_name, address, phone, gst_number, gst_percentage").eq("user_id", ownerId).maybeSingle();
     if (profileData) setProfile(profileData);
 
     let query = supabase.from("orders").select("*, order_items(*)")
