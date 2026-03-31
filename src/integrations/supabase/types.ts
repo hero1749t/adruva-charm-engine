@@ -88,6 +88,42 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          expense_date: string
+          id: string
+          notes: string | null
+          owner_id: string
+          payment_method: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          payment_method?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          payment_method?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           cost_per_unit: number | null
