@@ -75,6 +75,38 @@ const OwnerSettings = () => {
     setLoading(false);
   };
 
+  const detectGPS = async () => {
+    if (!navigator.geolocation) {
+      toast.error("GPS not supported on this device");
+      return;
+    }
+    setDetectingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setGpsCoords(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`, {
+            headers: { "Accept-Language": "en" },
+          });
+          const data = await res.json();
+          if (data.display_name) {
+            setForm((prev) => ({ ...prev, address: data.display_name }));
+            toast.success("Location detected!");
+          }
+        } catch {
+          toast.error("Could not fetch address");
+        }
+        setDetectingGPS(false);
+      },
+      (err) => {
+        toast.error(err.code === 1 ? "Location access denied" : "Could not detect location");
+        setDetectingGPS(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const Field = ({ icon: Icon, label, field, placeholder, type = "text" }: { icon: any; label: string; field: string; placeholder: string; type?: string }) => (
     <div>
       <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
