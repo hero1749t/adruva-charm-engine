@@ -107,7 +107,7 @@ const AdminOwnerDetail = () => {
   useEffect(() => {
     if (!ownerId) return;
     const fetchAll = async () => {
-      const [profileRes, subRes, tablesRes, roomsRes, menuRes, staffRes, ordersRes, catsRes, ingredientsRes, monthOrdersRes] = await Promise.all([
+      const [profileRes, subRes, tablesRes, roomsRes, menuRes, staffRes, ordersRes, catsRes, ingredientsRes, monthOrdersRes, recentRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", ownerId).maybeSingle(),
         supabase.from("owner_subscriptions").select("*, subscription_plans(*)").eq("owner_id", ownerId).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("restaurant_tables").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
@@ -118,6 +118,7 @@ const AdminOwnerDetail = () => {
         supabase.from("menu_categories").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
         supabase.from("ingredients").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
         supabase.from("orders").select("id", { count: "exact", head: true }).eq("owner_id", ownerId).gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+        supabase.from("orders").select("id, table_number, status, total_amount, payment_method, created_at").eq("owner_id", ownerId).order("created_at", { ascending: false }).limit(20),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data as OwnerProfile);
