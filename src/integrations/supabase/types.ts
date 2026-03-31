@@ -341,6 +341,42 @@ export type Database = {
           },
         ]
       }
+      outlets: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          manager_name: string | null
+          name: string
+          owner_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          manager_name?: string | null
+          name: string
+          owner_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          manager_name?: string | null
+          name?: string
+          owner_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -430,6 +466,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurant_rooms: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          owner_id: string
+          qr_generated_at: string | null
+          room_number: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          owner_id: string
+          qr_generated_at?: string | null
+          room_number: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          owner_id?: string
+          qr_generated_at?: string | null
+          room_number?: number
+          status?: string
+        }
+        Relationships: []
       }
       restaurant_tables: {
         Row: {
