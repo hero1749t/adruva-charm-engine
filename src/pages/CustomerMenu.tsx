@@ -433,20 +433,29 @@ const CustomerMenu = () => {
             </a>
           )}
 
-          {/* Receipt */}
-          <CustomerReceipt
-            orderId={orderPlaced}
-            restaurantName={restaurantName}
-            tableNumber={tableNumber}
-            items={orderItems}
-            total={orderTotal}
-            gstNumber={restaurantGst}
-            address={restaurantAddress}
-            phone={ownerPhone}
-            createdAt={orderCreatedAt}
-          />
-
-          {/* Review - show after served */}
+          {/* Receipt — only after payment confirmed */}
+          {livePaymentMethod && livePaymentMethod !== "counter" ? (
+            <CustomerReceipt
+              orderId={orderPlaced}
+              restaurantName={restaurantName}
+              tableNumber={tableNumber}
+              items={orderItems}
+              total={orderTotal}
+              gstNumber={restaurantGst}
+              address={restaurantAddress}
+              phone={ownerPhone}
+              createdAt={orderCreatedAt}
+              gstPercentage={restaurantGstPct}
+            />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 bg-muted/50 border border-border rounded-2xl p-4 text-center"
+            >
+              <p className="text-sm text-muted-foreground">🧾 Receipt available after payment confirmation</p>
+            </motion.div>
+          )}
           {(liveStatus === "served" || liveStatus === "ready") && ownerId && (
             <CustomerReview
               orderId={orderPlaced}
