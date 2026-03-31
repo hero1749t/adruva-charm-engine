@@ -123,8 +123,19 @@ const OwnerInventory = () => {
 
   const updateStock = async () => {
     if (!stockIngredient || !stockAmount) return;
-    const newStock = stockIngredient.current_stock + parseFloat(stockAmount);
+    const amt = parseFloat(stockAmount);
+    const newStock = stockIngredient.current_stock + amt;
     await supabase.from("ingredients").update({ current_stock: Math.max(0, newStock) }).eq("id", stockIngredient.id);
+    // Log manual movement
+    if (user) {
+      await supabase.from("stock_movements").insert({
+        owner_id: user.id,
+        ingredient_id: stockIngredient.id,
+        quantity_changed: amt,
+        movement_type: amt >= 0 ? "manual_add" : "manual_deduct",
+        note: amt >= 0 ? "Manual stock added" : "Manual stock deducted",
+      } as any);
+    }
     setStockDialogOpen(false);
     toast.success("Stock updated"); fetchData();
   };
