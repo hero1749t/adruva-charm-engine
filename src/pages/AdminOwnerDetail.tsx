@@ -101,6 +101,7 @@ const AdminOwnerDetail = () => {
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
   const [sub, setSub] = useState<SubInfo | null>(null);
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
