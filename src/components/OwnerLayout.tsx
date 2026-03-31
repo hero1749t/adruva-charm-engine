@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStaffRole } from "@/hooks/useStaffRole";
+import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package, Wallet, DoorOpen, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { isOwner, isManager, isKitchen, isCashier, canViewAnalytics, canManageMenu, canManageStaff } = useStaffRole();
+  const { plan } = useOwnerPlan();
   const [newOrderCount, setNewOrderCount] = useState(0);
 
   const fetchNewOrderCount = async () => {
@@ -41,16 +44,16 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const allLinks = [
     { to: "/owner/dashboard", icon: LayoutDashboard, label: "Orders", badge: newOrderCount, visible: isOwner || isManager },
     { to: "/owner/cashier", icon: Receipt, label: "Billing", visible: isCashier || isOwner || isManager },
-    { to: "/owner/analytics", icon: BarChart3, label: "Analytics", visible: canViewAnalytics },
+    { to: "/owner/analytics", icon: BarChart3, label: "Analytics", visible: canViewAnalytics && plan.featureAnalytics },
     { to: "/owner/menu", icon: UtensilsCrossed, label: "Menu", visible: canManageMenu },
-    { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen", visible: isOwner || isManager || isKitchen },
-    { to: "/owner/inventory", icon: Package, label: "Inventory", visible: isOwner || isManager },
+    { to: "/owner/kitchen", icon: ChefHat, label: "Kitchen", visible: (isOwner || isManager || isKitchen) && plan.featureKitchenDisplay },
+    { to: "/owner/inventory", icon: Package, label: "Inventory", visible: (isOwner || isManager) && plan.featureInventory },
     { to: "/owner/tables", icon: QrCode, label: "Tables & QR", visible: isOwner || isManager },
     { to: "/owner/rooms", icon: DoorOpen, label: "Rooms & QR", visible: isOwner || isManager },
-    { to: "/owner/expenses", icon: Wallet, label: "Expenses", visible: isOwner || isManager },
-    { to: "/owner/customers", icon: Users, label: "Customers", visible: isOwner },
+    { to: "/owner/expenses", icon: Wallet, label: "Expenses", visible: (isOwner || isManager) && plan.featureExpenses },
+    { to: "/owner/customers", icon: Users, label: "Customers", visible: isOwner && plan.featureCustomerReviews },
     { to: "/owner/staff", icon: Shield, label: "Staff", visible: canManageStaff },
-    { to: "/owner/chain", icon: Building2, label: "Chain", visible: isOwner },
+    { to: "/owner/chain", icon: Building2, label: "Chain", visible: isOwner && plan.featureChain },
     { to: "/owner/settings", icon: Settings, label: "Settings", visible: isOwner },
     { to: "/install", icon: Download, label: "Install App" },
   ];
@@ -105,6 +108,16 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
           ))}
 
           <div className="mt-auto pt-4 border-t border-border space-y-1">
+            {plan.hasPlan && (
+              <div className="px-3 py-2 mb-2">
+                <Badge variant="outline" className="text-xs">{plan.planName}</Badge>
+                {plan.expiresAt && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Exp: {new Date(plan.expiresAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
             <a href="https://wa.me/918383877088" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
               <MessageCircle className="w-4 h-4 text-success" /> WhatsApp Support

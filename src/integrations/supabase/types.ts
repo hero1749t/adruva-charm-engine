@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coupon_usage: {
         Row: {
           coupon_id: string
@@ -461,6 +479,50 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_subscriptions: {
+        Row: {
+          assigned_by: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          plan_id: string
+          starts_at: string | null
+          status: string | null
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          plan_id: string
+          starts_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          plan_id?: string
+          starts_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -710,6 +772,72 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          billing_period: string | null
+          created_at: string | null
+          feature_analytics: boolean | null
+          feature_chain: boolean | null
+          feature_coupons: boolean | null
+          feature_customer_reviews: boolean | null
+          feature_expenses: boolean | null
+          feature_inventory: boolean | null
+          feature_kitchen_display: boolean | null
+          feature_online_orders: boolean | null
+          id: string
+          is_active: boolean | null
+          max_menu_items: number | null
+          max_orders_per_month: number | null
+          max_rooms: number | null
+          max_staff: number | null
+          max_tables: number | null
+          name: string
+          price: number
+        }
+        Insert: {
+          billing_period?: string | null
+          created_at?: string | null
+          feature_analytics?: boolean | null
+          feature_chain?: boolean | null
+          feature_coupons?: boolean | null
+          feature_customer_reviews?: boolean | null
+          feature_expenses?: boolean | null
+          feature_inventory?: boolean | null
+          feature_kitchen_display?: boolean | null
+          feature_online_orders?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_menu_items?: number | null
+          max_orders_per_month?: number | null
+          max_rooms?: number | null
+          max_staff?: number | null
+          max_tables?: number | null
+          name: string
+          price?: number
+        }
+        Update: {
+          billing_period?: string | null
+          created_at?: string | null
+          feature_analytics?: boolean | null
+          feature_chain?: boolean | null
+          feature_coupons?: boolean | null
+          feature_customer_reviews?: boolean | null
+          feature_expenses?: boolean | null
+          feature_inventory?: boolean | null
+          feature_kitchen_display?: boolean | null
+          feature_online_orders?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_menu_items?: number | null
+          max_orders_per_month?: number | null
+          max_rooms?: number | null
+          max_staff?: number | null
+          max_tables?: number | null
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -719,6 +847,7 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["staff_role"]
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_restaurant_staff: {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
