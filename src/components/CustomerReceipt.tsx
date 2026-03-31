@@ -21,6 +21,7 @@ interface CustomerReceiptProps {
   address?: string | null;
   phone?: string | null;
   createdAt: string;
+  gstPercentage?: number;
 }
 
 const CustomerReceipt = ({
@@ -33,10 +34,11 @@ const CustomerReceipt = ({
   address,
   phone,
   createdAt,
+  gstPercentage = 5,
 }: CustomerReceiptProps) => {
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const gstRate = 0.05;
+  const gstRate = gstPercentage / 100;
   const subtotal = total / (1 + gstRate);
   const gstAmount = total - subtotal;
 
@@ -81,7 +83,7 @@ const CustomerReceipt = ({
       itemLines,
       ``,
       `Subtotal: ₹${subtotal.toFixed(0)}`,
-      `GST (5%): ₹${gstAmount.toFixed(0)}`,
+      `GST (${gstPercentage}%): ₹${gstAmount.toFixed(0)}`,
       `*Total: ₹${total.toFixed(0)}*`,
       ``,
       `Thank you! 🙏`,
@@ -156,7 +158,7 @@ const CustomerReceipt = ({
           <span>₹{subtotal.toFixed(0)}</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>GST (5%)</span>
+          <span>GST ({gstPercentage}%)</span>
           <span>₹{gstAmount.toFixed(0)}</span>
         </div>
 

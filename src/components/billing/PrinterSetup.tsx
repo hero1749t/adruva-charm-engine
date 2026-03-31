@@ -51,9 +51,11 @@ export const generateReceiptHTML = (data: {
   total: number;
   paymentMethod?: string | null;
   createdAt: string;
+  gstPercentage?: number;
 }, paperWidth: "58mm" | "80mm" = "80mm") => {
   const maxWidth = paperWidth === "58mm" ? "48mm" : "72mm";
-  const gstRate = 0.05;
+  const gstPct = data.gstPercentage ?? 5;
+  const gstRate = gstPct / 100;
   const subtotal = data.total / (1 + gstRate);
   const gstAmount = data.total - subtotal;
 
@@ -85,7 +87,7 @@ export const generateReceiptHTML = (data: {
     <div class="line"></div>
     <table>
       <tr><td>Subtotal</td><td style="text-align:right">₹${subtotal.toFixed(0)}</td></tr>
-      <tr><td>GST (5%)</td><td style="text-align:right">₹${gstAmount.toFixed(0)}</td></tr>
+      <tr><td>GST (${gstPct}%)</td><td style="text-align:right">₹${gstAmount.toFixed(0)}</td></tr>
     </table>
     <div class="line"></div>
     <table><tr class="total-row"><td>TOTAL</td><td style="text-align:right">₹${data.total.toFixed(0)}</td></tr></table>

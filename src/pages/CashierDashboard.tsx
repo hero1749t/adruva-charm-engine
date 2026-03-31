@@ -30,7 +30,7 @@ const CashierDashboard = () => {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("billing");
-  const [profile, setProfile] = useState<{ restaurant_name?: string | null; address?: string | null; phone?: string | null; gst_number?: string | null }>({});
+  const [profile, setProfile] = useState<{ restaurant_name?: string | null; address?: string | null; phone?: string | null; gst_number?: string | null; gst_percentage?: number | null }>({});
   const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem("auto_print_on_served") === "true");
   const prevOrdersRef = useRef<OrderWithItems[]>([]);
 
@@ -42,7 +42,7 @@ const CashierDashboard = () => {
     const ownerId = staffData?.restaurant_owner_id || user.id;
 
     // Fetch profile for receipt info
-    const { data: profileData } = await supabase.from("profiles").select("restaurant_name, address, phone, gst_number").eq("user_id", ownerId).maybeSingle();
+    const { data: profileData } = await supabase.from("profiles").select("restaurant_name, address, phone, gst_number, gst_percentage").eq("user_id", ownerId).maybeSingle();
     if (profileData) setProfile(profileData);
 
     let query = supabase.from("orders").select("*, order_items(*)")
@@ -65,6 +65,7 @@ const CashierDashboard = () => {
       tableNumber: order.table_number || 0,
       items: order.order_items.map(i => ({ name: i.item_name, quantity: i.quantity, price: i.item_price })),
       total: Number(order.total_amount),
+      gstPercentage: (profile as any).gst_percentage ?? 5,
       paymentMethod: order.payment_method,
       createdAt: new Date(order.created_at).toLocaleString("en-IN"),
     });

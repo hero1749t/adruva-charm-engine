@@ -53,6 +53,8 @@ const CustomerMenu = () => {
   const [gpsVerified, setGpsVerified] = useState(false);
   const [gpsChecking, setGpsChecking] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [restaurantGstPct, setRestaurantGstPct] = useState<number>(5);
+  const [livePaymentMethod, setLivePaymentMethod] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -67,13 +69,14 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!ownerId) return;
-    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number, gps_latitude, gps_longitude, gps_range_meters").eq("user_id", ownerId).single().then(({ data }: any) => {
+    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number, gps_latitude, gps_longitude, gps_range_meters, gst_percentage").eq("user_id", ownerId).single().then(({ data }: any) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
       if (data?.restaurant_logo_url) setRestaurantLogo(data.restaurant_logo_url);
       if (data?.address) setRestaurantAddress(data.address);
       if (data?.gst_number) setRestaurantGst(data.gst_number);
+      if (data?.gst_percentage != null) setRestaurantGstPct(data.gst_percentage);
       if (data?.gps_latitude != null) {
         setRestaurantGpsLat(data.gps_latitude);
         setRestaurantGpsLng(data.gps_longitude);
@@ -161,14 +164,19 @@ const CustomerMenu = () => {
   // Real-time order tracking
   useEffect(() => {
     if (!orderPlaced) return;
-    supabase.from("orders").select("status").eq("id", orderPlaced).single().then(({ data }) => {
-      if (data) setLiveStatus(data.status);
+    supabase.from("orders").select("status, payment_method").eq("id", orderPlaced).single().then(({ data }) => {
+      if (data) {
+        setLiveStatus(data.status);
+        setLivePaymentMethod(data.payment_method);
+      }
     });
     const channel = supabase
       .channel(`order-track-${orderPlaced}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderPlaced}` }, (payload) => {
         const newStatus = (payload.new as any).status;
+        const newPayment = (payload.new as any).payment_method;
         setLiveStatus(newStatus);
+        setLivePaymentMethod(newPayment);
         
         // Trigger alerts when order is ready
         if (newStatus === "ready") {
@@ -220,12 +228,13 @@ const CustomerMenu = () => {
         const { latitude, longitude } = position.coords;
         if (restaurantGpsLat != null && restaurantGpsLng != null) {
           const distance = getDistanceMeters(latitude, longitude, restaurantGpsLat, restaurantGpsLng);
-          if (distance <= restaurantGpsRange) {
+          const allowedRadius = restaurantGpsRange / 2; // diameter → radius
+          if (distance <= allowedRadius) {
             setGpsVerified(true);
             setGpsError(null);
             toast.success("Location verified! You can now place orders.");
           } else {
-            setGpsError(`You are ${Math.round(distance)}m away. Please be within ${restaurantGpsRange}m of the restaurant.`);
+            setGpsError(`You are ${Math.round(distance)}m away. Please be within ${restaurantGpsRange}m diameter zone of the restaurant.`);
           }
         }
         setGpsChecking(false);
@@ -424,20 +433,29 @@ const CustomerMenu = () => {
             </a>
           )}
 
-          {/* Receipt */}
-          <CustomerReceipt
-            orderId={orderPlaced}
-            restaurantName={restaurantName}
-            tableNumber={tableNumber}
-            items={orderItems}
-            total={orderTotal}
-            gstNumber={restaurantGst}
-            address={restaurantAddress}
-            phone={ownerPhone}
-            createdAt={orderCreatedAt}
-          />
-
-          {/* Review - show after served */}
+          {/* Receipt — only after payment confirmed */}
+          {livePaymentMethod && livePaymentMethod !== "counter" ? (
+            <CustomerReceipt
+              orderId={orderPlaced}
+              restaurantName={restaurantName}
+              tableNumber={tableNumber}
+              items={orderItems}
+              total={orderTotal}
+              gstNumber={restaurantGst}
+              address={restaurantAddress}
+              phone={ownerPhone}
+              createdAt={orderCreatedAt}
+              gstPercentage={restaurantGstPct}
+            />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 bg-muted/50 border border-border rounded-2xl p-4 text-center"
+            >
+              <p className="text-sm text-muted-foreground">🧾 Receipt available after payment confirmation</p>
+            </motion.div>
+          )}
           {(liveStatus === "served" || liveStatus === "ready") && ownerId && (
             <CustomerReview
               orderId={orderPlaced}

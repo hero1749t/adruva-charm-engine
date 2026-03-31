@@ -17,6 +17,7 @@ const OwnerSettings = () => {
     phone: "",
     address: "",
     gst_number: "",
+    gst_percentage: "5",
     opening_hours: "",
     closing_hours: "",
   });
@@ -40,6 +41,7 @@ const OwnerSettings = () => {
           phone: data.phone || "",
           address: (data as any).address || "",
           gst_number: (data as any).gst_number || "",
+          gst_percentage: String((data as any).gst_percentage ?? 5),
           opening_hours: (data as any).opening_hours || "",
           closing_hours: (data as any).closing_hours || "",
         });
@@ -81,6 +83,7 @@ const OwnerSettings = () => {
     setLoading(true);
     const updateData = {
       ...form,
+      gst_percentage: parseFloat(form.gst_percentage) || 5,
       gps_latitude: gpsLat,
       gps_longitude: gpsLng,
       gps_range_meters: gpsRange,
@@ -221,6 +224,22 @@ const OwnerSettings = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Field icon={FileText} label="GST Number" field="gst_number" placeholder="e.g. 29ABCDE1234F1Z5" />
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  GST Percentage (%)
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={28}
+                  step={0.5}
+                  value={form.gst_percentage}
+                  onChange={(e) => setForm({ ...form, gst_percentage: e.target.value })}
+                  placeholder="e.g. 5"
+                  className="h-11"
+                />
+              </div>
               <Field icon={MapPin} label="Address" field="address" placeholder="e.g. 123, MG Road, Bengaluru" />
 
               {/* GPS Auto-detect */}
@@ -245,10 +264,10 @@ const OwnerSettings = () => {
               {gpsLat && (
                 <div className="bg-muted/50 rounded-xl p-4 space-y-3">
                   <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Radar className="w-4 h-4 text-primary" /> Order Range (GPS Verification)
+                    <Radar className="w-4 h-4 text-primary" /> Order Diameter (GPS Verification)
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Customers must be within this range to place orders from tables/rooms
+                    Customers must be within this diameter zone to place orders from tables/rooms
                   </p>
                   <div className="flex items-center gap-4">
                     <Slider

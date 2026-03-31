@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN gst_percentage numeric NOT NULL DEFAULT 5;
