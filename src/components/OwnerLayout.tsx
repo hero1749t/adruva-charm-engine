@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
-  const { isOwner, isManager, isKitchen, isCashier, canViewAnalytics, canManageMenu, canManageStaff, canManageOrders } = useStaffRole();
+  const { isOwner, isManager, isKitchen, isCashier, canViewAnalytics, canManageMenu, canManageStaff } = useStaffRole();
   const [newOrderCount, setNewOrderCount] = useState(0);
 
   const fetchNewOrderCount = async () => {
@@ -22,19 +22,13 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
     if (!error && count !== null) setNewOrderCount(count);
   };
 
-  useEffect(() => {
-    fetchNewOrderCount();
-  }, [user]);
+  useEffect(() => { fetchNewOrderCount(); }, [user]);
 
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel("sidebar-new-orders")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` },
-        () => fetchNewOrderCount()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` }, () => fetchNewOrderCount())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
@@ -58,27 +52,24 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   const sidebarLinks = allLinks.filter((link) => link.visible !== false);
-
   const mobileLinks = sidebarLinks.filter((link) => link.to !== "/install");
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <header className="bg-secondary h-14 flex items-center justify-between px-4 md:px-6 sticky top-0 z-50">
+      <header className="bg-card h-14 flex items-center justify-between px-4 md:px-6 sticky top-0 z-50 border-b border-border">
         <a href="/" className="font-display text-xl font-bold">
           <span className="text-primary">ADRU</span>
-          <span className="text-secondary-foreground">vaa</span>
+          <span className="text-foreground">vaa</span>
         </a>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <NavLink to="/install" className="md:hidden">
-            <Button variant="ghost" size="sm" className="text-secondary-foreground/60 hover:text-secondary-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
               <Download className="w-4 h-4" />
             </Button>
           </NavLink>
-          <span className="text-sm text-secondary-foreground/60 hidden md:inline">
-            {user?.email}
-          </span>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-secondary-foreground/60 hover:text-secondary-foreground">
+          <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
+          <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
             <LogOut className="w-4 h-4 mr-1" /> Logout
           </Button>
         </div>
@@ -86,7 +77,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
 
       <div className="flex">
         {/* Sidebar - desktop */}
-        <aside className="hidden md:flex flex-col w-56 bg-card border-r border-border min-h-[calc(100vh-3.5rem)] p-4 gap-1">
+        <aside className="hidden md:flex flex-col w-56 bg-card border-r border-border min-h-[calc(100vh-3.5rem)] p-3 gap-0.5">
           {sidebarLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -95,7 +86,7 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 }`
               }
             >
@@ -109,23 +100,14 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
             </NavLink>
           ))}
 
-          {/* Support contact */}
-          <div className="mt-auto pt-4 border-t border-border space-y-2">
-            <a
-              href="https://wa.me/918383877088"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <MessageCircle className="w-4 h-4 text-green-500" />
-              WhatsApp Support
+          <div className="mt-auto pt-4 border-t border-border space-y-1">
+            <a href="https://wa.me/918383877088" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
+              <MessageCircle className="w-4 h-4 text-success" /> WhatsApp Support
             </a>
-            <a
-              href="tel:+918383877088"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <Phone className="w-4 h-4 text-primary" />
-              +91 83838 77088
+            <a href="tel:+918383877088"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
+              <Phone className="w-4 h-4 text-primary" /> +91 83838 77088
             </a>
           </div>
         </aside>
