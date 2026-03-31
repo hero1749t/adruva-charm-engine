@@ -136,9 +136,12 @@ const CashierDashboard = () => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs + Printer Setup */}
       <div className="mb-4">
-        <h2 className="font-display text-xl font-bold text-foreground mb-3">Billing & Orders</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-xl font-bold text-foreground">Billing & Orders</h2>
+          <PrinterSetup />
+        </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map((tab) => (
             <Button key={tab.key} variant={filter === tab.key ? "default" : "outline"} size="sm"
