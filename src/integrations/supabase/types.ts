@@ -497,6 +497,54 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          movement_type: string
+          note: string | null
+          order_id: string | null
+          owner_id: string
+          quantity_changed: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          movement_type?: string
+          note?: string | null
+          order_id?: string | null
+          owner_id: string
+          quantity_changed: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          movement_type?: string
+          note?: string | null
+          order_id?: string | null
+          owner_id?: string
+          quantity_changed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
