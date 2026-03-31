@@ -1094,6 +1094,19 @@ const CustomerMenu = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Item customize modal */}
+      <AnimatePresence>
+        {customizeItem && ownerId && (
+          <ItemCustomizeModal
+            item={customizeItem}
+            ownerId={ownerId}
+            onClose={() => setCustomizeItem(null)}
+            onAdd={(variants, addons, extraPrice) => handleCustomizeAdd(customizeItem, variants, addons, extraPrice)}
+            menuStyle={menuStyle}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
