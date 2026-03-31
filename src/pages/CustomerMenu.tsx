@@ -60,6 +60,10 @@ const CustomerMenu = () => {
   const [promoApplied, setPromoApplied] = useState<{ id: string; code: string; discount_type: string; discount_value: number } | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    primary_color: string; secondary_color: string; background_color: string;
+    text_color: string; accent_color: string; font_heading: string; font_body: string;
+  } | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -94,11 +98,45 @@ const CustomerMenu = () => {
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
       supabase.from("menu_items").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order"),
-    ]).then(([catRes, itemRes]) => {
+      supabase.from("menu_customization").select("*").eq("owner_id", ownerId).maybeSingle(),
+    ]).then(([catRes, itemRes, styleRes]) => {
       if (catRes.data) setCategories(catRes.data);
       if (itemRes.data) setItems(itemRes.data);
+      if (styleRes.data) setMenuStyle(styleRes.data as any);
     });
   }, [ownerId]);
+
+  // Load custom Google Fonts for menu personalization
+  useEffect(() => {
+    if (!menuStyle) return;
+    const fonts = new Set([menuStyle.font_heading, menuStyle.font_body].filter(f => f && f !== "Inter"));
+    if (fonts.size === 0) return;
+    const families = Array.from(fonts).map(f => f.replace(/ /g, "+") + ":wght@400;500;600;700").join("&family=");
+    const linkId = "custom-menu-fonts";
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement("link");
+      link.id = linkId;
+      link.rel = "stylesheet";
+      link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+      document.head.appendChild(link);
+    }
+  }, [menuStyle]);
+
+  // Build custom style object from owner's menu personalization
+  const customStyle = useMemo(() => {
+    if (!menuStyle) return {};
+    return {
+      "--cm-primary": menuStyle.primary_color,
+      "--cm-secondary": menuStyle.secondary_color,
+      "--cm-bg": menuStyle.background_color,
+      "--cm-text": menuStyle.text_color,
+      "--cm-accent": menuStyle.accent_color,
+      "--cm-font-heading": menuStyle.font_heading,
+      "--cm-font-body": menuStyle.font_body,
+    } as React.CSSProperties;
+  }, [menuStyle]);
+
+  const cm = !!menuStyle; // whether custom menu style is active
 
   // Play notification sound
   const playNotificationSound = () => {
@@ -538,37 +576,41 @@ const CustomerMenu = () => {
 
   // ── MENU SCREEN ──
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen pb-24" style={cm ? { ...customStyle, backgroundColor: menuStyle!.background_color, color: menuStyle!.text_color, fontFamily: menuStyle!.font_body } : {}} >
+      {!cm && <div className="absolute inset-0 -z-10 bg-background" />}
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-secondary px-4 py-3 text-secondary-foreground shadow-lg">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-40 px-4 py-3 shadow-lg" style={cm ? { backgroundColor: menuStyle!.secondary_color, color: "#fff" } : undefined}>
+        {!cm && <div className="absolute inset-0 bg-secondary" />}
+        <div className="max-w-lg mx-auto flex items-center justify-between relative">
           <div className="flex items-center gap-3">
             {restaurantLogo && (
-              <img src={restaurantLogo} alt="Logo" className="w-9 h-9 rounded-lg object-cover border border-secondary-foreground/20" />
+              <img src={restaurantLogo} alt="Logo" className="w-9 h-9 rounded-lg object-cover border border-white/20" />
             )}
             <div>
-              <h1 className="font-display text-lg font-bold tracking-tight">{restaurantName || "Menu"}</h1>
-              {tableNumber > 0 && <p className="text-xs text-secondary-foreground/60">Table {tableNumber}</p>}
+              <h1 className="text-lg font-bold tracking-tight" style={cm ? { fontFamily: menuStyle!.font_heading } : undefined}>{restaurantName || "Menu"}</h1>
+              {tableNumber > 0 && <p className="text-xs opacity-60">Table {tableNumber}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">
             {pastOrders.length > 0 && (
-              <button onClick={() => setShowHistory(true)} className="relative text-secondary-foreground/70 hover:text-secondary-foreground">
+              <button onClick={() => setShowHistory(true)} className="relative opacity-70 hover:opacity-100">
                 <Clock className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
-                  {pastOrders.length}
+                <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] rounded-full flex items-center justify-center font-bold" style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}>
+                  {!cm && <span className="absolute inset-0 bg-primary rounded-full" />}
+                  <span className="relative">{pastOrders.length}</span>
                 </span>
               </button>
             )}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-1.5 rounded-lg bg-secondary-foreground/10 hover:bg-secondary-foreground/20 transition-colors"
+              className="p-1.5 rounded-lg transition-colors"
+              style={cm ? { backgroundColor: "rgba(255,255,255,0.1)" } : undefined}
               aria-label="Toggle dark mode"
             >
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <span className="font-display text-sm font-bold">
-              <span className="text-primary">ADRU</span>vaa
+            <span className="text-sm font-bold" style={cm ? { fontFamily: menuStyle!.font_heading } : undefined}>
+              <span style={cm ? { color: menuStyle!.primary_color } : undefined} className={cm ? "" : "text-primary"}>ADRU</span>vaa
             </span>
           </div>
         </div>
@@ -577,13 +619,14 @@ const CustomerMenu = () => {
       <div className="max-w-lg mx-auto px-4 pt-4">
         {/* Search bar */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={cm ? { color: menuStyle!.text_color + "80" } : undefined} />
           <input
             type="text"
             placeholder="Search dishes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className={cm ? "w-full rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none" : "w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"}
+            style={cm ? { backgroundColor: menuStyle!.accent_color + "15", border: `1px solid ${menuStyle!.accent_color}30`, color: menuStyle!.text_color, fontFamily: menuStyle!.font_body } : undefined}
           />
         </div>
 
@@ -592,8 +635,9 @@ const CustomerMenu = () => {
           <button
             onClick={() => setVegOnly(!vegOnly)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
-              vegOnly ? "bg-green-50 border-green-500 text-green-700" : "bg-card border-border text-muted-foreground"
+              vegOnly ? "bg-green-50 border-green-500 text-green-700" : cm ? "" : "bg-card border-border text-muted-foreground"
             }`}
+            style={!vegOnly && cm ? { backgroundColor: menuStyle!.accent_color + "15", borderColor: menuStyle!.accent_color + "40", color: menuStyle!.text_color + "99" } : undefined}
           >
             <Leaf className="w-3.5 h-3.5" />
             Veg
@@ -601,9 +645,8 @@ const CustomerMenu = () => {
           <div className="flex gap-2 overflow-x-auto pb-1 -mr-4 pr-4">
             <button
               onClick={() => setSelectedCat(null)}
-              className={`px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                !selectedCat ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"
-              }`}
+              className={cm ? "px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors" : `px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${!selectedCat ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}
+              style={cm ? (!selectedCat ? { backgroundColor: menuStyle!.primary_color, color: "#fff" } : { backgroundColor: menuStyle!.accent_color + "15", color: menuStyle!.text_color + "99" }) : undefined}
             >
               All
             </button>
@@ -611,9 +654,8 @@ const CustomerMenu = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCat(cat.id)}
-                className={`px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                  selectedCat === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"
-                }`}
+                className={cm ? "px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors" : `px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${selectedCat === cat.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}
+                style={cm ? (selectedCat === cat.id ? { backgroundColor: menuStyle!.primary_color, color: "#fff" } : { backgroundColor: menuStyle!.accent_color + "15", color: menuStyle!.text_color + "99" }) : undefined}
               >
                 {cat.name}
               </button>
@@ -643,7 +685,8 @@ const CustomerMenu = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex gap-3 bg-card rounded-2xl border border-border p-3 shadow-card hover:shadow-md transition-shadow"
+                  className={cm ? "flex gap-3 rounded-2xl p-3 transition-shadow" : "flex gap-3 bg-card rounded-2xl border border-border p-3 shadow-card hover:shadow-md transition-shadow"}
+                  style={cm ? { backgroundColor: menuStyle!.accent_color + "10", border: `1px solid ${menuStyle!.accent_color}25` } : undefined}
                 >
                   {item.image_url && (
                     <img src={item.image_url} alt={item.name} className="w-24 h-24 rounded-xl object-cover flex-shrink-0" />
@@ -658,23 +701,24 @@ const CustomerMenu = () => {
                             item.is_veg ? "bg-green-600" : "bg-red-500"
                           }`} />
                         </span>
-                        <span className="font-semibold text-foreground text-sm truncate">{item.name}</span>
+                        <span className="font-semibold text-sm truncate" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_heading } : undefined}>{item.name}</span>
                       </div>
-                      {item.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>}
+                      {item.description && <p className="text-xs mt-0.5 line-clamp-2" style={cm ? { color: menuStyle!.text_color + "99" } : undefined}>{item.description}</p>}
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="font-display font-bold text-foreground text-base">₹{item.price}</span>
+                      <span className="font-bold text-base" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_heading } : undefined}>₹{item.price}</span>
                       {inCart ? (
                         <motion.div
                           initial={{ scale: 0.8 }}
                           animate={{ scale: 1 }}
-                          className="flex items-center gap-1 bg-primary rounded-xl overflow-hidden"
+                          className="flex items-center gap-1 rounded-xl overflow-hidden"
+                          style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}
                         >
-                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-primary-foreground hover:bg-primary/80 transition-colors">
+                          <button onClick={() => updateQty(item.id, -1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
                             <Minus className="w-4 h-4" />
                           </button>
-                          <span className="text-sm font-bold text-primary-foreground w-6 text-center">{inCart.quantity}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-primary-foreground hover:bg-primary/80 transition-colors">
+                          <span className="text-sm font-bold text-white w-6 text-center">{inCart.quantity}</span>
+                          <button onClick={() => updateQty(item.id, 1)} className="px-2 py-1.5 text-white hover:opacity-80 transition-colors">
                             <Plus className="w-4 h-4" />
                           </button>
                         </motion.div>
@@ -682,7 +726,8 @@ const CustomerMenu = () => {
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           onClick={() => addToCart(item)}
-                          className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 border-primary text-primary text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
+                          className="flex items-center gap-1 px-4 py-1.5 rounded-xl border-2 text-xs font-bold transition-colors"
+                          style={cm ? { borderColor: menuStyle!.primary_color, color: menuStyle!.primary_color } : undefined}
                         >
                           <Plus className="w-3.5 h-3.5" /> ADD
                         </motion.button>
@@ -703,18 +748,20 @@ const CustomerMenu = () => {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 bg-primary p-4 z-50 shadow-2xl"
+            className={cm ? "fixed bottom-0 left-0 right-0 p-4 z-50 shadow-2xl" : "fixed bottom-0 left-0 right-0 bg-primary p-4 z-50 shadow-2xl"}
+            style={cm ? { backgroundColor: menuStyle!.primary_color } : undefined}
           >
             <div className="max-w-lg mx-auto flex items-center justify-between">
-              <div className="text-primary-foreground">
+              <div className="text-white">
                 <span className="font-bold">{cartCount} item{cartCount > 1 ? "s" : ""}</span>
                 <span className="mx-2 opacity-50">|</span>
-                <span className="font-display font-bold text-lg">₹{total.toFixed(0)}</span>
+                <span className="font-bold text-lg" style={cm ? { fontFamily: menuStyle!.font_heading } : undefined}>₹{total.toFixed(0)}</span>
               </div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCartOpen(true)}
-                className="flex items-center gap-2 bg-primary-foreground text-primary px-4 py-2 rounded-xl font-bold text-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
+                style={cm ? { backgroundColor: "#fff", color: menuStyle!.primary_color } : undefined}
               >
                 View Cart <ShoppingCart className="w-4 h-4" />
               </motion.button>
