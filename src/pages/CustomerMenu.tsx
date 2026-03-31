@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
@@ -46,6 +46,13 @@ const CustomerMenu = () => {
   const [liveStatus, setLiveStatus] = useState<string>("new");
   const [orderPlacedAt, setOrderPlacedAt] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  // GPS verification states
+  const [restaurantGpsLat, setRestaurantGpsLat] = useState<number | null>(null);
+  const [restaurantGpsLng, setRestaurantGpsLng] = useState<number | null>(null);
+  const [restaurantGpsRange, setRestaurantGpsRange] = useState<number>(200);
+  const [gpsVerified, setGpsVerified] = useState(false);
+  const [gpsChecking, setGpsChecking] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -60,13 +67,21 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!ownerId) return;
-    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number").eq("user_id", ownerId).single().then(({ data }: any) => {
+    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number, gps_latitude, gps_longitude, gps_range_meters").eq("user_id", ownerId).single().then(({ data }: any) => {
       if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
       if (data?.restaurant_logo_url) setRestaurantLogo(data.restaurant_logo_url);
       if (data?.address) setRestaurantAddress(data.address);
       if (data?.gst_number) setRestaurantGst(data.gst_number);
+      if (data?.gps_latitude != null) {
+        setRestaurantGpsLat(data.gps_latitude);
+        setRestaurantGpsLng(data.gps_longitude);
+        setRestaurantGpsRange(data.gps_range_meters || 200);
+      } else {
+        // No GPS set by owner — skip verification
+        setGpsVerified(true);
+      }
     });
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
@@ -183,6 +198,45 @@ const CustomerMenu = () => {
 
   const total = cart.reduce((sum, c) => sum + Number(c.price) * c.quantity, 0);
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
+
+  // Haversine distance calculation
+  const getDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const verifyGPS = () => {
+    if (!navigator.geolocation) {
+      setGpsError("GPS not supported on this device");
+      return;
+    }
+    setGpsChecking(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (restaurantGpsLat != null && restaurantGpsLng != null) {
+          const distance = getDistanceMeters(latitude, longitude, restaurantGpsLat, restaurantGpsLng);
+          if (distance <= restaurantGpsRange) {
+            setGpsVerified(true);
+            setGpsError(null);
+            toast.success("Location verified! You can now place orders.");
+          } else {
+            setGpsError(`You are ${Math.round(distance)}m away. Please be within ${restaurantGpsRange}m of the restaurant.`);
+          }
+        }
+        setGpsChecking(false);
+      },
+      (err) => {
+        setGpsError(err.code === 1 ? "Location access denied. Please enable GPS." : "Could not detect your location. Try again.");
+        setGpsChecking(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const placeOrder = async () => {
     if (!ownerId || cart.length === 0) return;
@@ -660,9 +714,26 @@ const CustomerMenu = () => {
                 className="w-full border border-border rounded-xl px-4 py-3 text-sm mb-4 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
 
-              <Button variant="hero" className="w-full h-14 text-base rounded-xl" onClick={placeOrder} disabled={ordering}>
-                {ordering ? "Placing Order..." : `Place Order — ₹${total.toFixed(0)}`}
-              </Button>
+              {!gpsVerified ? (
+                <div className="space-y-3">
+                  <div className="bg-accent/50 border border-border rounded-xl p-4 text-center">
+                    <MapPin className="w-6 h-6 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium text-foreground">Location Verification Required</p>
+                    <p className="text-xs text-muted-foreground mt-1">Enable GPS to confirm you're at the restaurant</p>
+                  </div>
+                  {gpsError && (
+                    <p className="text-xs text-destructive text-center">{gpsError}</p>
+                  )}
+                  <Button variant="hero" className="w-full h-14 text-base rounded-xl gap-2" onClick={verifyGPS} disabled={gpsChecking}>
+                    {gpsChecking ? <Loader2 className="w-5 h-5 animate-spin" /> : <MapPin className="w-5 h-5" />}
+                    {gpsChecking ? "Verifying Location..." : "Verify My Location"}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="hero" className="w-full h-14 text-base rounded-xl" onClick={placeOrder} disabled={ordering}>
+                  {ordering ? "Placing Order..." : `Place Order — ₹${total.toFixed(0)}`}
+                </Button>
+              )}
             </motion.div>
           </motion.div>
         )}

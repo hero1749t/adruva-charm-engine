@@ -383,6 +383,9 @@ export type Database = {
           closing_hours: string | null
           created_at: string
           full_name: string | null
+          gps_latitude: number | null
+          gps_longitude: number | null
+          gps_range_meters: number
           gst_number: string | null
           id: string
           opening_hours: string | null
@@ -398,6 +401,9 @@ export type Database = {
           closing_hours?: string | null
           created_at?: string
           full_name?: string | null
+          gps_latitude?: number | null
+          gps_longitude?: number | null
+          gps_range_meters?: number
           gst_number?: string | null
           id?: string
           opening_hours?: string | null
@@ -413,6 +419,9 @@ export type Database = {
           closing_hours?: string | null
           created_at?: string
           full_name?: string | null
+          gps_latitude?: number | null
+          gps_longitude?: number | null
+          gps_range_meters?: number
           gst_number?: string | null
           id?: string
           opening_hours?: string | null

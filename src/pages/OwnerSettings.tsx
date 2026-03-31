@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, X, Store, Clock, Phone, CreditCard, MapPin, FileText, Image, Navigation, Loader2 } from "lucide-react";
+import { Upload, X, Store, Clock, Phone, CreditCard, MapPin, FileText, Image, Navigation, Loader2, Radar } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 
 const OwnerSettings = () => {
   const { user } = useAuth();
@@ -24,6 +25,9 @@ const OwnerSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [detectingGPS, setDetectingGPS] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<string | null>(null);
+  const [gpsLat, setGpsLat] = useState<number | null>(null);
+  const [gpsLng, setGpsLng] = useState<number | null>(null);
+  const [gpsRange, setGpsRange] = useState(200);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -40,6 +44,12 @@ const OwnerSettings = () => {
           closing_hours: (data as any).closing_hours || "",
         });
         if (data.restaurant_logo_url) setLogoUrl(data.restaurant_logo_url);
+        if ((data as any).gps_latitude) {
+          setGpsLat((data as any).gps_latitude);
+          setGpsLng((data as any).gps_longitude);
+          setGpsCoords(`${(data as any).gps_latitude}, ${(data as any).gps_longitude}`);
+        }
+        if ((data as any).gps_range_meters) setGpsRange((data as any).gps_range_meters);
       }
     });
   }, [user]);
@@ -69,7 +79,13 @@ const OwnerSettings = () => {
   const save = async () => {
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase.from("profiles").update(form as any).eq("user_id", user.id);
+    const updateData = {
+      ...form,
+      gps_latitude: gpsLat,
+      gps_longitude: gpsLng,
+      gps_range_meters: gpsRange,
+    };
+    const { error } = await supabase.from("profiles").update(updateData as any).eq("user_id", user.id);
     if (error) toast.error("Failed to save");
     else toast.success("Settings saved!");
     setLoading(false);
@@ -84,6 +100,8 @@ const OwnerSettings = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        setGpsLat(latitude);
+        setGpsLng(longitude);
         setGpsCoords(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`, {
@@ -222,6 +240,34 @@ const OwnerSettings = () => {
                   <span className="text-xs text-muted-foreground">📍 {gpsCoords}</span>
                 )}
               </div>
+
+              {/* GPS Range for Order Verification */}
+              {gpsLat && (
+                <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Radar className="w-4 h-4 text-primary" /> Order Range (GPS Verification)
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Customers must be within this range to place orders from tables/rooms
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Slider
+                      value={[gpsRange]}
+                      onValueChange={(v) => setGpsRange(v[0])}
+                      min={50}
+                      max={1000}
+                      step={50}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-semibold text-foreground min-w-[60px] text-right">{gpsRange}m</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>50m</span>
+                    <span>500m</span>
+                    <span>1km</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
