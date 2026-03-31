@@ -164,8 +164,11 @@ const CustomerMenu = () => {
   // Real-time order tracking
   useEffect(() => {
     if (!orderPlaced) return;
-    supabase.from("orders").select("status").eq("id", orderPlaced).single().then(({ data }) => {
-      if (data) setLiveStatus(data.status);
+    supabase.from("orders").select("status, payment_method").eq("id", orderPlaced).single().then(({ data }) => {
+      if (data) {
+        setLiveStatus(data.status);
+        setLivePaymentMethod(data.payment_method);
+      }
     });
     const channel = supabase
       .channel(`order-track-${orderPlaced}`)
