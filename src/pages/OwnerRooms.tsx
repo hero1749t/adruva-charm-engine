@@ -32,6 +32,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 const OwnerRooms = () => {
   const { user } = useAuth();
+  const { plan } = useOwnerPlan();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState("1");
