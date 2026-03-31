@@ -204,6 +204,24 @@ const OwnerSettings = () => {
             <CardContent className="space-y-4">
               <Field icon={FileText} label="GST Number" field="gst_number" placeholder="e.g. 29ABCDE1234F1Z5" />
               <Field icon={MapPin} label="Address" field="address" placeholder="e.g. 123, MG Road, Bengaluru" />
+
+              {/* GPS Auto-detect */}
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={detectGPS}
+                  disabled={detectingGPS}
+                  className="gap-1.5"
+                >
+                  {detectingGPS ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                  {detectingGPS ? "Detecting..." : "Auto-detect Location"}
+                </Button>
+                {gpsCoords && (
+                  <span className="text-xs text-muted-foreground">📍 {gpsCoords}</span>
+                )}
+              </div>
             </CardContent>
           </Card>
 
