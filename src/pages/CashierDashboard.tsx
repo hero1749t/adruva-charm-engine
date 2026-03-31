@@ -65,6 +65,7 @@ const CashierDashboard = () => {
       tableNumber: order.table_number || 0,
       items: order.order_items.map(i => ({ name: i.item_name, quantity: i.quantity, price: i.item_price })),
       total: Number(order.total_amount),
+      gstPercentage: (profile as any).gst_percentage ?? 5,
       paymentMethod: order.payment_method,
       createdAt: new Date(order.created_at).toLocaleString("en-IN"),
     });
