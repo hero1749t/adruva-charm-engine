@@ -79,7 +79,13 @@ const OwnerSettings = () => {
   const save = async () => {
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase.from("profiles").update(form as any).eq("user_id", user.id);
+    const updateData = {
+      ...form,
+      gps_latitude: gpsLat,
+      gps_longitude: gpsLng,
+      gps_range_meters: gpsRange,
+    };
+    const { error } = await supabase.from("profiles").update(updateData as any).eq("user_id", user.id);
     if (error) toast.error("Failed to save");
     else toast.success("Settings saved!");
     setLoading(false);
