@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2, Download, X, DoorOpen, RefreshCw, Link2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { format, differenceInDays } from "date-fns";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 
 interface Room {
   id: string;
@@ -153,6 +154,11 @@ const OwnerRooms = () => {
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-foreground">Private Dining Rooms</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage rooms, QR codes & bill linking</p>
+      </div>
+
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={rooms.length} max={plan.maxRooms} label="Rooms Used" hasPlan={plan.hasPlan} planName={plan.planName} />
       </div>
 
       {/* Stats */}

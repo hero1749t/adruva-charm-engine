@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2, Download, X } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Table = Database["public"]["Tables"]["restaurant_tables"]["Row"] & {
@@ -150,6 +151,11 @@ const OwnerTables = () => {
         <p className="text-sm text-muted-foreground mt-1">
           Manage tables, track status, and generate QR codes
         </p>
+      </div>
+
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={tables.length} max={plan.maxTables} label="Tables Used" hasPlan={plan.hasPlan} planName={plan.planName} />
       </div>
 
       {/* Stats bar */}

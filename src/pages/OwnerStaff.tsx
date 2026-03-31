@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Plus, UserCog, Trash2, Shield } from "lucide-react";
 import { useStaffRole, type StaffRole } from "@/hooks/useStaffRole";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 
 interface StaffMember {
   id: string;
@@ -212,6 +213,11 @@ const OwnerStaff = () => {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={staff.length} max={plan.maxStaff} label="Staff Used" hasPlan={plan.hasPlan} planName={plan.planName} />
       </div>
 
       {/* Role legend - hidden on mobile, visible on tablet+ */}

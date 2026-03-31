@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ImagePlus, Upload, Search } from "lucide-react";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CSVImportDialog from "@/components/menu/CSVImportDialog";
+import PlanUsageBadge from "@/components/PlanUsageBadge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
@@ -122,6 +123,11 @@ const OwnerMenu = () => {
 
   return (
     <OwnerLayout>
+      {/* Plan usage indicator */}
+      <div className="mb-4">
+        <PlanUsageBadge current={items.length} max={plan.maxMenuItems} label="Menu Items Used" hasPlan={plan.hasPlan} planName={plan.planName} />
+      </div>
+
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Menu Manager</h1>
