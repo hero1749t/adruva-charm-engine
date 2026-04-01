@@ -30,6 +30,7 @@ interface Plan {
   feature_online_orders: boolean;
   feature_kitchen_display: boolean;
   feature_customer_reviews: boolean;
+  feature_white_label: boolean;
   is_active: boolean;
 }
 
