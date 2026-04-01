@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Package, Users, LogOut, Shield } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
