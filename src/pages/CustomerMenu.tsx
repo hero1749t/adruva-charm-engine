@@ -95,10 +95,11 @@ const CustomerMenu = () => {
     setIsLoading(true);
     console.log("🔍 Loading menu for owner:", ownerId);
     
-    supabase.from("restaurants").select("name, upi_id, phone, logo_url, address, gst_number").eq("owner_id", ownerId).single().then(({ data, error }: any) => {
-      console.log("📋 Restaurant fetch result:", { data, error });
+    // First fetch restaurant by owner_id
+    supabase.from("restaurants").select("id, name, upi_id, phone, logo_url, address, gst_number").eq("owner_id", ownerId).single().then(({ data: restaurant, error }: any) => {
+      console.log("📋 Restaurant fetch result:", { restaurant, error });
       
-      if (error || !data) {
+      if (error || !restaurant) {
         console.error("❌ Restaurant not found or error:", error?.message || "No data");
         setOwnerExists(false);
         setIsLoading(false);
@@ -106,33 +107,32 @@ const CustomerMenu = () => {
       }
       
       setOwnerExists(true);
-      if (data?.name) {
-        console.log("✅ Restaurant found:", data.name);
-        setRestaurantName(data.name);
-      } else {
-        console.warn("⚠️ No restaurant name in data");
-      }
-      if (data?.upi_id) setUpiId(data.upi_id);
-      if (data?.phone) setOwnerPhone(data.phone);
-      if (data?.logo_url) setRestaurantLogo(data.logo_url);
-      if (data?.address) setRestaurantAddress(data.address);
-      if (data?.gst_number) setRestaurantGst(data.gst_number);
-      // Default GST percentage to 5% if not set
+      const restaurantId = restaurant.id;
+      console.log("✅ Restaurant found:", restaurant.name, "ID:", restaurantId);
+      
+      if (restaurant?.name) setRestaurantName(restaurant.name);
+      if (restaurant?.upi_id) setUpiId(restaurant.upi_id);
+      if (restaurant?.phone) setOwnerPhone(restaurant.phone);
+      if (restaurant?.logo_url) setRestaurantLogo(restaurant.logo_url);
+      if (restaurant?.address) setRestaurantAddress(restaurant.address);
+      if (restaurant?.gst_number) setRestaurantGst(restaurant.gst_number);
       setRestaurantGstPct(5);
-      // GPS verification - skip if not available
       setGpsVerified(true);
+      
+      // Now fetch menu using restaurant_id (not owner_id)
+      Promise.all([
+        supabase.from("menu_categories").select("*").eq("restaurant_id", restaurantId).eq("is_active", true).order("display_order"),
+        supabase.from("menu_items").select("*").eq("restaurant_id", restaurantId).eq("is_available", true).order("display_order"),
+        supabase.from("menu_customization").select("*").eq("owner_id", ownerId).maybeSingle(),
+      ]).then(([catRes, itemRes, styleRes]) => {
+        console.log("📦 Menu data:", { categories: catRes.data?.length, items: itemRes.data?.length });
+        if (catRes.data) setCategories(catRes.data);
+        if (itemRes.data) setItems(itemRes.data);
+        if (styleRes.data) setMenuStyle(styleRes.data as any);
+        setIsLoading(false);
+      });
     });
-    Promise.all([
-      supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
-      supabase.from("menu_items").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order"),
-      supabase.from("menu_customization").select("*").eq("owner_id", ownerId).maybeSingle(),
-    ]).then(([catRes, itemRes, styleRes]) => {
-      console.log("📦 Menu data:", { categories: catRes.data?.length, items: itemRes.data?.length });
-      if (catRes.data) setCategories(catRes.data);
-      if (itemRes.data) setItems(itemRes.data);
-      if (styleRes.data) setMenuStyle(styleRes.data as any);
-      setIsLoading(false);
-    });
+    
     // Check owner's plan for white label via secure function
     supabase.rpc("check_white_label", { _owner_id: ownerId }).then(({ data }) => {
       if (data === true) setShowBranding(false);
