@@ -39,7 +39,7 @@ const Navbar = () => {
           <span className="text-foreground"> Resto</span>
         </a>
 
-        <div className="hidden lg:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-4">
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -50,6 +50,7 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
+          <ThemeToggle />
           <Button
             variant="outline"
             size="sm"
