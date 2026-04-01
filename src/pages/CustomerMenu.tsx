@@ -634,6 +634,8 @@ const CustomerMenu = () => {
               phone={ownerPhone}
               createdAt={orderCreatedAt}
               gstPercentage={restaurantGstPct}
+              logoUrl={restaurantLogo}
+              menuStyle={menuStyle}
             />
           ) : (
             <motion.div
