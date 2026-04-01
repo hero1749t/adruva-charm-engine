@@ -1191,6 +1191,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_white_label: { Args: { _owner_id: string }; Returns: boolean }
       get_staff_role: {
         Args: { _owner_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["staff_role"]
