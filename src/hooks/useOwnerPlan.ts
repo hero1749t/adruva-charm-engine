@@ -40,6 +40,7 @@ const defaultPlan: OwnerPlan = {
   featureOnlineOrders: true,
   featureKitchenDisplay: true,
   featureCustomerReviews: true,
+  featureWhiteLabel: false,
   hasPlan: false,
 };
 
