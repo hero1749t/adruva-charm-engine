@@ -70,15 +70,16 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
           <span className="text-primary">ADRU</span>
           <span className="text-foreground">vaa</span>
         </a>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <NavLink to="/install" className="md:hidden">
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground h-9 w-9 p-0">
               <Download className="w-4 h-4" />
             </Button>
           </NavLink>
-          <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
+          <span className="text-sm text-muted-foreground hidden md:inline truncate max-w-[150px]">{user?.email}</span>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="w-4 h-4 mr-1" /> Logout
+            <LogOut className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Logout</span>
           </Button>
         </div>
       </header>

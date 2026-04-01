@@ -30,10 +30,11 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <span className="text-muted-foreground text-sm ml-2">Admin</span>
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <span className="text-sm text-muted-foreground hidden md:inline truncate max-w-[150px]">{user?.email}</span>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="w-4 h-4 mr-1" /> Logout
+            <LogOut className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Logout</span>
           </Button>
         </div>
       </header>
