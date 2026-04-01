@@ -695,9 +695,11 @@ const CustomerMenu = () => {
             >
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <span className="text-sm font-bold" style={cm ? { fontFamily: menuStyle!.font_heading } : undefined}>
-              <span style={cm ? { color: menuStyle!.primary_color } : undefined} className={cm ? "" : "text-primary"}>ADRU</span>vaa
-            </span>
+            {ownerPhone && (
+              <a href={`tel:${ownerPhone}`} className="text-xs opacity-70 hover:opacity-100 transition-opacity">
+                📞 {ownerPhone}
+              </a>
+            )}
           </div>
         </div>
       </header>
