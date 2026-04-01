@@ -115,6 +115,12 @@ const CustomerMenu = () => {
       if (itemRes.data) setItems(itemRes.data);
       if (styleRes.data) setMenuStyle(styleRes.data as any);
     });
+    // Check owner's plan for white label
+    supabase.from("owner_subscriptions").select("*, subscription_plans(feature_white_label)").eq("owner_id", ownerId).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => {
+      if (data && (data as any).subscription_plans?.feature_white_label) {
+        setShowBranding(false);
+      }
+    });
   }, [ownerId]);
 
   // Load custom Google Fonts for menu personalization
