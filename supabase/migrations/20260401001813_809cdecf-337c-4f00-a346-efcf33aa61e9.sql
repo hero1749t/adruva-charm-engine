@@ -1,0 +1,1 @@
+ALTER TABLE public.subscription_plans ADD COLUMN feature_white_label boolean DEFAULT false;
