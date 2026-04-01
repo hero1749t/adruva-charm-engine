@@ -80,8 +80,10 @@ const OwnerTables = () => {
       room_number: maxNum + i + 1,
     }));
     const { error } = await supabase.from("restaurant_rooms").insert(newTables);
-    if (error) toast.error("Failed to add tables");
-    else {
+    if (error) {
+      console.error("❌ Failed to add tables:", error);
+      toast.error(`Failed to add tables: ${error.message}`);
+    } else {
       toast.success(`${count} table(s) added`);
       setNewCount("1");
       fetchTables();
@@ -90,28 +92,41 @@ const OwnerTables = () => {
 
   const deleteTable = async (id: string) => {
     if (!confirm("Remove this table?")) return;
-    await supabase.from("restaurant_rooms").delete().eq("id", id);
-    toast.success("Table removed");
-    fetchTables();
+    const { error } = await supabase.from("restaurant_rooms").delete().eq("id", id);
+    if (error) {
+      console.error("❌ Failed to delete table:", error);
+      toast.error(`Failed to delete: ${error.message}`);
+    } else {
+      toast.success("Table removed");
+      fetchTables();
+    }
   };
 
   const updateStatus = async (id: string, currentStatus: string) => {
     const newStatus = statusCycle[currentStatus] || "free";
     const { error } = await supabase
-      .from("restaurant_tables")
-      .update({ status: newStatus as Database["public"]["Enums"]["table_status"] })
+      .from("restaurant_rooms")
+      .update({ status: newStatus })
       .eq("id", id);
-    if (error) toast.error("Failed to update status");
-    else fetchTables();
+    if (error) {
+      console.error("❌ Failed to update status:", error);
+      toast.error(`Failed to update: ${error.message}`);
+    } else {
+      fetchTables();
+    }
   };
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase
-      .from("restaurant_tables")
-      .update({ status: status as Database["public"]["Enums"]["table_status"] })
+      .from("restaurant_rooms")
+      .update({ status: status })
       .eq("id", id);
-    if (error) toast.error("Failed to update status");
-    else fetchTables();
+    if (error) {
+      console.error("❌ Failed to set status:", error);
+      toast.error(`Failed to set status: ${error.message}`);
+    } else {
+      fetchTables();
+    }
   };
 
   const getMenuUrl = (tableNum: number) => {
