@@ -879,6 +879,15 @@ const CustomerMenu = () => {
         </AnimatePresence>
       </div>
 
+      {/* Powered by Adruva footer */}
+      {showBranding && (
+        <div className="text-center py-4 pb-28 opacity-40">
+          <p className="text-xs" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_body } : undefined}>
+            Powered by <span className="font-semibold">Adruva Solution</span>
+          </p>
+        </div>
+      )}
+
       {/* Cart bar */}
       <AnimatePresence>
         {cartCount > 0 && (
