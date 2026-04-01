@@ -19,6 +19,7 @@ export interface OwnerPlan {
   featureOnlineOrders: boolean;
   featureKitchenDisplay: boolean;
   featureCustomerReviews: boolean;
+  featureWhiteLabel: boolean;
   hasPlan: boolean;
 }
 
