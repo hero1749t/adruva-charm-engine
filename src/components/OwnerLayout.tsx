@@ -7,6 +7,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, UtensilsCrossed, QrCode, Settings, LogOut, BarChart3, ChefHat, Download, Users, Shield, Receipt, MessageCircle, Phone, Package, Wallet, DoorOpen, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
   const { signOut, user } = useAuth();
@@ -69,15 +70,16 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
           <span className="text-primary">ADRU</span>
           <span className="text-foreground">vaa</span>
         </a>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <NavLink to="/install" className="md:hidden">
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground h-9 w-9 p-0">
               <Download className="w-4 h-4" />
             </Button>
           </NavLink>
-          <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
+          <span className="text-sm text-muted-foreground hidden md:inline truncate max-w-[150px]">{user?.email}</span>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="w-4 h-4 mr-1" /> Logout
+            <LogOut className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Logout</span>
           </Button>
         </div>
       </header>
@@ -133,29 +135,31 @@ const OwnerLayout = ({ children }: { children: React.ReactNode }) => {
         <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 max-w-6xl">{children}</main>
       </div>
 
-      {/* Bottom nav - mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around py-2 z-50">
-        {mobileLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) =>
-              `relative flex flex-col items-center gap-1 px-3 py-1 text-xs ${
-                isActive ? "text-primary" : "text-muted-foreground"
-              }`
-            }
-          >
-            <div className="relative">
-              <link.icon className="w-5 h-5" />
-              {link.badge && link.badge > 0 ? (
-                <span className="absolute -top-1.5 -right-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-4 h-4 flex items-center justify-center px-1">
-                  {link.badge}
-                </span>
-              ) : null}
-            </div>
-            <span className="truncate max-w-[3.5rem]">{link.label}</span>
-          </NavLink>
-        ))}
+      {/* Bottom nav - mobile — horizontally scrollable */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50 safe-area-bottom">
+        <div className="flex overflow-x-auto scrollbar-hide gap-0 py-1.5 px-1">
+          {mobileLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `relative flex flex-col items-center gap-0.5 min-w-[4rem] px-2 py-1.5 text-[10px] font-medium rounded-lg transition-colors ${
+                  isActive ? "text-primary bg-primary/10" : "text-muted-foreground"
+                }`
+              }
+            >
+              <div className="relative">
+                <link.icon className="w-5 h-5" />
+                {link.badge && link.badge > 0 ? (
+                  <span className="absolute -top-1 -right-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+                    {link.badge}
+                  </span>
+                ) : null}
+              </div>
+              <span className="truncate max-w-[3.5rem] leading-tight">{link.label}</span>
+            </NavLink>
+          ))}
+        </div>
       </nav>
     </div>
   );

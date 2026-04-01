@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { label: "Services", href: "#services" },
@@ -38,7 +39,7 @@ const Navbar = () => {
           <span className="text-foreground"> Resto</span>
         </a>
 
-        <div className="hidden lg:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-4">
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -49,6 +50,7 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
+          <ThemeToggle />
           <Button
             variant="outline"
             size="sm"
@@ -67,12 +69,15 @@ const Navbar = () => {
           </Button>
         </div>
 
-        <button
-          className="lg:hidden text-foreground"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <ThemeToggle />
+          <button
+            className="text-foreground p-1"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
