@@ -51,6 +51,7 @@ const emptyPlan: Omit<Plan, "id"> = {
   feature_online_orders: false,
   feature_kitchen_display: true,
   feature_customer_reviews: false,
+  feature_white_label: false,
   is_active: true,
 };
 
