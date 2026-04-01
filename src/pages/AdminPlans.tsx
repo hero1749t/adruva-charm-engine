@@ -64,6 +64,7 @@ const featureLabels: Record<string, string> = {
   feature_online_orders: "Online Orders",
   feature_kitchen_display: "Kitchen Display",
   feature_customer_reviews: "Customer Reviews",
+  feature_white_label: "White Label (Remove Branding)",
 };
 
 const AdminPlans = () => {

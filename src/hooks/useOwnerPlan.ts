@@ -81,6 +81,7 @@ export const useOwnerPlan = () => {
           featureOnlineOrders: p.feature_online_orders,
           featureKitchenDisplay: p.feature_kitchen_display,
           featureCustomerReviews: p.feature_customer_reviews,
+          featureWhiteLabel: p.feature_white_label ?? false,
           hasPlan: true,
         });
       }
