@@ -35,20 +35,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    return { error: error as Error | null };
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      
+      if (error?.message?.includes("rate_limit")) {
+        return { 
+          error: new Error("Too many attempts. Please wait 15-30 minutes before trying again.") 
+        };
+      }
+      
+      return { error: error as Error | null };
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error?.message?.includes("rate_limit")) {
+        return { 
+          error: new Error("Too many login attempts. Please wait 15-30 minutes before trying again.") 
+        };
+      }
+      
+      if (error?.message?.includes("Invalid login credentials")) {
+        return { 
+          error: new Error("Invalid email or password. Please check and try again.") 
+        };
+      }
+      
+      return { error: error as Error | null };
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signOut = async () => {

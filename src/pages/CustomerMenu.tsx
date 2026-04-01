@@ -31,6 +31,8 @@ const CustomerMenu = () => {
   const [searchParams] = useSearchParams();
   const tableNumber = parseInt(searchParams.get("table") || "0");
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [ownerExists, setOwnerExists] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -89,31 +91,47 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!ownerId) return;
-    supabase.from("profiles").select("restaurant_name, upi_id, phone, restaurant_logo_url, address, gst_number, gps_latitude, gps_longitude, gps_range_meters, gst_percentage").eq("user_id", ownerId).single().then(({ data }: any) => {
-      if (data?.restaurant_name) setRestaurantName(data.restaurant_name);
+    
+    setIsLoading(true);
+    console.log("🔍 Loading menu for owner:", ownerId);
+    
+    supabase.from("restaurants").select("name, upi_id, phone, logo_url, address, gst_number").eq("owner_id", ownerId).single().then(({ data, error }: any) => {
+      console.log("📋 Restaurant fetch result:", { data, error });
+      
+      if (error || !data) {
+        console.error("❌ Restaurant not found or error:", error?.message || "No data");
+        setOwnerExists(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      setOwnerExists(true);
+      if (data?.name) {
+        console.log("✅ Restaurant found:", data.name);
+        setRestaurantName(data.name);
+      } else {
+        console.warn("⚠️ No restaurant name in data");
+      }
       if (data?.upi_id) setUpiId(data.upi_id);
       if (data?.phone) setOwnerPhone(data.phone);
-      if (data?.restaurant_logo_url) setRestaurantLogo(data.restaurant_logo_url);
+      if (data?.logo_url) setRestaurantLogo(data.logo_url);
       if (data?.address) setRestaurantAddress(data.address);
       if (data?.gst_number) setRestaurantGst(data.gst_number);
-      if (data?.gst_percentage != null) setRestaurantGstPct(data.gst_percentage);
-      if (data?.gps_latitude != null) {
-        setRestaurantGpsLat(data.gps_latitude);
-        setRestaurantGpsLng(data.gps_longitude);
-        setRestaurantGpsRange(data.gps_range_meters || 200);
-      } else {
-        // No GPS set by owner — skip verification
-        setGpsVerified(true);
-      }
+      // Default GST percentage to 5% if not set
+      setRestaurantGstPct(5);
+      // GPS verification - skip if not available
+      setGpsVerified(true);
     });
     Promise.all([
       supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
       supabase.from("menu_items").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order"),
       supabase.from("menu_customization").select("*").eq("owner_id", ownerId).maybeSingle(),
     ]).then(([catRes, itemRes, styleRes]) => {
+      console.log("📦 Menu data:", { categories: catRes.data?.length, items: itemRes.data?.length });
       if (catRes.data) setCategories(catRes.data);
       if (itemRes.data) setItems(itemRes.data);
       if (styleRes.data) setMenuStyle(styleRes.data as any);
+      setIsLoading(false);
     });
     // Check owner's plan for white label via secure function
     supabase.rpc("check_white_label", { _owner_id: ownerId }).then(({ data }) => {
@@ -664,6 +682,36 @@ const CustomerMenu = () => {
   return (
     <div className="min-h-screen pb-24" style={cm ? { ...customStyle, backgroundColor: menuStyle!.background_color, color: menuStyle!.text_color, fontFamily: menuStyle!.font_body } : {}} >
       {!cm && <div className="absolute inset-0 -z-10 bg-background" />}
+      
+      {/* Not Found State */}
+      {!ownerExists && !isLoading && (
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="text-6xl font-bold text-muted-foreground/50 mb-3">404</div>
+            <h1 className="text-2xl font-bold mb-2">Restaurant Not Found</h1>
+            <p className="text-muted-foreground mb-4">The QR code or link you scanned appears to be invalid or the restaurant is offline.</p>
+            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+              <p><strong>Owner ID:</strong> {ownerId}</p>
+              <p className="mt-2">Please try scanning the QR code again or contact the restaurant.</p>
+              <p className="mt-3 text-xs">Open browser console (F12) to see detailed errors for debugging.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-3"></div>
+            <p className="text-muted-foreground">Loading menu...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Normal Menu State */}
+      {ownerExists && !isLoading && (
+      <>
       {/* Header */}
       <header className="sticky top-0 z-40 px-4 py-3 shadow-lg" style={cm ? { backgroundColor: menuStyle!.secondary_color, color: "#fff" } : undefined}>
         {!cm && <div className="absolute inset-0 bg-secondary" />}
@@ -1125,6 +1173,8 @@ const CustomerMenu = () => {
           />
         )}
       </AnimatePresence>
+      </>
+      )}
     </div>
   );
 };

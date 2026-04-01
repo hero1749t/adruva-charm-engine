@@ -18,22 +18,43 @@ const OwnerLogin = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (isSignUp) {
-      const { error } = await signUp(email, password, fullName);
-      if (error) {
-        toast.error(error.message);
+    try {
+      if (isSignUp) {
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          if (error.message?.includes("rate_limit") || error.message?.includes("Too many")) {
+            toast.error(error.message || "Rate limit exceeded. Please wait 15-30 minutes.");
+          } else if (error.message?.includes("already registered")) {
+            toast.error("This email is already registered. Try logging in instead.");
+          } else {
+            toast.error(error.message || "Sign up failed");
+          }
+        } else {
+          toast.success("Account created successfully! You can login now.");
+          setIsSignUp(false);
+          setPassword("");
+        }
       } else {
-        toast.success("Account created! Check your email to confirm.");
+        const { error } = await signIn(email, password);
+        if (error) {
+          if (error.message?.includes("rate_limit") || error.message?.includes("Too many")) {
+            toast.error(error.message || "Rate limit exceeded. Please wait 15-30 minutes before trying again.", {
+              duration: 10000,
+            });
+          } else {
+            toast.error(error.message || "Login failed");
+          }
+        } else {
+          toast.success("Login successful!");
+          navigate("/owner/dashboard");
+        }
       }
-    } else {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        navigate("/owner/dashboard");
-      }
+    } catch (err) {
+      toast.error("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

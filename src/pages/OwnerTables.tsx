@@ -114,8 +114,12 @@ const OwnerTables = () => {
     else fetchTables();
   };
 
-  const getMenuUrl = (tableNum: number) =>
-    `${window.location.origin}/menu/${user?.id}?table=${tableNum}`;
+  const getMenuUrl = (tableNum: number) => {
+    if (!user?.id) return "";
+    // Use the Vercel deployment URL or fallback to window.location.origin
+    const baseUrl = process.env.VITE_DEPLOYMENT_URL || window.location.origin;
+    return `${baseUrl}/menu/${user.id}?table=${tableNum}`;
+  };
 
   const copyLink = (tableNum: number) => {
     navigator.clipboard.writeText(getMenuUrl(tableNum));
