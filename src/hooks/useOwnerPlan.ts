@@ -19,6 +19,7 @@ export interface OwnerPlan {
   featureOnlineOrders: boolean;
   featureKitchenDisplay: boolean;
   featureCustomerReviews: boolean;
+  featureWhiteLabel: boolean;
   hasPlan: boolean;
 }
 
@@ -39,6 +40,7 @@ const defaultPlan: OwnerPlan = {
   featureOnlineOrders: true,
   featureKitchenDisplay: true,
   featureCustomerReviews: true,
+  featureWhiteLabel: false,
   hasPlan: false,
 };
 
@@ -79,6 +81,7 @@ export const useOwnerPlan = () => {
           featureOnlineOrders: p.feature_online_orders,
           featureKitchenDisplay: p.feature_kitchen_display,
           featureCustomerReviews: p.feature_customer_reviews,
+          featureWhiteLabel: p.feature_white_label ?? false,
           hasPlan: true,
         });
       }

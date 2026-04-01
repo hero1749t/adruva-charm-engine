@@ -30,6 +30,7 @@ interface Plan {
   feature_online_orders: boolean;
   feature_kitchen_display: boolean;
   feature_customer_reviews: boolean;
+  feature_white_label: boolean;
   is_active: boolean;
 }
 
@@ -50,6 +51,7 @@ const emptyPlan: Omit<Plan, "id"> = {
   feature_online_orders: false,
   feature_kitchen_display: true,
   feature_customer_reviews: false,
+  feature_white_label: false,
   is_active: true,
 };
 
@@ -62,6 +64,7 @@ const featureLabels: Record<string, string> = {
   feature_online_orders: "Online Orders",
   feature_kitchen_display: "Kitchen Display",
   feature_customer_reviews: "Customer Reviews",
+  feature_white_label: "White Label (Remove Branding)",
 };
 
 const AdminPlans = () => {

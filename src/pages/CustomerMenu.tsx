@@ -74,6 +74,7 @@ const CustomerMenu = () => {
     primary_color: string; secondary_color: string; background_color: string;
     text_color: string; accent_color: string; font_heading: string; font_body: string;
   } | null>(null);
+  const [showBranding, setShowBranding] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -113,6 +114,12 @@ const CustomerMenu = () => {
       if (catRes.data) setCategories(catRes.data);
       if (itemRes.data) setItems(itemRes.data);
       if (styleRes.data) setMenuStyle(styleRes.data as any);
+    });
+    // Check owner's plan for white label
+    supabase.from("owner_subscriptions").select("*, subscription_plans(feature_white_label)").eq("owner_id", ownerId).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => {
+      if (data && (data as any).subscription_plans?.feature_white_label) {
+        setShowBranding(false);
+      }
     });
   }, [ownerId]);
 
@@ -688,9 +695,11 @@ const CustomerMenu = () => {
             >
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <span className="text-sm font-bold" style={cm ? { fontFamily: menuStyle!.font_heading } : undefined}>
-              <span style={cm ? { color: menuStyle!.primary_color } : undefined} className={cm ? "" : "text-primary"}>ADRU</span>vaa
-            </span>
+            {ownerPhone && (
+              <a href={`tel:${ownerPhone}`} className="text-xs opacity-70 hover:opacity-100 transition-opacity">
+                📞 {ownerPhone}
+              </a>
+            )}
           </div>
         </div>
       </header>
@@ -869,6 +878,15 @@ const CustomerMenu = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Powered by Adruva footer */}
+      {showBranding && (
+        <div className="text-center py-4 pb-28 opacity-40">
+          <p className="text-xs" style={cm ? { color: menuStyle!.text_color, fontFamily: menuStyle!.font_body } : undefined}>
+            Powered by <span className="font-semibold">Adruva Solution</span>
+          </p>
+        </div>
+      )}
 
       {/* Cart bar */}
       <AnimatePresence>

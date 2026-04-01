@@ -1056,6 +1056,7 @@ export type Database = {
           feature_inventory: boolean | null
           feature_kitchen_display: boolean | null
           feature_online_orders: boolean | null
+          feature_white_label: boolean | null
           id: string
           is_active: boolean | null
           max_menu_items: number | null
@@ -1077,6 +1078,7 @@ export type Database = {
           feature_inventory?: boolean | null
           feature_kitchen_display?: boolean | null
           feature_online_orders?: boolean | null
+          feature_white_label?: boolean | null
           id?: string
           is_active?: boolean | null
           max_menu_items?: number | null
@@ -1098,6 +1100,7 @@ export type Database = {
           feature_inventory?: boolean | null
           feature_kitchen_display?: boolean | null
           feature_online_orders?: boolean | null
+          feature_white_label?: boolean | null
           id?: string
           is_active?: boolean | null
           max_menu_items?: number | null
