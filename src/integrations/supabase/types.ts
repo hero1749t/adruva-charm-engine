@@ -97,6 +97,265 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_invoices: {
+        Row: {
+          base_amount: number
+          created_at: string
+          currency: string
+          due_date: string | null
+          id: string
+          invoice_number: string
+          last_sent_at: string | null
+          notes: string | null
+          owner_id: string
+          paid_at: string | null
+          payment_method: string | null
+          pdf_url: string | null
+          plan_id: string | null
+          status: string
+          subscription_id: string | null
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          last_sent_at?: string | null
+          notes?: string | null
+          owner_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          pdf_url?: string | null
+          plan_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          last_sent_at?: string | null
+          notes?: string | null
+          owner_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          pdf_url?: string | null
+          plan_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_invoices_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "admin_invoices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "owner_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_activity_logs: {
+        Row: {
+          action: string
+          actor_name: string | null
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          ip_device: string | null
+          metadata: Json
+          module: string
+          result: string
+          target: string
+          target_owner_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_name?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          ip_device?: string | null
+          metadata?: Json
+          module: string
+          result?: string
+          target: string
+          target_owner_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_name?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          ip_device?: string | null
+          metadata?: Json
+          module?: string
+          result?: string
+          target?: string
+          target_owner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_activity_logs_target_owner_id_fkey"
+            columns: ["target_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          metadata: Json
+          owner_id: string | null
+          read_at: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          target_module: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          owner_id?: string | null
+          read_at?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          target_module?: string | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          owner_id?: string | null
+          read_at?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          target_module?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      admin_support_tickets: {
+        Row: {
+          assigned_agent_id: string | null
+          assigned_agent_name: string | null
+          category: string
+          created_at: string
+          description: string | null
+          escalation_level: number
+          id: string
+          metadata: Json
+          owner_id: string | null
+          priority: string
+          resolved_at: string | null
+          sla_due_at: string | null
+          source: string
+          status: string
+          subject: string
+          ticket_number: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          assigned_agent_name?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          escalation_level?: number
+          id?: string
+          metadata?: Json
+          owner_id?: string | null
+          priority?: string
+          resolved_at?: string | null
+          sla_due_at?: string | null
+          source?: string
+          status?: string
+          subject: string
+          ticket_number?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          assigned_agent_name?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          escalation_level?: number
+          id?: string
+          metadata?: Json
+          owner_id?: string | null
+          priority?: string
+          resolved_at?: string | null
+          sla_due_at?: string | null
+          source?: string
+          status?: string
+          subject?: string
+          ticket_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_support_tickets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       combo_items: {
         Row: {
           combo_id: string
@@ -221,31 +480,73 @@ export type Database = {
       }
       demo_requests: {
         Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
           city: string | null
+          contacted_at: string | null
+          converted_owner_id: string | null
           created_at: string
+          demo_scheduled_at: string | null
+          email: string | null
           has_website: boolean | null
           id: string
+          lead_status: string
+          meeting_notes: string | null
           name: string
+          next_follow_up_at: string | null
           phone: string
+          priority: string
+          proposed_plan_id: string | null
           restaurant_name: string
+          source: string
+          updated_at: string
         }
         Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           city?: string | null
+          contacted_at?: string | null
+          converted_owner_id?: string | null
           created_at?: string
+          demo_scheduled_at?: string | null
+          email?: string | null
           has_website?: boolean | null
           id?: string
+          lead_status?: string
+          meeting_notes?: string | null
           name: string
+          next_follow_up_at?: string | null
           phone: string
+          priority?: string
+          proposed_plan_id?: string | null
           restaurant_name: string
+          source?: string
+          updated_at?: string
         }
         Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           city?: string | null
+          contacted_at?: string | null
+          converted_owner_id?: string | null
           created_at?: string
+          demo_scheduled_at?: string | null
+          email?: string | null
           has_website?: boolean | null
           id?: string
+          lead_status?: string
+          meeting_notes?: string | null
           name?: string
+          next_follow_up_at?: string | null
           phone?: string
+          priority?: string
+          proposed_plan_id?: string | null
           restaurant_name?: string
+          source?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -394,6 +695,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           owner_id: string
@@ -403,6 +705,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           owner_id: string
@@ -412,6 +715,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           owner_id?: string
@@ -569,45 +873,69 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          available_from: string | null
+          available_to: string | null
           category_id: string
           created_at: string
           description: string | null
+          gst_percentage: number
           id: string
           image_url: string | null
           is_available: boolean
+          is_featured: boolean
           is_veg: boolean
+          low_stock_threshold: number | null
           name: string
+          original_price: number | null
           owner_id: string
           price: number
           sort_order: number
+          stock_quantity: number | null
+          tax_type: string
           updated_at: string
         }
         Insert: {
+          available_from?: string | null
+          available_to?: string | null
           category_id: string
           created_at?: string
           description?: string | null
+          gst_percentage?: number
           id?: string
           image_url?: string | null
           is_available?: boolean
+          is_featured?: boolean
           is_veg?: boolean
+          low_stock_threshold?: number | null
           name: string
+          original_price?: number | null
           owner_id: string
           price: number
           sort_order?: number
+          stock_quantity?: number | null
+          tax_type?: string
           updated_at?: string
         }
         Update: {
+          available_from?: string | null
+          available_to?: string | null
           category_id?: string
           created_at?: string
           description?: string | null
+          gst_percentage?: number
           id?: string
           image_url?: string | null
           is_available?: boolean
+          is_featured?: boolean
           is_veg?: boolean
+          low_stock_threshold?: number | null
           name?: string
+          original_price?: number | null
           owner_id?: string
           price?: number
           sort_order?: number
+          stock_quantity?: number | null
+          tax_type?: string
           updated_at?: string
         }
         Relationships: [
@@ -622,33 +950,43 @@ export type Database = {
       }
       order_items: {
         Row: {
+          combo_id: string | null
           created_at: string
           id: string
           item_name: string
           item_price: number
-          menu_item_id: string
+          menu_item_id: string | null
           order_id: string
           quantity: number
         }
         Insert: {
+          combo_id?: string | null
           created_at?: string
           id?: string
           item_name: string
           item_price: number
-          menu_item_id: string
+          menu_item_id?: string | null
           order_id: string
           quantity?: number
         }
         Update: {
+          combo_id?: string | null
           created_at?: string
           id?: string
           item_name?: string
           item_price?: number
-          menu_item_id?: string
+          menu_item_id?: string | null
           order_id?: string
           quantity?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "menu_combos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_menu_item_id_fkey"
             columns: ["menu_item_id"]
@@ -665,45 +1003,167 @@ export type Database = {
           },
         ]
       }
+      order_payment_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          gateway_payload: Json
+          id: string
+          note: string | null
+          order_id: string
+          owner_id: string
+          payment_method: string
+          reference: string | null
+          source: string
+          staff_member_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          gateway_payload?: Json
+          id?: string
+          note?: string | null
+          order_id: string
+          owner_id: string
+          payment_method: string
+          reference?: string | null
+          source?: string
+          staff_member_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          gateway_payload?: Json
+          id?: string
+          note?: string | null
+          order_id?: string
+          owner_id?: string
+          payment_method?: string
+          reference?: string | null
+          source?: string
+          staff_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payment_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
+          bill_generated_at: string | null
+          bill_number: string | null
+          bill_status: string
+          billing_notes: string | null
+          billing_revert_reason: string | null
+          billing_reverted_at: string | null
+          billing_void_reason: string | null
+          billing_voided_at: string | null
+          cancellation_authorized_by_staff_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
           created_at: string
           customer_phone: string | null
           id: string
+          latest_invoice_id: string | null
           notes: string | null
+          order_origin: string
           owner_id: string
           payment_method: string | null
+          payment_confirmed_at: string | null
+          payment_lock_reason: string | null
+          payment_locked_at: string | null
+          payment_reference: string | null
+          payment_status: string
+          qr_gateway_reference: string | null
+          settled_at: string | null
+          settled_by_staff_id: string | null
           status: Database["public"]["Enums"]["order_status"]
+          subtotal_amount: number
           table_id: string | null
           table_number: number | null
+          tax_amount: number
           total_amount: number
           updated_at: string
+          discount_amount: number
         }
         Insert: {
+          bill_generated_at?: string | null
+          bill_number?: string | null
+          bill_status?: string
+          billing_notes?: string | null
+          billing_revert_reason?: string | null
+          billing_reverted_at?: string | null
+          billing_void_reason?: string | null
+          billing_voided_at?: string | null
+          cancellation_authorized_by_staff_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           created_at?: string
           customer_phone?: string | null
           id?: string
+          latest_invoice_id?: string | null
           notes?: string | null
+          order_origin?: string
           owner_id: string
           payment_method?: string | null
+          payment_confirmed_at?: string | null
+          payment_lock_reason?: string | null
+          payment_locked_at?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          qr_gateway_reference?: string | null
+          settled_at?: string | null
+          settled_by_staff_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          subtotal_amount?: number
           table_id?: string | null
           table_number?: number | null
+          tax_amount?: number
           total_amount?: number
           updated_at?: string
+          discount_amount?: number
         }
         Update: {
+          bill_generated_at?: string | null
+          bill_number?: string | null
+          bill_status?: string
+          billing_notes?: string | null
+          billing_revert_reason?: string | null
+          billing_reverted_at?: string | null
+          billing_void_reason?: string | null
+          billing_voided_at?: string | null
+          cancellation_authorized_by_staff_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           created_at?: string
           customer_phone?: string | null
           id?: string
+          latest_invoice_id?: string | null
           notes?: string | null
+          order_origin?: string
           owner_id?: string
           payment_method?: string | null
+          payment_confirmed_at?: string | null
+          payment_lock_reason?: string | null
+          payment_locked_at?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          qr_gateway_reference?: string | null
+          settled_at?: string | null
+          settled_by_staff_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          subtotal_amount?: number
           table_id?: string | null
           table_number?: number | null
+          tax_amount?: number
           total_amount?: number
           updated_at?: string
+          discount_amount?: number
         }
         Relationships: [
           {
@@ -996,6 +1456,48 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_invitations: {
+        Row: {
+          claimed_at: string | null
+          claimed_by_user_id: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          restaurant_owner_id: string
+          role: Database["public"]["Enums"]["staff_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          restaurant_owner_id: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          restaurant_owner_id?: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -1191,15 +1693,524 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_white_label: { Args: { _owner_id: string }; Returns: boolean }
-      get_staff_role: {
-        Args: { _owner_id: string; _user_id: string }
-        Returns: Database["public"]["Enums"]["staff_role"]
+      acknowledge_admin_notification: {
+        Args: { _notification_id: string }
+        Returns: string
       }
+      can_manage_order_billing: {
+        Args: { _owner_id: string }
+        Returns: boolean
+      }
+      create_manual_counter_order: {
+        Args: {
+          _customer_phone: string
+          _items: Json
+          _notes: string
+          _owner_id: string
+          _table_id: string
+        }
+        Returns: {
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          table_number: number
+          total_amount: number
+        }[]
+      }
+      cancel_order_with_reason: {
+        Args: { _order_id: string; _reason: string }
+        Returns: {
+          bill_status: string
+          cancellation_reason: string
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          payment_status: string
+        }[]
+      }
+      confirm_order_payment: {
+        Args: {
+          _billing_notes?: string | null
+          _order_id: string
+          _payment_method: string
+          _payment_reference?: string | null
+        }
+        Returns: {
+          bill_number: string
+          bill_status: string
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          payment_method: string
+          payment_status: string
+        }[]
+      }
+      assign_admin_support_ticket: {
+        Args: {
+          _assigned_agent_id?: string | null
+          _status?: string | null
+          _ticket_id: string
+        }
+        Returns: string
+      }
+      get_admin_invoices: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          amount: number
+          client_name: string
+          contact: string
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_number: string
+          last_sent_at: string | null
+          notes: string | null
+          owner_id: string
+          payment_method: string | null
+          pdf_url: string | null
+          plan_name: string
+          status: string
+          tax: number
+          total: number
+        }[]
+      }
+      get_admin_billing_discrepancies: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          client_name: string
+          last_payment_at: string | null
+          order_id: string
+          order_origin: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          owner_id: string
+          paid_amount: number
+          payment_status: string
+          remaining_amount: number
+          table_number: number | null
+          total_amount: number
+        }[]
+      }
+      get_admin_wastage_report: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          authorised_by: string
+          cancellation_reason: string
+          client_name: string
+          created_at: string
+          credit_note_number: string | null
+          estimated_loss_amount: number
+          id: string
+          invoice_number: string | null
+          order_id: string
+          owner_id: string
+          table_number: number | null
+        }[]
+      }
+      get_admin_activity_logs: {
+        Args: { _owner_id?: string | null }
+        Returns: {
+          action: string
+          client_name: string
+          id: string
+          ip_device: string
+          module: string
+          owner_id: string | null
+          result: string
+          target: string
+          timestamp: string
+          user: string
+        }[]
+      }
+      get_admin_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          client_name: string
+          created_at: string
+          id: string
+          message: string | null
+          owner_id: string | null
+          severity: string
+          status: string
+          target_module: string | null
+          title: string
+          type: string
+        }[]
+      }
+      get_admin_support_tickets: {
+        Args: { _owner_id?: string | null }
+        Returns: {
+          assigned_agent: string
+          category: string
+          client_name: string
+          contact: string
+          created_at: string
+          escalation_level: number
+          owner_id: string | null
+          priority: string
+          sla_due_at: string | null
+          status: string
+          subject: string
+          ticket_id: string
+          ticket_number: string
+          updated_at: string
+        }[]
+      }
+      log_admin_activity: {
+        Args: {
+          _action: string
+          _ip_device?: string | null
+          _metadata?: Json
+          _module: string
+          _result?: string
+          _target: string
+          _target_owner_id?: string | null
+        }
+        Returns: string
+      }
+      mark_admin_invoice_paid: {
+        Args: { _invoice_id: string; _payment_method?: string | null }
+        Returns: string
+      }
+      refund_admin_invoice: {
+        Args: { _invoice_id: string; _notes?: string | null }
+        Returns: string
+      }
+      resend_admin_invoice: {
+        Args: { _invoice_id: string }
+        Returns: string
+      }
+      resolve_admin_notification: {
+        Args: { _notification_id: string }
+        Returns: string
+      }
+      resolve_admin_support_ticket: {
+        Args: { _status?: string | null; _ticket_id: string }
+        Returns: string
+      }
+      assign_admin_client_plan: {
+        Args: {
+          _expires_at: string | null
+          _notes?: string | null
+          _owner_id: string
+          _plan_id: string
+          _status: string
+        }
+        Returns: string
+      }
+      get_admin_client_detail: {
+        Args: { _owner_id: string }
+        Returns: {
+          address: string | null
+          billing_period: string | null
+          client_name: string
+          contact: string
+          feature_analytics: boolean
+          feature_chain: boolean
+          feature_coupons: boolean
+          feature_customer_reviews: boolean
+          feature_expenses: boolean
+          feature_inventory: boolean
+          feature_kitchen_display: boolean
+          feature_online_orders: boolean
+          feature_white_label: boolean
+          monthly_revenue: number
+          outlets_count: number
+          owner_id: string
+          owner_name: string
+          phone: string | null
+          plan_name: string
+          restaurant_logo_url: string | null
+          rooms_count: number
+          staff_count: number
+          subscription_expiry: string | null
+          subscription_status: string
+          tables_count: number
+          total_orders: number
+        }[]
+      }
+      get_admin_client_outlets: {
+        Args: { _owner_id: string }
+        Returns: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          manager_name: string | null
+          name: string
+          phone: string | null
+          updated_at: string
+        }[]
+      }
+      get_admin_client_users: {
+        Args: { _owner_id: string }
+        Returns: {
+          email: string | null
+          is_active: boolean
+          name: string
+          phone: string | null
+          role: string
+          source: string
+          user_id: string
+        }[]
+      }
+      get_admin_clients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          address: string | null
+          client_name: string
+          client_status: string
+          contact: string
+          last_active: string | null
+          monthly_revenue: number
+          onboarding_status: string
+          outlets_count: number
+          owner_id: string
+          owner_name: string
+          phone: string | null
+          plan_name: string
+          subscription_expiry: string | null
+          subscription_status: string
+        }[]
+      }
+      get_admin_onboarding_clients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          branding_uploaded: boolean
+          business_info_complete: boolean
+          client_name: string
+          go_live_confirmed: boolean
+          menu_imported: boolean
+          onboarding_status: string
+          owner_id: string
+          owner_name: string
+          payment_setup_complete: boolean
+          printer_connected: boolean
+          progress: number
+          qr_generated: boolean
+          staff_accounts_created: boolean
+          tax_configured: boolean
+          test_order_completed: boolean
+        }[]
+      }
+      get_admin_outlets_directory: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          city: string
+          client_name: string
+          contact: string
+          manager_name: string
+          orders_today: number | null
+          outlet_id: string
+          outlet_name: string
+          outlet_status: string
+          owner_id: string
+          owner_name: string
+          phone: string | null
+          qr_status: string
+          revenue_today: number | null
+          sync_status: string
+          updated_at: string
+        }[]
+      }
+      get_admin_platform_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          email: string
+          name: string
+          phone: string | null
+          role: string
+          scope: string
+          source: string
+          status: string
+          user_id: string
+        }[]
+      }
+      get_admin_subscription_catalog: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_clients: number
+          billing_period: string | null
+          feature_analytics: boolean | null
+          feature_chain: boolean | null
+          feature_coupons: boolean | null
+          feature_customer_reviews: boolean | null
+          feature_expenses: boolean | null
+          feature_inventory: boolean | null
+          feature_kitchen_display: boolean | null
+          feature_online_orders: boolean | null
+          feature_white_label: boolean | null
+          id: string
+          is_active: boolean | null
+          max_menu_items: number | null
+          max_orders_per_month: number | null
+          max_rooms: number | null
+          max_staff: number | null
+          max_tables: number | null
+          name: string
+          price: number
+          total_clients: number
+        }[]
+      }
+      get_admin_subscription_queue: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          billing_period: string | null
+          client_name: string
+          contact: string
+          created_at: string
+          expires_at: string | null
+          notes: string | null
+          outlets_count: number
+          owner_id: string
+          owner_name: string
+          phone: string | null
+          plan_id: string
+          plan_name: string
+          subscription_id: string
+          subscription_status: string
+        }[]
+      }
+      claim_staff_invitation: { Args: { _invitation_id: string }; Returns: string }
+      check_white_label: { Args: { _owner_id: string }; Returns: boolean }
+      get_public_restaurant_profile: {
+        Args: { _owner_id: string }
+        Returns: {
+          address: string | null
+          gps_latitude: number | null
+          gps_longitude: number | null
+          gps_range_meters: number | null
+          gst_number: string | null
+          gst_percentage: number | null
+          phone: string | null
+          restaurant_logo_url: string | null
+          restaurant_name: string | null
+          upi_id: string | null
+        }[]
+      }
+      get_order_payment_summary: {
+        Args: { _order_id: string }
+        Returns: {
+          is_closed: boolean
+          order_total: number
+          paid_amount: number
+          payment_methods: string[]
+          remaining_amount: number
+        }[]
+      }
+      get_public_order_tracking: {
+        Args: { _order_id: string }
+        Returns: {
+          payment_method: string | null
+          status: Database["public"]["Enums"]["order_status"]
+        }[]
+      }
+      get_public_order_receipt: {
+        Args: { _order_id: string }
+        Returns: {
+          created_at: string
+          item_name: string
+          item_price: number
+          quantity: number
+          total_amount: number
+        }[]
+      }
+      place_public_order: {
+        Args: {
+          _coupon_id?: string | null
+          _customer_phone?: string | null
+          _items: Json
+          _notes?: string | null
+          _owner_id: string
+          _table_number: number
+        }
+        Returns: string
+      }
+      get_public_menu_customization: {
+        Args: { _owner_id: string }
+        Returns: {
+          accent_color: string | null
+          background_color: string | null
+          font_body: string | null
+          font_heading: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          text_color: string | null
+        }[]
+      }
+      validate_public_coupon: {
+        Args: {
+          _code: string
+            _customer_phone: string
+            _owner_id: string
+            _subtotal: number
+          }
+          Returns: {
+            code: string | null
+            coupon_id: string | null
+            discount_type: string | null
+            discount_value: number | null
+            error_message: string | null
+          }[]
+        }
+      get_staff_role: {
+          Args: { _owner_id: string; _user_id: string }
+          Returns: Database["public"]["Enums"]["staff_role"]
+        }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_restaurant_staff: {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
+      }
+      revert_order_payment: {
+        Args: { _order_id: string; _reason?: string | null }
+        Returns: {
+          bill_status: string
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          payment_status: string
+        }[]
+      }
+      record_manual_order_payment: {
+        Args: {
+          _amount: number
+          _billing_note?: string | null
+          _order_id: string
+          _payment_method: string
+          _payment_reference?: string | null
+        }
+        Returns: {
+          bill_number: string | null
+          bill_status: string
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          paid_amount: number
+          payment_status: string
+          remaining_amount: number
+        }[]
+      }
+      record_qr_gateway_payment: {
+        Args: {
+          _amount: number
+          _gateway_payload?: Json
+          _gateway_reference: string
+          _order_id: string
+          _payment_method: string
+        }
+        Returns: {
+          bill_number: string | null
+          bill_status: string
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          paid_amount: number
+          payment_status: string
+          remaining_amount: number
+        }[]
+      }
+      void_order_billing: {
+        Args: { _order_id: string; _reason?: string | null }
+        Returns: {
+          bill_status: string
+          order_id: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          payment_status: string
+        }[]
       }
     }
     Enums: {
