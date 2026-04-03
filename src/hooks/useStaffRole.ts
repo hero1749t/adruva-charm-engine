@@ -6,6 +6,7 @@ export type StaffRole = "owner" | "manager" | "kitchen" | "cashier";
 
 interface StaffInfo {
   role: StaffRole | null;
+  ownerId: string | null;
   loading: boolean;
   isOwner: boolean;
   isManager: boolean;
@@ -15,31 +16,43 @@ interface StaffInfo {
   canManageOrders: boolean;
   canManageStaff: boolean;
   canViewAnalytics: boolean;
+  canManageBusiness: boolean;
 }
 
 /**
- * Hook to get the current user's staff role for a given restaurant owner.
- * If ownerId is not provided, assumes the current user IS the owner.
+ * Resolves the current user's role and the owner account they belong to.
+ * If an ownerId is provided, permissions are evaluated against that owner.
  */
 export const useStaffRole = (ownerId?: string): StaffInfo => {
   const { user } = useAuth();
   const [role, setRole] = useState<StaffRole | null>(null);
+  const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    let active = true;
+
+    const applyState = (nextRole: StaffRole | null, nextOwnerId: string | null) => {
+      if (!active) return;
+      setRole(nextRole);
+      setResolvedOwnerId(nextOwnerId);
       setLoading(false);
-      return;
-    }
+    };
 
     const fetchRole = async () => {
+      if (!user) {
+        applyState(null, null);
+        return;
+      }
+
+      setLoading(true);
+
       if (ownerId) {
-        // Explicit ownerId provided (e.g. customer menu context)
         if (user.id === ownerId) {
-          setRole("owner");
-          setLoading(false);
+          applyState("owner", ownerId);
           return;
         }
+
         const { data } = await supabase
           .from("staff_members")
           .select("role")
@@ -47,12 +60,11 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
           .eq("restaurant_owner_id", ownerId)
           .eq("is_active", true)
           .maybeSingle();
-        setRole((data?.role as StaffRole) || null);
-        setLoading(false);
+
+        applyState((data?.role as StaffRole | undefined) ?? null, ownerId);
         return;
       }
 
-      // No ownerId: check if user is staff somewhere
       const { data: staffRecord } = await supabase
         .from("staff_members")
         .select("role, restaurant_owner_id")
@@ -60,17 +72,19 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
         .eq("is_active", true)
         .maybeSingle();
 
-      if (staffRecord) {
-        // User is a staff member
-        setRole(staffRecord.role as StaffRole);
-      } else {
-        // No staff record → user is an owner
-        setRole("owner");
+      if (staffRecord && staffRecord.restaurant_owner_id !== user.id) {
+        applyState(staffRecord.role as StaffRole, staffRecord.restaurant_owner_id);
+        return;
       }
-      setLoading(false);
+
+      applyState("owner", user.id);
     };
 
     fetchRole();
+
+    return () => {
+      active = false;
+    };
   }, [user, ownerId]);
 
   const isOwner = role === "owner";
@@ -80,6 +94,7 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
 
   return {
     role,
+    ownerId: resolvedOwnerId,
     loading,
     isOwner,
     isManager,
@@ -89,5 +104,6 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
     canManageOrders: isOwner || isManager || isCashier,
     canManageStaff: isOwner,
     canViewAnalytics: isOwner || isManager,
+    canManageBusiness: isOwner || isManager,
   };
 };

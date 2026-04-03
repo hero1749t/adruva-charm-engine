@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,9 @@ type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
 type OrderWithItems = Order & { order_items: OrderItem[] };
 
 const statusFlow: Record<string, string> = {
-  new: "accepted", accepted: "preparing", preparing: "ready", ready: "served",
+  new: "accepted",
+  accepted: "preparing",
+  preparing: "ready",
 };
 
 const columnConfig = [
@@ -26,7 +28,11 @@ const columnConfig = [
 
 const playNotificationSound = () => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextCtor) return;
+    const ctx = new AudioContextCtor();
     const gainNode = ctx.createGain();
     gainNode.connect(ctx.destination);
     gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
@@ -39,10 +45,13 @@ const playNotificationSound = () => {
       osc.start(ctx.currentTime + i * 0.15);
       osc.stop(ctx.currentTime + i * 0.15 + 0.3);
     });
-  } catch {}
+  } catch {
+    // Ignore audio errors on unsupported browsers/devices.
+  }
 };
 
 const sendBrowserNotification = (order: { table_number: number | null; order_items: OrderItem[] }) => {
+  if (typeof Notification === "undefined") return;
   if (Notification.permission !== "granted") return;
   const items = order.order_items.map((i) => `${i.quantity}× ${i.item_name}`).join(", ");
   new Notification(`🔔 New Order — Table ${order.table_number || "?"}`, {
@@ -51,7 +60,7 @@ const sendBrowserNotification = (order: { table_number: number | null; order_ite
 };
 
 const KitchenDisplay = () => {
-  const { user } = useAuth();
+  const { ownerId, loading: roleLoading } = useStaffRole();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -61,12 +70,23 @@ const KitchenDisplay = () => {
   const prevOrderIdsRef = useRef<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
+    if (!ownerId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
       .from("orders").select("*, order_items(*)")
-      .eq("owner_id", user.id)
+      .eq("owner_id", ownerId)
       .in("status", ["new", "accepted", "preparing", "ready"])
       .order("created_at", { ascending: true });
+    if (error) {
+      toast.error("Failed to load kitchen orders");
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
     if (data) {
       const fetched = data as OrderWithItems[];
       const newOrders = fetched.filter((o) => o.status === "new" && !prevOrderIdsRef.current.has(o.id));
@@ -79,17 +99,21 @@ const KitchenDisplay = () => {
       setOrders(fetched);
     }
     setLoading(false);
-  }, [user]);
-
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  }, [ownerId]);
 
   useEffect(() => {
-    if (!user) return;
+    if (roleLoading) return;
+    setLoading(true);
+    void fetchOrders();
+  }, [fetchOrders, roleLoading]);
+
+  useEffect(() => {
+    if (roleLoading || !ownerId) return;
     const channel = supabase.channel("kitchen-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` }, () => fetchOrders())
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${ownerId}` }, () => fetchOrders())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchOrders]);
+  }, [ownerId, fetchOrders, roleLoading]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30000);
@@ -149,6 +173,11 @@ const KitchenDisplay = () => {
               <Skeleton className="h-6 w-20" /><Skeleton className="h-20 w-full" />
             </div>
           ))}
+        </div>
+      ) : !ownerId ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+          <p className="text-lg font-medium text-foreground">Kitchen access is not available</p>
+          <p className="mt-2 text-sm">Your account is not linked to a restaurant owner yet.</p>
         </div>
       ) : (
         <>

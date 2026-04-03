@@ -7,7 +7,7 @@ A modern, production-ready restaurant management and charm platform built with c
 ### Prerequisites
 
 - Node.js (16+ recommended)
-- npm or bun package manager
+- npm package manager
 
 ### Installation
 
@@ -22,13 +22,9 @@ cd adruva-charm-engine
 
 # Step 3: Install the necessary dependencies
 npm install
-# or
-bun install
 
 # Step 4: Start the development server
 npm run dev
-# or
-bun dev
 ```
 
 The application will be available at `http://localhost:5173`
@@ -87,6 +83,14 @@ npm run build
 ```
 
 The build outputs to the `dist/` directory and is ready for deployment.
+
+## Supabase Deployment
+
+For database migration order, edge-function rollout, and post-deploy smoke tests, see [docs/SUPABASE_DEPLOYMENT.md](/d:/Adruva_Resto/adruva-charm-engine/docs/SUPABASE_DEPLOYMENT.md).
+For the exact release command sequence, see [docs/RELEASE_COMMANDS.md](/d:/Adruva_Resto/adruva-charm-engine/docs/RELEASE_COMMANDS.md).
+For a shareable summary of the current release, see [docs/RELEASE_NOTES_2026-04-01.md](/d:/Adruva_Resto/adruva-charm-engine/docs/RELEASE_NOTES_2026-04-01.md).
+For the live end-to-end release verification flow, see [docs/FINAL_SMOKE_TEST_CHECKLIST.md](/d:/Adruva_Resto/adruva-charm-engine/docs/FINAL_SMOKE_TEST_CHECKLIST.md).
+For a complete understanding of product workflow, folder structure, route map, and architecture, see [docs/PROJECT_ARCHITECTURE_GUIDE.md](/d:/Adruva_Resto/adruva-charm-engine/docs/PROJECT_ARCHITECTURE_GUIDE.md).
 
 ## License
 

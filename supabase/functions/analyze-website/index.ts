@@ -14,6 +14,32 @@ interface AnalysisResult {
   }[];
 }
 
+const PRIVATE_HOST_PATTERNS = [
+  /^localhost$/i,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[0-1])\./,
+  /^\[::1\]$/i,
+];
+
+function isAllowedUrl(rawUrl: string) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return { ok: false, error: "Only http and https URLs are allowed" };
+    }
+
+    if (PRIVATE_HOST_PATTERNS.some((pattern) => pattern.test(parsed.hostname))) {
+      return { ok: false, error: "Private or local network URLs are not allowed" };
+    }
+
+    return { ok: true, url: parsed.toString() };
+  } catch {
+    return { ok: false, error: "Invalid URL format" };
+  }
+}
+
 function analyzeHtml(html: string, url: string, headers: Headers, loadTimeMs: number): AnalysisResult {
   const lower = html.toLowerCase();
 
@@ -267,7 +293,7 @@ Deno.serve(async (req) => {
     if (!url) {
       return new Response(
         JSON.stringify({ success: false, error: 'URL is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -275,6 +301,16 @@ Deno.serve(async (req) => {
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = `https://${formattedUrl}`;
     }
+
+    const validation = isAllowedUrl(formattedUrl);
+    if (!validation.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: validation.error }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    formattedUrl = validation.url;
 
     console.log('Analyzing URL:', formattedUrl);
 
@@ -298,7 +334,7 @@ Deno.serve(async (req) => {
       const msg = fetchErr instanceof Error ? fetchErr.message : 'Failed to fetch';
       return new Response(
         JSON.stringify({ success: false, error: `Could not reach ${formattedUrl}: ${msg}` }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -319,7 +355,7 @@ Deno.serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

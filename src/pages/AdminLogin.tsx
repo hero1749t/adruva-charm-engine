@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,19 +13,37 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { signIn } = useAuth();
+
+  useEffect(() => {
+    const reason = (location.state as { reason?: string } | null)?.reason;
+    if (reason === "auth-required") {
+      toast({ title: "Login required", description: "Please sign in to access the admin panel.", variant: "destructive" });
+      navigate(location.pathname, { replace: true, state: null });
+    } else if (reason === "admin-required") {
+      toast({ title: "Access denied", description: "This area is only available to admin accounts.", variant: "destructive" });
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error, user } = await signIn(email, password);
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
       setLoading(false);
       return;
     }
-    // Check admin
-    const { data: isAdmin } = await supabase.rpc("is_admin" as any, { _user_id: data.user.id });
+    if (!user) {
+      toast({ title: "Login failed", description: "Could not resolve your account session.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
     if (!isAdmin) {
       await supabase.auth.signOut();
       toast({ title: "Access denied", description: "You are not an admin.", variant: "destructive" });

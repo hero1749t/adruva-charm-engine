@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOwnerPlan } from "@/hooks/useOwnerPlan";
@@ -24,6 +24,16 @@ interface StaffMember {
   created_at: string;
 }
 
+interface StaffInvitation {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  role: StaffRole;
+  status: string;
+  created_at: string;
+}
+
 const roleColors: Record<string, string> = {
   owner: "bg-primary text-primary-foreground",
   manager: "bg-blue-500 text-primary-foreground",
@@ -43,58 +53,65 @@ const OwnerStaff = () => {
   const { plan } = useOwnerPlan();
   const { canManageStaff } = useStaffRole();
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<StaffInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", role: "cashier" as StaffRole });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("staff_members")
-      .select("*")
-      .eq("restaurant_owner_id", user.id)
-      .order("created_at", { ascending: false });
+    const [{ data: staffData, error: staffError }, { data: inviteData, error: inviteError }] = await Promise.all([
+      supabase
+        .from("staff_members")
+        .select("*")
+        .eq("restaurant_owner_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("staff_invitations")
+        .select("*")
+        .eq("restaurant_owner_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
+    ]);
 
-    if (!error && data) {
-      setStaff(data as StaffMember[]);
+    if (!staffError && staffData) {
+      setStaff(staffData as StaffMember[]);
+    }
+    if (!inviteError && inviteData) {
+      setPendingInvites(inviteData as StaffInvitation[]);
     }
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchStaff(); }, [user]);
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
   const handleAddStaff = async () => {
     if (!user || !form.name.trim() || !form.email.trim()) {
       toast.error("Name and email are required");
       return;
     }
-    if (plan.hasPlan && staff.length >= plan.maxStaff) {
+    if (plan.hasPlan && staff.length + pendingInvites.length >= plan.maxStaff) {
       toast.error(`Your ${plan.planName} plan allows max ${plan.maxStaff} staff members. Upgrade to add more.`);
       return;
     }
 
     setSubmitting(true);
+    const normalizedEmail = form.email.trim().toLowerCase();
 
-    // First, we need to create an auth account for the staff member
-    // For now, we'll use a placeholder user_id approach - the staff member
-    // will need to sign up with their email, then the owner links them
-    // In production, you'd use an invite system
-    
-    // Look up if user exists by checking profiles
-    // For MVP: store with owner's ID as placeholder, staff claims later
-    const { error } = await supabase.from("staff_members").insert({
+    const { error } = await supabase.from("staff_invitations").insert({
       restaurant_owner_id: user.id,
-      user_id: user.id, // Placeholder - in production use invite flow
+      email: normalizedEmail,
       name: form.name.trim(),
       phone: form.phone.trim() || null,
       role: form.role,
+      status: "pending",
     });
 
     if (error) {
-      toast.error(error.message || "Failed to add staff member");
+      toast.error(error.message || "Failed to create invitation");
     } else {
-      toast.success(`${form.name} added as ${form.role}`);
+      toast.success(`Invite created for ${normalizedEmail}. Staff member can sign up/login with this email to join.`);
       setForm({ name: "", email: "", phone: "", role: "cashier" });
       setDialogOpen(false);
       fetchStaff();
@@ -123,6 +140,20 @@ const OwnerStaff = () => {
       toast.error("Failed to remove");
     } else {
       toast.success(`${name} removed`);
+      fetchStaff();
+    }
+  };
+
+  const revokeInvite = async (id: string, email: string) => {
+    const { error } = await supabase
+      .from("staff_invitations")
+      .update({ status: "revoked" })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to revoke invite");
+    } else {
+      toast.success(`Invitation revoked for ${email}`);
       fetchStaff();
     }
   };
@@ -217,7 +248,7 @@ const OwnerStaff = () => {
 
       {/* Plan usage indicator */}
       <div className="mb-4">
-        <PlanUsageBadge current={staff.length} max={plan.maxStaff} label="Staff Used" hasPlan={plan.hasPlan} planName={plan.planName} />
+        <PlanUsageBadge current={staff.length + pendingInvites.length} max={plan.maxStaff} label="Staff Used" hasPlan={plan.hasPlan} planName={plan.planName} />
       </div>
 
       {/* Role legend - hidden on mobile, visible on tablet+ */}
@@ -244,74 +275,108 @@ const OwnerStaff = () => {
             </div>
           ))}
         </div>
-      ) : staff.length === 0 ? (
+      ) : staff.length === 0 && pendingInvites.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <UserCog className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="text-lg">No staff members yet</p>
           <p className="text-sm mt-2">Add your team members and assign them roles</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {staff.map((member) => (
-            <div
-              key={member.id}
-              className={`bg-card rounded-xl border border-border p-4 ${
-                !member.is_active ? "opacity-50" : ""
-              }`}
-            >
-              {/* Top row: avatar + name + badge */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <UserCog className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display font-bold text-foreground truncate">{member.name}</span>
-                    {!member.is_active && (
-                      <Badge variant="secondary" className="text-xs">Inactive</Badge>
-                    )}
+        <div className="space-y-6">
+          {pendingInvites.length > 0 && (
+            <div>
+              <h2 className="font-display font-bold text-foreground mb-3">Pending Invites</h2>
+              <div className="space-y-3">
+                {pendingInvites.map((invite) => (
+                  <div key={invite.id} className="bg-card rounded-xl border border-dashed border-primary/30 p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <UserCog className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display font-bold text-foreground truncate">{invite.name}</span>
+                          <Badge variant="secondary" className="text-xs">Pending</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{invite.email}</p>
+                        {invite.phone && <p className="text-xs text-muted-foreground">{invite.phone}</p>}
+                      </div>
+                      <Badge className={`${roleColors[invite.role]} text-xs flex-shrink-0`}>{invite.role}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground">Will auto-link when they sign in with this email</p>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-9 px-2" onClick={() => revokeInvite(invite.id, invite.email)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  {member.phone && (
-                    <p className="text-sm text-muted-foreground">{member.phone}</p>
-                  )}
-                </div>
-                <Badge className={`${roleColors[member.role]} text-xs flex-shrink-0`}>{member.role}</Badge>
-              </div>
-
-              {/* Bottom row: actions */}
-              <div className="flex items-center gap-2 pt-3 border-t border-border">
-                <Select
-                  value={member.role}
-                  onValueChange={(v) => updateRole(member.id, v as StaffRole)}
-                >
-                  <SelectTrigger className="w-28 h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="kitchen">Kitchen</SelectItem>
-                    <SelectItem value="cashier">Cashier</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-9 flex-1"
-                  onClick={() => toggleActive(member.id, member.is_active)}
-                >
-                  {member.is_active ? "Deactivate" : "Activate"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive h-9 px-2"
-                  onClick={() => deleteStaff(member.id, member.name)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {staff.length > 0 && (
+            <div className="space-y-3">
+              {staff.map((member) => (
+                <div
+                  key={member.id}
+                  className={`bg-card rounded-xl border border-border p-4 ${
+                    !member.is_active ? "opacity-50" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <UserCog className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-bold text-foreground truncate">{member.name}</span>
+                        {!member.is_active && (
+                          <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                        )}
+                      </div>
+                      {member.phone && (
+                        <p className="text-sm text-muted-foreground">{member.phone}</p>
+                      )}
+                    </div>
+                    <Badge className={`${roleColors[member.role]} text-xs flex-shrink-0`}>{member.role}</Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-3 border-t border-border">
+                    <Select
+                      value={member.role}
+                      onValueChange={(v) => updateRole(member.id, v as StaffRole)}
+                    >
+                      <SelectTrigger className="w-28 h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="kitchen">Kitchen</SelectItem>
+                        <SelectItem value="cashier">Cashier</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-9 flex-1"
+                      onClick={() => toggleActive(member.id, member.is_active)}
+                    >
+                      {member.is_active ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive h-9 px-2"
+                      onClick={() => deleteStaff(member.id, member.name)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </OwnerLayout>

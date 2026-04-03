@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
@@ -30,7 +30,7 @@ const OwnerChain = () => {
   const [editOutlet, setEditOutlet] = useState<Outlet | null>(null);
   const [form, setForm] = useState({ name: "", address: "", phone: "", manager_name: "" });
 
-  const fetchOutlets = async () => {
+  const fetchOutlets = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("outlets")
@@ -39,9 +39,9 @@ const OwnerChain = () => {
       .order("created_at");
     if (data) setOutlets(data as Outlet[]);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchOutlets(); }, [user]);
+  useEffect(() => { fetchOutlets(); }, [fetchOutlets]);
 
   const resetForm = () => setForm({ name: "", address: "", phone: "", manager_name: "" });
 

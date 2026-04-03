@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { Suspense, useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,41 @@ import { ShoppingCart, Plus, Minus, X, Search, Clock, Leaf, Moon, Sun, MapPin, L
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
-import CustomerReceipt from "@/components/CustomerReceipt";
-import CustomerReview from "@/components/CustomerReview";
-import ItemCustomizeModal, { type SelectedVariant, type SelectedAddon } from "@/components/menu/ItemCustomizeModal";
+import type { SelectedVariant, SelectedAddon } from "@/components/menu/ItemCustomizeModal";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { getRestaurantLogoUrl } from "@/lib/restaurantLogo";
+
+const CustomerReceipt = lazyWithRetry(() => import("@/components/CustomerReceipt"));
+const CustomerReview = lazyWithRetry(() => import("@/components/CustomerReview"));
+const ItemCustomizeModal = lazyWithRetry(() => import("@/components/menu/ItemCustomizeModal"));
 
 type Category = Database["public"]["Tables"]["menu_categories"]["Row"];
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
 type ComboRow = Database["public"]["Tables"]["menu_combos"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type MenuStyle = Pick<
+  Database["public"]["Tables"]["menu_customization"]["Row"],
+  | "primary_color"
+  | "secondary_color"
+  | "background_color"
+  | "text_color"
+  | "accent_color"
+  | "font_heading"
+  | "font_body"
+>;
+type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
+type PublicOrderReceiptRow = Database["public"]["Functions"]["get_public_order_receipt"]["Returns"][number];
+type SecurePublicOrderReceiptRow = PublicOrderReceiptRow;
+type PublicOrderSessionRow = {
+  order_id: string;
+  public_tracking_token: string;
+};
+type ComboItemJoin = {
+  combo_id: string;
+  quantity: number;
+  menu_items: Pick<MenuItem, "name"> | null;
+};
 type CartItem = MenuItem & {
   quantity: number;
   cartKey: string; // unique key for variant/addon combos
@@ -26,7 +54,15 @@ type CartItem = MenuItem & {
 };
 type PastOrder = { id: string; total: number; itemCount: number; time: string };
 
+const DeferredCardLoader = ({ message }: { message: string }) => (
+  <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 p-4 text-sm text-muted-foreground shadow-card">
+    <Loader2 className="h-4 w-4 animate-spin" />
+    <span>{message}</span>
+  </div>
+);
+
 const CustomerMenu = () => {
+  const { t } = useLanguage();
   const { ownerId } = useParams();
   const [searchParams] = useSearchParams();
   const tableNumber = parseInt(searchParams.get("table") || "0");
@@ -48,6 +84,7 @@ const CustomerMenu = () => {
   const [orderCreatedAt, setOrderCreatedAt] = useState("");
   const [ordering, setOrdering] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<string | null>(null);
+  const [orderTrackingToken, setOrderTrackingToken] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState(0);
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -72,11 +109,10 @@ const CustomerMenu = () => {
   const [promoApplied, setPromoApplied] = useState<{ id: string; code: string; discount_type: string; discount_value: number } | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{
-    primary_color: string; secondary_color: string; background_color: string;
-    text_color: string; accent_color: string; font_heading: string; font_body: string;
-  } | null>(null);
+  const [menuStyle, setMenuStyle] = useState<MenuStyle | null>(null);
   const [showBranding, setShowBranding] = useState(true);
+  const [tableStatus, setTableStatus] = useState<string | null>(null);
+  const [tableBlockedMessage, setTableBlockedMessage] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("customer-dark-mode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -93,51 +129,79 @@ const CustomerMenu = () => {
     if (!ownerId) return;
     
     setIsLoading(true);
-    console.log("🔍 Loading menu for owner:", ownerId);
     
     // First fetch restaurant by owner_id
-    supabase.from("restaurants").select("id, name, upi_id, phone, logo_url, address, gst_number").eq("owner_id", ownerId).single().then(({ data: restaurant, error }: any) => {
-      console.log("📋 Restaurant fetch result:", { restaurant, error });
-      
-      if (error || !restaurant) {
-        console.error("❌ Restaurant not found or error:", error?.message || "No data");
+    Promise.all([
+      supabase.rpc("get_public_restaurant_profile", { _owner_id: ownerId }),
+      supabase.from("menu_categories").select("*").eq("owner_id", ownerId).eq("is_active", true).order("sort_order"),
+      supabase.from("menu_items").select("*").eq("owner_id", ownerId).eq("is_available", true).order("sort_order"),
+      supabase.rpc("get_public_menu_customization", { _owner_id: ownerId }),
+      tableNumber > 0
+        ? supabase
+            .from("restaurant_tables")
+            .select("status, label")
+            .eq("owner_id", ownerId)
+            .eq("table_number", tableNumber)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]).then(([profileRes, catRes, itemRes, styleRes, tableRes]) => {
+      const profile = (profileRes.data?.[0] ?? null) as Pick<
+        ProfileRow,
+        | "restaurant_name"
+        | "upi_id"
+        | "phone"
+        | "restaurant_logo_url"
+        | "address"
+        | "gst_number"
+        | "gst_percentage"
+        | "gps_latitude"
+        | "gps_longitude"
+        | "gps_range_meters"
+      > | null;
+
+      if (profileRes.error && !profile) {
         setOwnerExists(false);
         setIsLoading(false);
         return;
       }
-      
+
       setOwnerExists(true);
-      const restaurantId = restaurant.id;
-      console.log("✅ Restaurant found:", restaurant.name, "ID:", restaurantId);
-      
-      if (restaurant?.name) setRestaurantName(restaurant.name);
-      if (restaurant?.upi_id) setUpiId(restaurant.upi_id);
-      if (restaurant?.phone) setOwnerPhone(restaurant.phone);
-      if (restaurant?.logo_url) setRestaurantLogo(restaurant.logo_url);
-      if (restaurant?.address) setRestaurantAddress(restaurant.address);
-      if (restaurant?.gst_number) setRestaurantGst(restaurant.gst_number);
-      setRestaurantGstPct(5);
-      setGpsVerified(true);
-      
-      // Now fetch menu using restaurant_id (not owner_id)
-      Promise.all([
-        supabase.from("menu_categories").select("*").eq("restaurant_id", restaurantId).eq("is_active", true).order("display_order"),
-        supabase.from("menu_items").select("*").eq("restaurant_id", restaurantId).eq("is_available", true).order("display_order"),
-        supabase.from("menu_customization").select("*").eq("owner_id", ownerId).maybeSingle(),
-      ]).then(([catRes, itemRes, styleRes]) => {
-        console.log("📦 Menu data:", { categories: catRes.data?.length, items: itemRes.data?.length });
-        if (catRes.data) setCategories(catRes.data);
-        if (itemRes.data) setItems(itemRes.data);
-        if (styleRes.data) setMenuStyle(styleRes.data as any);
-        setIsLoading(false);
-      });
+
+      if (profile?.restaurant_name) setRestaurantName(profile.restaurant_name);
+      if (profile?.upi_id) setUpiId(profile.upi_id);
+      if (profile?.phone) setOwnerPhone(profile.phone);
+      if (profile?.restaurant_logo_url) setRestaurantLogo(getRestaurantLogoUrl(profile.restaurant_logo_url));
+      if (profile?.address) setRestaurantAddress(profile.address);
+      if (profile?.gst_number) setRestaurantGst(profile.gst_number);
+      setRestaurantGstPct(profile?.gst_percentage ?? 5);
+      setRestaurantGpsLat(profile?.gps_latitude ?? null);
+      setRestaurantGpsLng(profile?.gps_longitude ?? null);
+      setRestaurantGpsRange(profile?.gps_range_meters ?? 200);
+      setGpsVerified(!(profile?.gps_latitude && profile?.gps_longitude));
+
+      if (catRes.data) setCategories(catRes.data);
+      if (itemRes.data) setItems(itemRes.data);
+      const resolvedTableStatus = tableRes.data?.status ?? null;
+      setTableStatus(resolvedTableStatus);
+      if (resolvedTableStatus === "occupied") {
+        const tableLabel = tableRes.data?.label?.trim() || `Table ${tableNumber}`;
+        setTableBlockedMessage(`${tableLabel} ${t("customer.tableOccupied")}`);
+      } else {
+        setTableBlockedMessage(null);
+      }
+      const customization = (styleRes.data?.[0] ?? null) as MenuStyle | null;
+
+      if (customization) {
+        setMenuStyle(customization);
+      }
+      setIsLoading(false);
     });
     
     // Check owner's plan for white label via secure function
     supabase.rpc("check_white_label", { _owner_id: ownerId }).then(({ data }) => {
       if (data === true) setShowBranding(false);
     });
-  }, [ownerId]);
+  }, [ownerId, tableNumber, t]);
 
   // Load custom Google Fonts for menu personalization
   useEffect(() => {
@@ -174,7 +238,11 @@ const CustomerMenu = () => {
   // Play notification sound
   const playNotificationSound = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const audioContext = new AudioContextCtor();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -191,13 +259,13 @@ const CustomerMenu = () => {
       
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (e) {
-      console.log("Audio notification not supported");
+    } catch {
+      return;
     }
   };
 
   // Show browser notification
-  const showBrowserNotification = () => {
+  const showBrowserNotification = useCallback(() => {
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification("🎉 Your order is ready!", {
         body: `Table ${tableNumber} - Pick up your order!`,
@@ -205,7 +273,7 @@ const CustomerMenu = () => {
         tag: "order-ready",
       });
     }
-  };
+  }, [tableNumber]);
 
   // Request notification permission on mount
   useEffect(() => {
@@ -237,33 +305,71 @@ const CustomerMenu = () => {
     return () => clearInterval(interval);
   }, [orderPlacedAt, estimatedMinutes, liveStatus]);
 
-  // Real-time order tracking
+  // Public-safe order tracking
   useEffect(() => {
-    if (!orderPlaced) return;
-    supabase.from("orders").select("status, payment_method").eq("id", orderPlaced).single().then(({ data }) => {
-      if (data) {
-        setLiveStatus(data.status);
-        setLivePaymentMethod(data.payment_method);
+    if (!orderPlaced || !orderTrackingToken) return;
+    let active = true;
+    let previousStatus: string | null = null;
+
+    const pollOrderTracking = async () => {
+      const { data } = await supabase.rpc("get_public_order_tracking_secure", {
+        _order_id: orderPlaced,
+        _public_tracking_token: orderTrackingToken,
+      });
+      const nextOrder = data?.[0] as Pick<OrderRow, "status" | "payment_method"> | undefined;
+
+      if (!active || !nextOrder) return;
+
+      setLiveStatus(nextOrder.status);
+      setLivePaymentMethod(nextOrder.payment_method);
+
+      if (nextOrder.status === "ready" && previousStatus !== "ready") {
+        playNotificationSound();
+        showBrowserNotification();
+        toast.success("Your order is ready!", { duration: 5000 });
       }
+
+      previousStatus = nextOrder.status;
+    };
+    void pollOrderTracking();
+    const interval = window.setInterval(() => {
+      void pollOrderTracking();
+    }, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [orderPlaced, orderTrackingToken, showBrowserNotification]);
+
+  const hydratePublicOrderReceipt = useCallback(async (orderId: string, trackingToken: string) => {
+    const { data } = await supabase.rpc("get_public_order_receipt_secure", {
+      _order_id: orderId,
+      _public_tracking_token: trackingToken,
     });
-    const channel = supabase
-      .channel(`order-track-${orderPlaced}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderPlaced}` }, (payload) => {
-        const newStatus = (payload.new as any).status;
-        const newPayment = (payload.new as any).payment_method;
-        setLiveStatus(newStatus);
-        setLivePaymentMethod(newPayment);
-        
-        // Trigger alerts when order is ready
-        if (newStatus === "ready") {
-          playNotificationSound();
-          showBrowserNotification();
-          toast.success("🎉 Your order is ready!", { duration: 5000 });
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [orderPlaced, tableNumber]);
+    const receiptRows = (data ?? []) as SecurePublicOrderReceiptRow[];
+
+    if (receiptRows.length === 0) return;
+
+    setOrderItems(
+      receiptRows.map((row) => ({
+        name: row.item_name,
+        quantity: row.quantity,
+        price: Number(row.item_price),
+      })),
+    );
+    setOrderTotal(Number(receiptRows[0].total_amount));
+    setOrderCreatedAt(
+      new Date(receiptRows[0].created_at).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!orderPlaced || !orderTrackingToken) return;
+    void hydratePublicOrderReceipt(orderPlaced, orderTrackingToken);
+  }, [hydratePublicOrderReceipt, orderPlaced, orderTrackingToken]);
 
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
   const [combos, setCombos] = useState<(ComboRow & { items: { name: string; quantity: number }[] })[]>([]);
@@ -275,11 +381,11 @@ const CustomerMenu = () => {
       if (!data || data.length === 0) return;
       const { data: comboItems } = await supabase
         .from("combo_items")
-        .select("combo_id, quantity, menu_item_id, menu_items(name)")
-        .in("combo_id", data.map(c => c.id)) as any;
+        .select("combo_id, quantity, menu_items(name)")
+        .in("combo_id", data.map(c => c.id));
       setCombos(data.map(c => ({
         ...c,
-        items: (comboItems || []).filter((ci: any) => ci.combo_id === c.id).map((ci: any) => ({
+        items: ((comboItems || []) as ComboItemJoin[]).filter((ci) => ci.combo_id === c.id).map((ci) => ({
           name: ci.menu_items?.name || "Item",
           quantity: ci.quantity,
         })),
@@ -293,7 +399,7 @@ const CustomerMenu = () => {
   };
 
   const handleCustomizeAdd = (item: MenuItem, variants: SelectedVariant[], addons: SelectedAddon[], extraPrice: number) => {
-    const cartKey = item.id + "|" + variants.map(v => v.optionName).join(",") + "|" + addons.map(a => a.optionName).join(",");
+    const cartKey = item.id + "|" + variants.map(v => v.optionId).join(",") + "|" + addons.map(a => a.optionId).join(",");
     setCart((prev) => {
       const existing = prev.find((c) => c.cartKey === cartKey);
       if (existing) return prev.map((c) => c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c);
@@ -353,33 +459,25 @@ const CustomerMenu = () => {
     if (!phone.trim()) { setPromoError("Enter your phone number first to apply coupon"); return; }
     setPromoChecking(true);
     setPromoError(null);
-    // Check coupon exists and is active
-    const { data: coupon } = await supabase
-      .from("discount_coupons")
-      .select("*")
-      .eq("owner_id", ownerId)
-      .eq("code", promoCode.toUpperCase().trim())
-      .eq("is_active", true)
-      .single() as any;
-    if (!coupon) { setPromoError("Invalid or expired coupon code"); setPromoChecking(false); return; }
-    const now = new Date();
-    if (now < new Date(coupon.valid_from) || now > new Date(coupon.valid_until)) {
-      setPromoError("This coupon has expired"); setPromoChecking(false); return;
+    if (!ownerId) {
+      setPromoError("Restaurant not found");
+      setPromoChecking(false);
+      return;
     }
-    if (subtotal < coupon.min_order_amount) {
-      setPromoError(`Minimum order ₹${coupon.min_order_amount} required`); setPromoChecking(false); return;
+    const { data, error } = await supabase.rpc("validate_public_coupon", {
+      _owner_id: ownerId,
+      _code: promoCode.toUpperCase().trim(),
+      _customer_phone: phone.trim(),
+      _subtotal: subtotal,
+    });
+    const coupon = data?.[0];
+    if (error || !coupon || coupon.error_message || !coupon.coupon_id || !coupon.code || !coupon.discount_type || coupon.discount_value == null) {
+      setPromoError(coupon?.error_message ?? "Invalid or expired coupon code");
+      setPromoChecking(false);
+      return;
     }
-    // Check usage count
-    const { count } = await supabase
-      .from("coupon_usage")
-      .select("*", { count: "exact", head: true })
-      .eq("coupon_id", coupon.id)
-      .eq("customer_phone", phone.trim()) as any;
-    if ((count || 0) >= coupon.max_uses_per_person) {
-      setPromoError("You've already used this coupon maximum times"); setPromoChecking(false); return;
-    }
-    setPromoApplied({ id: coupon.id, code: coupon.code, discount_type: coupon.discount_type, discount_value: coupon.discount_value });
-    toast.success(`Coupon applied! ${coupon.discount_type === "percentage" ? `${coupon.discount_value}% off` : `₹${coupon.discount_value} off`}`);
+    setPromoApplied({ id: coupon.coupon_id, code: coupon.code, discount_type: coupon.discount_type, discount_value: coupon.discount_value });
+    toast.success(`Coupon applied! ${coupon.discount_type === "percentage" ? `${coupon.discount_value}% off` : `Rs ${coupon.discount_value} off`}`);
     setPromoChecking(false);
   };
 
@@ -432,65 +530,43 @@ const CustomerMenu = () => {
   const placeOrder = async () => {
     if (!ownerId || cart.length === 0) return;
     setOrdering(true);
-    const { data: order, error } = await supabase
-      .from("orders")
-      .insert({
-        owner_id: ownerId,
-        table_number: tableNumber,
-        customer_phone: phone || null,
-        total_amount: total,
-        status: "new",
-        notes: notes.trim() || null,
-      })
-      .select()
-      .single();
+    const orderPayload = cart.map((c) => ({
+      menu_item_id: c.isCombo ? null : c.id,
+      combo_id: c.isCombo ? c.id : null,
+      quantity: c.quantity,
+      selected_variant_option_ids: c.selectedVariants.map((variant) => variant.optionId),
+      selected_addon_option_ids: c.selectedAddons.map((addon) => addon.optionId),
+    }));
 
-    if (error || !order) {
-      toast.error("Order failed! Please try again.");
+    const { data, error } = await supabase.rpc("place_public_order_secure", {
+      _owner_id: ownerId,
+      _table_number: tableNumber,
+      _customer_phone: phone || null,
+      _notes: notes.trim() || null,
+      _items: orderPayload,
+      _coupon_id: promoApplied?.id ?? null,
+    });
+
+    const orderSession = (data?.[0] ?? null) as PublicOrderSessionRow | null;
+
+    if (error || !orderSession?.order_id || !orderSession.public_tracking_token) {
+      toast.error(error?.message || "Order failed! Please try again.");
       setOrdering(false);
       return;
     }
 
-    const orderItems = cart.map((c) => {
-      const extras = [
-        ...c.selectedVariants.map(v => v.optionName),
-        ...c.selectedAddons.map(a => a.optionName),
-      ];
-      const itemName = extras.length > 0 ? `${c.name} (${extras.join(", ")})` : c.name;
-      return {
-        order_id: order.id,
-        menu_item_id: c.isCombo ? c.id : c.id, // combo items still reference the combo id
-        item_name: itemName,
-        item_price: Number(c.price) + c.extraPrice,
-        quantity: c.quantity,
-      };
-    });
-    await supabase.from("order_items").insert(orderItems);
-
-    // Record coupon usage if applied
-    if (promoApplied && phone.trim()) {
-      await supabase.from("coupon_usage").insert({
-        coupon_id: promoApplied.id,
-        owner_id: ownerId,
-        customer_phone: phone.trim(),
-        order_id: order.id,
-      } as any);
-    }
+    const orderId = orderSession.order_id;
 
     // Save to session history
     setPastOrders((prev) => [
-      { id: order.id, total, itemCount: cartCount, time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
+      { id: orderId, total, itemCount: cartCount, time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
       ...prev,
     ]);
 
-    setOrderPlaced(order.id);
+    setOrderPlaced(orderId);
+    setOrderTrackingToken(orderSession.public_tracking_token);
     setOrderPlacedAt(Date.now());
-    setOrderTotal(total);
-    setOrderItems(cart.map(c => {
-      const extras = [...c.selectedVariants.map(v => v.optionName), ...c.selectedAddons.map(a => a.optionName)];
-      return { name: extras.length > 0 ? `${c.name} (${extras.join(", ")})` : c.name, quantity: c.quantity, price: Number(c.price) + c.extraPrice };
-    }));
-    setOrderCreatedAt(new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
+    await hydratePublicOrderReceipt(orderId, orderSession.public_tracking_token);
     setCart([]);
     setCartOpen(false);
     setOrdering(false);
@@ -639,20 +715,22 @@ const CustomerMenu = () => {
 
           {/* Receipt — only after payment confirmed */}
           {livePaymentMethod && livePaymentMethod !== "counter" ? (
-            <CustomerReceipt
-              orderId={orderPlaced}
-              restaurantName={restaurantName}
-              tableNumber={tableNumber}
-              items={orderItems}
-              total={orderTotal}
-              gstNumber={restaurantGst}
-              address={restaurantAddress}
-              phone={ownerPhone}
-              createdAt={orderCreatedAt}
-              gstPercentage={restaurantGstPct}
-              logoUrl={restaurantLogo}
-              menuStyle={menuStyle}
-            />
+            <Suspense fallback={<DeferredCardLoader message="Preparing your receipt..." />}>
+              <CustomerReceipt
+                orderId={orderPlaced}
+                restaurantName={restaurantName}
+                tableNumber={tableNumber}
+                items={orderItems}
+                total={orderTotal}
+                gstNumber={restaurantGst}
+                address={restaurantAddress}
+                phone={ownerPhone}
+                createdAt={orderCreatedAt}
+                gstPercentage={restaurantGstPct}
+                logoUrl={restaurantLogo}
+                menuStyle={menuStyle}
+              />
+            </Suspense>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
@@ -663,22 +741,46 @@ const CustomerMenu = () => {
             </motion.div>
           )}
           {(liveStatus === "served" || liveStatus === "ready") && ownerId && (
-            <CustomerReview
-              orderId={orderPlaced}
-              ownerId={ownerId}
-              onSubmitted={() => {}}
-            />
+            <Suspense fallback={<DeferredCardLoader message="Loading review form..." />}>
+              <CustomerReview
+                orderId={orderPlaced}
+                ownerId={ownerId}
+                onSubmitted={() => {}}
+              />
+            </Suspense>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); setOrderItems([]); setOrderCreatedAt(""); }}>
-            Order More
-          </Button>
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTrackingToken(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); setOrderItems([]); setOrderCreatedAt(""); }}>
+              Order More
+            </Button>
         </div>
       </div>
     );
   }
 
   // ── MENU SCREEN ──
+  if (tableBlockedMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-card">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <Clock className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Table Is Occupied</h1>
+          <p className="mt-3 text-sm text-muted-foreground">{tableBlockedMessage}</p>
+          {tableStatus ? (
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Current status: {tableStatus}
+            </p>
+          ) : null}
+          <Button className="mt-6" onClick={() => window.location.reload()}>
+            Check Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-24" style={cm ? { ...customStyle, backgroundColor: menuStyle!.background_color, color: menuStyle!.text_color, fontFamily: menuStyle!.font_body } : {}} >
       {!cm && <div className="absolute inset-0 -z-10 bg-background" />}
@@ -1164,13 +1266,15 @@ const CustomerMenu = () => {
       {/* Item customize modal */}
       <AnimatePresence>
         {customizeItem && ownerId && (
-          <ItemCustomizeModal
-            item={customizeItem}
-            ownerId={ownerId}
-            onClose={() => setCustomizeItem(null)}
-            onAdd={(variants, addons, extraPrice) => handleCustomizeAdd(customizeItem, variants, addons, extraPrice)}
-            menuStyle={menuStyle}
-          />
+          <Suspense fallback={<DeferredCardLoader message="Loading customization options..." />}>
+            <ItemCustomizeModal
+              item={customizeItem}
+              ownerId={ownerId}
+              onClose={() => setCustomizeItem(null)}
+              onAdd={(variants, addons, extraPrice) => handleCustomizeAdd(customizeItem, variants, addons, extraPrice)}
+              menuStyle={menuStyle}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
       </>
@@ -1180,3 +1284,6 @@ const CustomerMenu = () => {
 };
 
 export default CustomerMenu;
+
+
+

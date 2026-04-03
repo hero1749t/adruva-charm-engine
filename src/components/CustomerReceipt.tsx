@@ -1,7 +1,5 @@
-import { useRef } from "react";
-import { Receipt, Download, MessageCircle } from "lucide-react";
-import { motion } from "framer-motion";
-import jsPDF from "jspdf";
+import { useRef, useState } from "react";
+import { Receipt, Download, Loader2, MessageCircle } from "lucide-react";
 
 interface ReceiptItem {
   name: string;
@@ -49,6 +47,7 @@ const CustomerReceipt = ({
   menuStyle,
 }: CustomerReceiptProps) => {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const cm = !!menuStyle;
 
   const gstRate = gstPercentage / 100;
@@ -77,13 +76,22 @@ const CustomerReceipt = ({
   };
 
   const downloadPDF = async () => {
-    if (!receiptRef.current) return;
-    const html2canvas = (await import("html2canvas")).default;
-    const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: "#ffffff" });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, canvas.height * 80 / canvas.width] });
-    pdf.addImage(imgData, "PNG", 0, 0, 80, canvas.height * 80 / canvas.width);
-    pdf.save(`receipt-${orderId.slice(0, 8)}.pdf`);
+    if (!receiptRef.current || isGeneratingPdf) return;
+
+    setIsGeneratingPdf(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, (canvas.height * 80) / canvas.width] });
+      pdf.addImage(imgData, "PNG", 0, 0, 80, (canvas.height * 80) / canvas.width);
+      pdf.save(`receipt-${orderId.slice(0, 8)}.pdf`);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const shareOnWhatsApp = () => {
@@ -112,10 +120,7 @@ const CustomerReceipt = ({
   const borderColor = cm ? menuStyle!.primary_color + "30" : undefined;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
+    <div
       className="mt-4 rounded-2xl shadow-card overflow-hidden"
       style={cm ? { border: `1px solid ${borderColor}`, backgroundColor: menuStyle!.background_color } : undefined}
     >
@@ -131,11 +136,12 @@ const CustomerReceipt = ({
         </button>
         <button
           onClick={downloadPDF}
+          disabled={isGeneratingPdf}
           className={cm ? "flex-1 flex items-center justify-center gap-2 px-4 py-3 transition-colors border-r" : "flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary/10 hover:bg-primary/20 transition-colors border-r border-border"}
-          style={cm ? { ...btnAccent, borderColor: borderColor } : undefined}
+          style={cm ? { ...btnAccent, borderColor: borderColor, opacity: isGeneratingPdf ? 0.7 : 1 } : undefined}
         >
-          <Download className="w-4 h-4" />
-          <span className="text-sm font-semibold">PDF</span>
+          {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          <span className="text-sm font-semibold">{isGeneratingPdf ? "Preparing..." : "PDF"}</span>
         </button>
         <button
           onClick={shareOnWhatsApp}
@@ -222,7 +228,7 @@ const CustomerReceipt = ({
           {cm && <p>Thank you! Visit again 🙏</p>}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

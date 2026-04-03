@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, type ElementType } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import OwnerLayout from "@/components/OwnerLayout";
@@ -10,10 +10,70 @@ import { Upload, X, Store, Clock, Phone, CreditCard, MapPin, FileText, Image, Na
 import CouponManager from "@/components/settings/CouponManager";
 import MenuCustomization from "@/components/settings/MenuCustomization";
 import { Slider } from "@/components/ui/slider";
+import type { TablesUpdate } from "@/integrations/supabase/types";
+import { compressImageToWebP } from "@/lib/menu-image";
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  dashboardThemePresets,
+  getDashboardThemeStorageKey,
+  type DashboardThemeKey,
+} from "@/lib/dashboardThemes";
+import {
+  normalizeUnsignedDecimalInput,
+  parseNonNegativeNumber,
+} from "@/lib/number-input";
+import { ensureProfileExists } from "@/lib/profile";
+import { getRestaurantLogoUrl } from "@/lib/restaurantLogo";
+
+type ProfileForm = {
+  restaurant_name: string;
+  upi_id: string;
+  phone: string;
+  address: string;
+  gst_number: string;
+  gst_percentage: string;
+  opening_hours: string;
+  closing_hours: string;
+};
+
+type FieldProps = {
+  icon: ElementType;
+  label: string;
+  field: keyof ProfileForm;
+  placeholder: string;
+  value: string;
+  type?: string;
+  onChange: (field: keyof ProfileForm, value: string) => void;
+};
+
+const SettingsField = ({
+  icon: Icon,
+  label,
+  field,
+  placeholder,
+  value,
+  type = "text",
+  onChange,
+}: FieldProps) => (
+  <div>
+    <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      {label}
+    </label>
+    <Input
+      type={type}
+      value={value}
+      onChange={(event) => onChange(field, event.target.value)}
+      placeholder={placeholder}
+      className="h-11"
+    />
+  </div>
+);
 
 const OwnerSettings = () => {
   const { user } = useAuth();
-  const [form, setForm] = useState({
+  const { t, language } = useLanguage();
+  const [form, setForm] = useState<ProfileForm>({
     restaurant_name: "",
     upi_id: "",
     phone: "",
@@ -31,74 +91,129 @@ const OwnerSettings = () => {
   const [gpsLat, setGpsLat] = useState<number | null>(null);
   const [gpsLng, setGpsLng] = useState<number | null>(null);
   const [gpsRange, setGpsRange] = useState(200);
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardThemeKey>("default");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const notifyProfileUpdated = () => {
+    window.dispatchEvent(new Event("owner-profile-updated"));
+  };
+  const notifyDashboardThemeUpdated = () => {
+    window.dispatchEvent(new Event("owner-dashboard-theme-updated"));
+  };
+
+  const fetchProfile = useCallback(async () => {
+    if (!user) return;
+    await ensureProfileExists(user);
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+    if (!data) return;
+
+    setForm({
+      restaurant_name: data.restaurant_name || "",
+      upi_id: data.upi_id || "",
+      phone: data.phone || "",
+      address: data.address || "",
+      gst_number: data.gst_number || "",
+      gst_percentage: String(data.gst_percentage ?? 5),
+      opening_hours: data.opening_hours || "",
+      closing_hours: data.closing_hours || "",
+    });
+    setLogoUrl(getRestaurantLogoUrl(data.restaurant_logo_url, Date.now()));
+    if (data.gps_latitude) {
+      setGpsLat(data.gps_latitude);
+      setGpsLng(data.gps_longitude);
+      setGpsCoords(`${data.gps_latitude}, ${data.gps_longitude}`);
+    }
+    if (data.gps_range_meters) setGpsRange(data.gps_range_meters);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("*").eq("user_id", user.id).single().then(({ data }) => {
-      if (data) {
-        setForm({
-          restaurant_name: data.restaurant_name || "",
-          upi_id: data.upi_id || "",
-          phone: data.phone || "",
-          address: (data as any).address || "",
-          gst_number: (data as any).gst_number || "",
-          gst_percentage: String((data as any).gst_percentage ?? 5),
-          opening_hours: (data as any).opening_hours || "",
-          closing_hours: (data as any).closing_hours || "",
-        });
-        if (data.restaurant_logo_url) setLogoUrl(data.restaurant_logo_url);
-        if ((data as any).gps_latitude) {
-          setGpsLat((data as any).gps_latitude);
-          setGpsLng((data as any).gps_longitude);
-          setGpsCoords(`${(data as any).gps_latitude}, ${(data as any).gps_longitude}`);
-        }
-        if ((data as any).gps_range_meters) setGpsRange((data as any).gps_range_meters);
-      }
-    });
+    const savedTheme = window.localStorage.getItem(getDashboardThemeStorageKey(user.id)) as DashboardThemeKey | null;
+    setDashboardTheme(savedTheme && dashboardThemePresets[savedTheme] ? savedTheme : "default");
   }, [user]);
+
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
 
   const uploadLogo = async (file: File) => {
     if (!user) return;
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/logo.${ext}`;
-    const { error: uploadErr } = await supabase.storage.from("restaurant-logos").upload(path, file, { upsert: true });
-    if (uploadErr) { toast.error("Logo upload failed"); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from("restaurant-logos").getPublicUrl(path);
-    const url = urlData.publicUrl + `?t=${Date.now()}`;
-    await supabase.from("profiles").update({ restaurant_logo_url: url }).eq("user_id", user.id);
-    setLogoUrl(url);
-    toast.success("Logo uploaded!");
-    setUploading(false);
+    try {
+      await ensureProfileExists(user);
+      const compressedFile = await compressImageToWebP(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.82,
+      });
+      const path = `${user.id}/logo.webp`;
+      const { error: uploadErr } = await supabase.storage
+        .from("restaurant-logos")
+        .upload(path, compressedFile, { upsert: true, cacheControl: "3600" });
+      if (uploadErr) throw uploadErr;
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ restaurant_logo_url: path })
+        .eq("user_id", user.id);
+      if (profileError) throw profileError;
+      setLogoUrl(getRestaurantLogoUrl(path, Date.now()));
+      await fetchProfile();
+      notifyProfileUpdated();
+      toast.success(t("settings.logoUploaded"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("settings.logoUploadFailed");
+      toast.error(message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeLogo = async () => {
     if (!user) return;
-    await supabase.from("profiles").update({ restaurant_logo_url: null }).eq("user_id", user.id);
+    await ensureProfileExists(user);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ restaurant_logo_url: null })
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error(t("settings.logoRemoveFailed"));
+      return;
+    }
     setLogoUrl(null);
-    toast.success("Logo removed");
+    await fetchProfile();
+    notifyProfileUpdated();
+    toast.success(t("settings.logoRemoved"));
   };
 
   const save = async () => {
     if (!user) return;
     setLoading(true);
-    const updateData = {
+    await ensureProfileExists(user);
+    const gstPercentage = parseNonNegativeNumber(form.gst_percentage);
+    if (gstPercentage === null || gstPercentage > 28) {
+      toast.error(language === "hi" ? "GST प्रतिशत 0 से 28 के बीच होना चाहिए" : "GST percentage must be between 0 and 28");
+      setLoading(false);
+      return;
+    }
+    const updateData: TablesUpdate<"profiles"> = {
       ...form,
-      gst_percentage: parseFloat(form.gst_percentage) || 5,
+      gst_percentage: gstPercentage,
       gps_latitude: gpsLat,
       gps_longitude: gpsLng,
       gps_range_meters: gpsRange,
     };
-    const { error } = await supabase.from("profiles").update(updateData as any).eq("user_id", user.id);
-    if (error) toast.error("Failed to save");
-    else toast.success("Settings saved!");
+    const { error } = await supabase.from("profiles").update(updateData).eq("user_id", user.id);
+    if (error) toast.error(t("settings.saveFailed"));
+    else {
+      await fetchProfile();
+      notifyProfileUpdated();
+      toast.success(t("settings.savedSuccess"));
+    }
     setLoading(false);
   };
 
   const detectGPS = async () => {
     if (!navigator.geolocation) {
-      toast.error("GPS not supported on this device");
+      toast.error(t("settings.gpsUnsupported"));
       return;
     }
     setDetectingGPS(true);
@@ -115,55 +230,51 @@ const OwnerSettings = () => {
           const data = await res.json();
           if (data.display_name) {
             setForm((prev) => ({ ...prev, address: data.display_name }));
-            toast.success("Location detected!");
+            toast.success(t("settings.locationDetected"));
           }
         } catch {
-          toast.error("Could not fetch address");
+          toast.error(t("settings.fetchAddressFailed"));
         }
         setDetectingGPS(false);
       },
       (err) => {
-        toast.error(err.code === 1 ? "Location access denied" : "Could not detect location");
+        toast.error(err.code === 1 ? t("settings.locationDenied") : t("settings.locationFailed"));
         setDetectingGPS(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
-  const Field = ({ icon: Icon, label, field, placeholder, type = "text" }: { icon: any; label: string; field: string; placeholder: string; type?: string }) => (
-    <div>
-      <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-muted-foreground" />
-        {label}
-      </label>
-      <Input
-        type={type}
-        value={(form as any)[field]}
-        onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-        placeholder={placeholder}
-        className="h-11"
-      />
-    </div>
-  );
+  const updateField = (field: keyof ProfileForm, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyDashboardTheme = (themeKey: DashboardThemeKey) => {
+    if (!user) return;
+    window.localStorage.setItem(getDashboardThemeStorageKey(user.id), themeKey);
+    setDashboardTheme(themeKey);
+    notifyDashboardThemeUpdated();
+    toast.success(language === "hi" ? "डैशबोर्ड थीम अपडेट हो गई" : "Dashboard theme updated");
+  };
 
   return (
     <OwnerLayout>
       <div className="max-w-2xl">
-        <h1 className="font-display text-2xl font-bold text-foreground mb-6">Restaurant Settings</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground mb-6">{t("settings.title")}</h1>
 
         <div className="space-y-6">
           {/* Section: Info */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Store className="w-4 h-4 text-primary" /> Restaurant Info
+                <Store className="w-4 h-4 text-primary" /> {t("settings.restaurantInfo")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Logo */}
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Image className="w-4 h-4 text-muted-foreground" /> Logo
+                  <Image className="w-4 h-4 text-muted-foreground" /> {t("settings.logo")}
                 </label>
                 <div className="flex items-center gap-4">
                   {logoUrl ? (
@@ -176,19 +287,29 @@ const OwnerSettings = () => {
                   ) : (
                     <div onClick={() => fileInputRef.current?.click()} className="w-16 h-16 rounded-xl border-2 border-dashed border-border bg-muted flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
                       <Upload className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground mt-0.5">Upload</span>
+                      <span className="text-[9px] text-muted-foreground mt-0.5">{t("settings.upload")}</span>
                     </div>
                   )}
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); }} />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadLogo(f);
+                      e.currentTarget.value = "";
+                    }}
+                  />
                   {logoUrl && (
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                      {uploading ? "Uploading..." : "Change"}
+                      {uploading ? t("settings.uploading") : t("settings.change")}
                     </Button>
                   )}
                 </div>
               </div>
-              <Field icon={Store} label="Restaurant Name" field="restaurant_name" placeholder="e.g. Sharma Ji Ka Dhaba" />
-              <Field icon={Phone} label="Phone Number" field="phone" placeholder="+91 98765 43210" type="tel" />
+              <SettingsField icon={Store} label={t("settings.restaurantName")} field="restaurant_name" value={form.restaurant_name} onChange={updateField} placeholder={language === "hi" ? "Jaise Sharma Ji Ka Dhaba" : "e.g. Sharma Ji Ka Dhaba"} />
+              <SettingsField icon={Phone} label={t("settings.phone")} field="phone" value={form.phone} onChange={updateField} placeholder="+91 98765 43210" type="tel" />
             </CardContent>
           </Card>
 
@@ -196,20 +317,20 @@ const OwnerSettings = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="w-4 h-4 text-primary" /> Timing
+                <Clock className="w-4 h-4 text-primary" /> {t("settings.timing")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground" /> Opens At
+                    <Clock className="w-4 h-4 text-muted-foreground" /> {t("settings.opensAt")}
                   </label>
                   <Input type="time" value={form.opening_hours} onChange={(e) => setForm({ ...form, opening_hours: e.target.value })} className="h-11" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground" /> Closes At
+                    <Clock className="w-4 h-4 text-muted-foreground" /> {t("settings.closesAt")}
                   </label>
                   <Input type="time" value={form.closing_hours} onChange={(e) => setForm({ ...form, closing_hours: e.target.value })} className="h-11" />
                 </div>
@@ -221,15 +342,15 @@ const OwnerSettings = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" /> GST & Location
+                <FileText className="w-4 h-4 text-primary" /> {t("settings.gstLocation")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Field icon={FileText} label="GST Number" field="gst_number" placeholder="e.g. 29ABCDE1234F1Z5" />
+              <SettingsField icon={FileText} label={t("settings.gstNumber")} field="gst_number" value={form.gst_number} onChange={updateField} placeholder="e.g. 29ABCDE1234F1Z5" />
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
-                  GST Percentage (%)
+                  {t("settings.gstPercentage")}
                 </label>
                 <Input
                   type="number"
@@ -237,12 +358,12 @@ const OwnerSettings = () => {
                   max={28}
                   step={0.5}
                   value={form.gst_percentage}
-                  onChange={(e) => setForm({ ...form, gst_percentage: e.target.value })}
+                  onChange={(e) => setForm({ ...form, gst_percentage: normalizeUnsignedDecimalInput(e.target.value) })}
                   placeholder="e.g. 5"
                   className="h-11"
                 />
               </div>
-              <Field icon={MapPin} label="Address" field="address" placeholder="e.g. 123, MG Road, Bengaluru" />
+              <SettingsField icon={MapPin} label={t("settings.address")} field="address" value={form.address} onChange={updateField} placeholder={language === "hi" ? "Jaise 123, MG Road, Bengaluru" : "e.g. 123, MG Road, Bengaluru"} />
 
               {/* GPS Auto-detect */}
               <div className="flex items-center gap-3">
@@ -255,7 +376,7 @@ const OwnerSettings = () => {
                   className="gap-1.5"
                 >
                   {detectingGPS ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-                  {detectingGPS ? "Detecting..." : "Auto-detect Location"}
+                  {detectingGPS ? t("settings.detecting") : t("settings.autoDetect")}
                 </Button>
                 {gpsCoords && (
                   <span className="text-xs text-muted-foreground">📍 {gpsCoords}</span>
@@ -266,10 +387,10 @@ const OwnerSettings = () => {
               {gpsLat && (
                 <div className="bg-muted/50 rounded-xl p-4 space-y-3">
                   <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Radar className="w-4 h-4 text-primary" /> Order Diameter (GPS Verification)
+                    <Radar className="w-4 h-4 text-primary" /> {t("settings.orderDiameter")}
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Customers must be within this diameter zone to place orders from tables/rooms
+                    {t("settings.orderDiameterHint")}
                   </p>
                   <div className="flex items-center gap-4">
                     <Slider
@@ -296,11 +417,56 @@ const OwnerSettings = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-primary" /> Payment
+                <CreditCard className="w-4 h-4 text-primary" /> {t("settings.payment")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Field icon={CreditCard} label="UPI ID" field="upi_id" placeholder="e.g. restaurant@upi" />
+              <SettingsField icon={CreditCard} label={t("settings.upi")} field="upi_id" value={form.upi_id} onChange={updateField} placeholder="e.g. restaurant@upi" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Store className="w-4 h-4 text-primary" /> {language === "hi" ? "डैशबोर्ड थीम" : "Dashboard Theme"}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {language === "hi"
+                  ? "Default ke saath 4 extra presets. Yeh sirf owner dashboard shell ko change karega, menu theme ko nahi."
+                  : "Choose the default style or 4 extra presets. This only changes the owner dashboard shell, not the menu theme."}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {Object.values(dashboardThemePresets).map((preset) => {
+                  const isActive = dashboardTheme === preset.key;
+
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => applyDashboardTheme(preset.key)}
+                      className={`rounded-xl border p-4 text-left transition-all ${isActive ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"}`}
+                    >
+                      <div className="mb-3 flex gap-2">
+                        <span className={`h-8 flex-1 rounded-md border ${preset.headerClass}`} />
+                        <span className={`h-8 w-14 rounded-md border ${preset.navActiveClass}`} />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-foreground">{preset.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{preset.description}</p>
+                        </div>
+                        {isActive ? (
+                          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                            {language === "hi" ? "लागू" : "Applied"}
+                          </span>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
 
@@ -311,8 +477,8 @@ const OwnerSettings = () => {
           {user && <CouponManager userId={user.id} />}
 
           {/* Save */}
-          <Button variant="hero" onClick={save} disabled={loading} className="w-full h-12">
-            {loading ? "Saving..." : "Save Settings"}
+          <Button variant="hero" onClick={save} disabled={loading || uploading} className="w-full h-12">
+            {uploading ? t("settings.uploading") : loading ? t("settings.saving") : t("settings.save")}
           </Button>
         </div>
       </div>

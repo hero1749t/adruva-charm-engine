@@ -1,18 +1,24 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, X, Cherry } from "lucide-react";
+import {
+  normalizeUnsignedDecimalInput,
+  parseNonNegativeNumber,
+} from "@/lib/number-input";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 interface AddonManagerProps {
   userId: string;
   menuItemId: string;
 }
 
-type AddonGroup = { id: string; name: string; max_selections: number | null; owner_id: string };
-type AddonOption = { id: string; addon_group_id: string; name: string; price: number; is_available: boolean };
+type AddonGroup = Tables<"addon_groups">;
+type AddonOption = Tables<"addon_options">;
+type MenuItemAddonGroup = Tables<"menu_item_addon_groups">;
 
 const AddonManager = ({ userId, menuItemId }: AddonManagerProps) => {
   const [groups, setGroups] = useState<AddonGroup[]>([]);
@@ -22,25 +28,28 @@ const AddonManager = ({ userId, menuItemId }: AddonManagerProps) => {
   const [addingOption, setAddingOption] = useState<string | null>(null);
   const [optionForm, setOptionForm] = useState({ name: "", price: "" });
 
-  const fetchData = async () => {
-    const { data: g } = await supabase.from("addon_groups").select("*").eq("owner_id", userId).order("sort_order") as any;
+  const fetchData = useCallback(async () => {
+    const { data: g } = await supabase.from("addon_groups").select("*").eq("owner_id", userId).order("sort_order");
     if (g) {
       setGroups(g);
-      const ids = g.map((x: any) => x.id);
+      const ids = g.map((x) => x.id);
       if (ids.length > 0) {
-        const { data: o } = await supabase.from("addon_options").select("*").in("addon_group_id", ids).order("sort_order") as any;
+        const { data: o } = await supabase.from("addon_options").select("*").in("addon_group_id", ids).order("sort_order");
         if (o) setOptions(o);
+      } else {
+        setOptions([]);
       }
     }
-    const { data: links } = await supabase.from("menu_item_addon_groups").select("addon_group_id").eq("menu_item_id", menuItemId) as any;
-    if (links) setLinkedGroupIds(links.map((l: any) => l.addon_group_id));
-  };
+    const { data: links } = await supabase.from("menu_item_addon_groups").select("addon_group_id").eq("menu_item_id", menuItemId);
+    if (links) setLinkedGroupIds((links as Pick<MenuItemAddonGroup, "addon_group_id">[]).map((l) => l.addon_group_id));
+  }, [menuItemId, userId]);
 
-  useEffect(() => { fetchData(); }, [userId, menuItemId]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const createGroup = async () => {
     if (!newGroupName.trim()) return;
-    await supabase.from("addon_groups").insert({ name: newGroupName.trim(), owner_id: userId, sort_order: groups.length } as any);
+    const payload: TablesInsert<"addon_groups"> = { name: newGroupName.trim(), owner_id: userId, sort_order: groups.length };
+    await supabase.from("addon_groups").insert(payload);
     setNewGroupName(""); toast.success("Addon group created"); fetchData();
   };
 
@@ -49,17 +58,24 @@ const AddonManager = ({ userId, menuItemId }: AddonManagerProps) => {
       await supabase.from("menu_item_addon_groups").delete().eq("menu_item_id", menuItemId).eq("addon_group_id", groupId);
       setLinkedGroupIds((prev) => prev.filter((id) => id !== groupId));
     } else {
-      await supabase.from("menu_item_addon_groups").insert({ menu_item_id: menuItemId, addon_group_id: groupId } as any);
+      const payload: TablesInsert<"menu_item_addon_groups"> = { menu_item_id: menuItemId, addon_group_id: groupId };
+      await supabase.from("menu_item_addon_groups").insert(payload);
       setLinkedGroupIds((prev) => [...prev, groupId]);
     }
   };
 
   const addOption = async (groupId: string) => {
-    if (!optionForm.name.trim() || !optionForm.price) return;
+    if (!optionForm.name.trim() || optionForm.price === "") return;
+    const price = parseNonNegativeNumber(optionForm.price);
+    if (price === null) {
+      toast.error("Addon price cannot be negative");
+      return;
+    }
     const groupOpts = options.filter((o) => o.addon_group_id === groupId);
-    await supabase.from("addon_options").insert({
-      addon_group_id: groupId, name: optionForm.name.trim(), price: parseFloat(optionForm.price), sort_order: groupOpts.length,
-    } as any);
+    const payload: TablesInsert<"addon_options"> = {
+      addon_group_id: groupId, name: optionForm.name.trim(), price, sort_order: groupOpts.length,
+    };
+    await supabase.from("addon_options").insert(payload);
     setOptionForm({ name: "", price: "" }); setAddingOption(null);
     toast.success("Addon added"); fetchData();
   };
@@ -114,7 +130,7 @@ const AddonManager = ({ userId, menuItemId }: AddonManagerProps) => {
             {addingOption === group.id ? (
               <div className="flex gap-2">
                 <Input value={optionForm.name} onChange={(e) => setOptionForm({ ...optionForm, name: e.target.value })} placeholder="e.g. Extra Cheese" className="h-8 text-sm flex-1" />
-                <Input type="number" value={optionForm.price} onChange={(e) => setOptionForm({ ...optionForm, price: e.target.value })} placeholder="₹" className="h-8 text-sm w-20" />
+                <Input type="number" min="0" step="0.01" value={optionForm.price} onChange={(e) => setOptionForm({ ...optionForm, price: normalizeUnsignedDecimalInput(e.target.value) })} placeholder="₹" className="h-8 text-sm w-20" />
                 <Button size="sm" className="h-8" onClick={() => addOption(group.id)}>Add</Button>
                 <Button size="sm" variant="ghost" className="h-8" onClick={() => setAddingOption(null)}>✕</Button>
               </div>

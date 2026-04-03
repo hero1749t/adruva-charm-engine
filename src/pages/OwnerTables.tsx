@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2, Download, X } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import PlanUsageBadge from "@/components/PlanUsageBadge";
+import { normalizeUnsignedIntegerInput } from "@/lib/number-input";
 import type { Database } from "@/integrations/supabase/types";
 
 type Table = Database["public"]["Tables"]["restaurant_tables"]["Row"] & {
@@ -40,28 +41,28 @@ const OwnerTables = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [qrTable, setQrTable] = useState<Table | null>(null);
 
-  const fetchTables = async () => {
+  const fetchTables = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("restaurant_rooms")
+      .from("restaurant_tables")
       .select("*")
       .eq("owner_id", user.id)
-      .order("room_number");
+      .order("table_number");
     if (data) setTables(data as Table[]);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchTables(); }, [user]);
+  useEffect(() => { fetchTables(); }, [fetchTables]);
 
   // Realtime updates
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel("tables-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "restaurant_rooms", filter: `owner_id=eq.${user.id}` }, () => fetchTables())
+      .on("postgres_changes", { event: "*", schema: "public", table: "restaurant_tables", filter: `owner_id=eq.${user.id}` }, () => fetchTables())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [fetchTables, user]);
 
   const addTables = async () => {
     if (!user) return;
@@ -74,12 +75,12 @@ const OwnerTables = () => {
       toast.error(`Your ${plan.planName} plan allows max ${plan.maxTables} tables. You have ${tables.length}. Upgrade to add more.`);
       return;
     }
-    const maxNum = tables.length > 0 ? Math.max(...tables.map((t) => t.room_number)) : 0;
+    const maxNum = tables.length > 0 ? Math.max(...tables.map((t) => t.table_number)) : 0;
     const newTables = Array.from({ length: count }, (_, i) => ({
       owner_id: user.id,
-      room_number: maxNum + i + 1,
+      table_number: maxNum + i + 1,
     }));
-    const { error } = await supabase.from("restaurant_rooms").insert(newTables);
+    const { error } = await supabase.from("restaurant_tables").insert(newTables);
     if (error) {
       console.error("❌ Failed to add tables:", error);
       toast.error(`Failed to add tables: ${error.message}`);
@@ -92,7 +93,7 @@ const OwnerTables = () => {
 
   const deleteTable = async (id: string) => {
     if (!confirm("Remove this table?")) return;
-    const { error } = await supabase.from("restaurant_rooms").delete().eq("id", id);
+    const { error } = await supabase.from("restaurant_tables").delete().eq("id", id);
     if (error) {
       console.error("❌ Failed to delete table:", error);
       toast.error(`Failed to delete: ${error.message}`);
@@ -105,7 +106,7 @@ const OwnerTables = () => {
   const updateStatus = async (id: string, currentStatus: string) => {
     const newStatus = statusCycle[currentStatus] || "free";
     const { error } = await supabase
-      .from("restaurant_rooms")
+      .from("restaurant_tables")
       .update({ status: newStatus })
       .eq("id", id);
     if (error) {
@@ -118,7 +119,7 @@ const OwnerTables = () => {
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase
-      .from("restaurant_rooms")
+      .from("restaurant_tables")
       .update({ status: status })
       .eq("id", id);
     if (error) {
@@ -132,7 +133,7 @@ const OwnerTables = () => {
   const getMenuUrl = (tableNum: number) => {
     if (!user?.id) return "";
     // Use the Vercel deployment URL or fallback to window.location.origin
-    const baseUrl = process.env.VITE_DEPLOYMENT_URL || window.location.origin;
+    const baseUrl = import.meta.env.VITE_DEPLOYMENT_URL || window.location.origin;
     return `${baseUrl}/menu/${user.id}?table=${tableNum}`;
   };
 
@@ -206,7 +207,7 @@ const OwnerTables = () => {
           min="1"
           max="50"
           value={newCount}
-          onChange={(e) => setNewCount(e.target.value)}
+          onChange={(e) => setNewCount(normalizeUnsignedIntegerInput(e.target.value))}
           className="w-24"
           placeholder="Count"
         />
@@ -261,7 +262,7 @@ const OwnerTables = () => {
                 </div>
 
                 <p className="font-display font-bold text-lg text-foreground text-center">
-                  T{table.room_number}
+                  T{table.table_number}
                 </p>
                 {table.label && (
                   <p className="text-xs text-muted-foreground text-center truncate">{table.label}</p>
@@ -293,7 +294,7 @@ const OwnerTables = () => {
                   <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setQrTable(table)}>
                     <QrCode className="w-3 h-3 mr-1" /> QR
                   </Button>
-                  <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => copyLink(table.room_number)}>
+                  <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => copyLink(table.table_number)}>
                     <Copy className="w-3 h-3 mr-1" /> Link
                   </Button>
                   <Button
@@ -316,26 +317,26 @@ const OwnerTables = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setQrTable(null)}>
           <div className="bg-card rounded-xl border border-border p-6 shadow-xl max-w-sm w-full mx-4 text-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-display font-bold text-lg text-foreground">Table {qrTable.room_number} QR</h3>
+              <h3 className="font-display font-bold text-lg text-foreground">Table {qrTable.table_number} QR</h3>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQrTable(null)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
             <div className="bg-white p-4 rounded-lg inline-block mb-4">
               <QRCodeCanvas
-                id={`qr-canvas-${qrTable.room_number}`}
-                value={getMenuUrl(qrTable.room_number)}
+                id={`qr-canvas-${qrTable.table_number}`}
+                value={getMenuUrl(qrTable.table_number)}
                 size={200}
                 level="H"
                 includeMargin
               />
             </div>
-            <p className="text-xs text-muted-foreground mb-4 break-all">{getMenuUrl(qrTable.room_number)}</p>
+            <p className="text-xs text-muted-foreground mb-4 break-all">{getMenuUrl(qrTable.table_number)}</p>
             <div className="flex gap-2 justify-center">
-              <Button variant="hero" onClick={() => downloadQR(qrTable.room_number)}>
+              <Button variant="hero" onClick={() => downloadQR(qrTable.table_number)}>
                 <Download className="w-4 h-4 mr-1" /> Download PNG
               </Button>
-              <Button variant="outline" onClick={() => copyLink(qrTable.room_number)}>
+              <Button variant="outline" onClick={() => copyLink(qrTable.table_number)}>
                 <Copy className="w-4 h-4 mr-1" /> Copy Link
               </Button>
             </div>

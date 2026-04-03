@@ -1,226 +1,435 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo, useState } from "react";
+import { CalendarClock, CreditCard, Filter, PencilLine, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+
 import AdminLayout from "@/components/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AdminLoadingState,
+  AdminPanelCard,
+  AdminSectionHeader,
+  AdminStatusBadge,
+  AdminTableEmptyState,
+} from "@/components/admin/AdminPrimitives";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Package } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  useAdminSubscriptionPlans,
+  useAdminSubscriptionQueue,
+  useAssignAdminClientPlan,
+  type AdminSubscriptionPlan,
+  type AdminSubscriptionQueueRow,
+} from "@/hooks/useAdminSubscriptions";
+import { formatCurrency } from "@/lib/adminSuperData";
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  billing_period: string;
-  max_tables: number;
-  max_rooms: number;
-  max_menu_items: number;
-  max_staff: number;
-  max_orders_per_month: number;
-  feature_analytics: boolean;
-  feature_inventory: boolean;
-  feature_expenses: boolean;
-  feature_chain: boolean;
-  feature_coupons: boolean;
-  feature_online_orders: boolean;
-  feature_kitchen_display: boolean;
-  feature_customer_reviews: boolean;
-  feature_white_label: boolean;
-  is_active: boolean;
-}
+const statusOptions = ["active", "trial", "paused", "expired"] as const;
 
-const emptyPlan: Omit<Plan, "id"> = {
-  name: "",
-  price: 0,
-  billing_period: "monthly",
-  max_tables: 5,
-  max_rooms: 0,
-  max_menu_items: 50,
-  max_staff: 2,
-  max_orders_per_month: 500,
-  feature_analytics: false,
-  feature_inventory: false,
-  feature_expenses: false,
-  feature_chain: false,
-  feature_coupons: false,
-  feature_online_orders: false,
-  feature_kitchen_display: true,
-  feature_customer_reviews: false,
-  feature_white_label: false,
-  is_active: true,
+const featureLabels: Array<{
+  key: keyof Pick<
+    AdminSubscriptionPlan,
+    | "feature_inventory"
+    | "feature_analytics"
+    | "feature_chain"
+    | "feature_coupons"
+    | "feature_online_orders"
+    | "feature_kitchen_display"
+    | "feature_customer_reviews"
+    | "feature_white_label"
+  >;
+  label: string;
+}> = [
+  { key: "feature_inventory", label: "Inventory" },
+  { key: "feature_analytics", label: "Analytics" },
+  { key: "feature_chain", label: "Multi Outlet" },
+  { key: "feature_coupons", label: "Coupons" },
+  { key: "feature_online_orders", label: "Online Orders" },
+  { key: "feature_kitchen_display", label: "Kitchen Display" },
+  { key: "feature_customer_reviews", label: "Feedback" },
+  { key: "feature_white_label", label: "White Label" },
+];
+
+type AssignmentDraft = {
+  ownerId: string;
+  clientName: string;
+  currentPlanName: string;
+  planId: string;
+  status: string;
+  expiresAt: string;
+  notes: string;
 };
 
-const featureLabels: Record<string, string> = {
-  feature_analytics: "Analytics",
-  feature_inventory: "Inventory",
-  feature_expenses: "Expenses",
-  feature_chain: "Chain Management",
-  feature_coupons: "Discount Coupons",
-  feature_online_orders: "Online Orders",
-  feature_kitchen_display: "Kitchen Display",
-  feature_customer_reviews: "Customer Reviews",
-  feature_white_label: "White Label (Remove Branding)",
+const formatRenewalLabel = (value: string | null) => {
+  if (!value) return "No renewal date";
+
+  return format(new Date(value), "dd MMM yyyy");
+};
+
+const summarizePlanFeatures = (plan: AdminSubscriptionPlan) => {
+  const enabled = featureLabels.filter((feature) => plan[feature.key]).map((feature) => feature.label);
+  return enabled.length ? enabled.slice(0, 4).join(" | ") : "Base access only";
 };
 
 const AdminPlans = () => {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [form, setForm] = useState<Omit<Plan, "id">>(emptyPlan);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
-  const { toast } = useToast();
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [assignment, setAssignment] = useState<AssignmentDraft | null>(null);
 
-  const fetchPlans = async () => {
-    const { data } = await supabase.from("subscription_plans").select("*").order("created_at");
-    if (data) setPlans(data as Plan[]);
+  const { data: plans = [], isLoading: plansLoading, isError: plansError, error: plansErrorValue } = useAdminSubscriptionPlans();
+  const { data: queue = [], isLoading: queueLoading, isError: queueError, error: queueErrorValue } = useAdminSubscriptionQueue();
+  const assignPlan = useAssignAdminClientPlan();
+
+  const filteredQueue = useMemo(
+    () =>
+      queue.filter((row) => {
+        const haystack = [row.client_name, row.owner_name, row.contact, row.phone ?? "", row.plan_name].join(" ").toLowerCase();
+        const matchesQuery = haystack.includes(query.toLowerCase());
+        const normalizedStatus = row.subscription_status.toLowerCase();
+        const matchesStatus = statusFilter === "all" || normalizedStatus === statusFilter;
+        return matchesQuery && matchesStatus;
+      }),
+    [queue, query, statusFilter],
+  );
+
+  const expiringSoon = useMemo(
+    () =>
+      queue.filter((row) => {
+        if (!row.expires_at) return false;
+        const expiry = new Date(row.expires_at).getTime();
+        const today = new Date();
+        const inSevenDays = new Date();
+        inSevenDays.setDate(today.getDate() + 7);
+        return expiry >= today.getTime() && expiry <= inSevenDays.getTime();
+      }).length,
+    [queue],
+  );
+
+  const openAssignmentDialog = (row: AdminSubscriptionQueueRow) => {
+    setAssignment({
+      ownerId: row.owner_id,
+      clientName: row.client_name,
+      currentPlanName: row.plan_name,
+      planId: row.plan_id,
+      status: row.subscription_status.toLowerCase(),
+      expiresAt: row.expires_at ? row.expires_at.slice(0, 10) : "",
+      notes: row.notes ?? "",
+    });
   };
 
-  useEffect(() => { fetchPlans(); }, []);
+  const selectedPlan = plans.find((plan) => plan.id === assignment?.planId) ?? null;
 
-  const handleSave = async () => {
-    if (!form.name.trim()) { toast({ title: "Plan name required", variant: "destructive" }); return; }
-
-    if (editId) {
-      const { error } = await supabase.from("subscription_plans").update(form).eq("id", editId);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      toast({ title: "Plan updated" });
-    } else {
-      const { error } = await supabase.from("subscription_plans").insert(form);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      toast({ title: "Plan created" });
+  const handleAssignPlan = async () => {
+    if (!assignment) return;
+    if (!assignment.planId) {
+      toast.error("Select a plan first");
+      return;
     }
-    setOpen(false);
-    setForm(emptyPlan);
-    setEditId(null);
-    fetchPlans();
+
+    try {
+      await assignPlan.mutateAsync({
+        ownerId: assignment.ownerId,
+        planId: assignment.planId,
+        status: assignment.status,
+        expiresAt: assignment.expiresAt || null,
+        notes: assignment.notes,
+      });
+
+      toast.success("Client subscription updated");
+      setAssignment(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update subscription");
+    }
   };
 
-  const handleEdit = (plan: Plan) => {
-    const { id, ...rest } = plan;
-    setForm(rest);
-    setEditId(id);
-    setOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("subscription_plans").delete().eq("id", id);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Plan deleted" });
-    fetchPlans();
-  };
-
-  const featureKeys = Object.keys(featureLabels) as (keyof typeof featureLabels)[];
+  const isLoading = plansLoading || queueLoading;
+  const hasError = plansError || queueError;
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold font-display">Subscription Plans</h1>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyPlan); setEditId(null); } }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-1" /> Add Plan</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editId ? "Edit Plan" : "Create Plan"}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Plan Name</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Basic" />
-                </div>
-                <div>
-                  <Label>Price (₹)</Label>
-                  <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
-                </div>
-              </div>
-              <div>
-                <Label>Billing Period</Label>
-                <Select value={form.billing_period} onValueChange={(v) => setForm({ ...form, billing_period: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                    <SelectItem value="lifetime">Lifetime</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <div className="space-y-6">
+        <AdminSectionHeader
+          title="Subscriptions & Plans"
+          description="Manage live plan catalog, assignment, upgrades, billing cycle, add-ons, coupons, and renewal health across clients."
+          action={<AdminStatusBadge value="Live" />}
+        />
 
-              <div className="border-t pt-3">
-                <Label className="text-base font-semibold">Limits</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <div><Label className="text-xs">Max Tables</Label><Input type="number" value={form.max_tables} onChange={(e) => setForm({ ...form, max_tables: Number(e.target.value) })} /></div>
-                  <div><Label className="text-xs">Max Rooms</Label><Input type="number" value={form.max_rooms} onChange={(e) => setForm({ ...form, max_rooms: Number(e.target.value) })} /></div>
-                  <div><Label className="text-xs">Max Menu Items</Label><Input type="number" value={form.max_menu_items} onChange={(e) => setForm({ ...form, max_menu_items: Number(e.target.value) })} /></div>
-                  <div><Label className="text-xs">Max Staff</Label><Input type="number" value={form.max_staff} onChange={(e) => setForm({ ...form, max_staff: Number(e.target.value) })} /></div>
-                  <div className="col-span-2"><Label className="text-xs">Max Orders/Month</Label><Input type="number" value={form.max_orders_per_month} onChange={(e) => setForm({ ...form, max_orders_per_month: Number(e.target.value) })} /></div>
-                </div>
-              </div>
-
-              <div className="border-t pt-3">
-                <Label className="text-base font-semibold">Features</Label>
-                <div className="space-y-2 mt-2">
-                  {featureKeys.map((key) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <Label className="text-sm">{featureLabels[key]}</Label>
-                      <Switch checked={(form as any)[key]} onCheckedChange={(v) => setForm({ ...form, [key]: v })} />
+        {isLoading ? (
+          <AdminLoadingState />
+        ) : (
+          <>
+            <div className="grid gap-4 xl:grid-cols-4">
+              {plans.map((plan) => (
+                <AdminPanelCard
+                  key={plan.id}
+                  title={plan.name}
+                  description={`${plan.total_clients} clients | ${plan.active_clients} active`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-3xl font-semibold text-slate-900">{formatCurrency(plan.price)}</p>
+                        <p className="mt-1 text-sm text-slate-500 capitalize">{plan.billing_period ?? "custom"} billing</p>
+                      </div>
+                      <AdminStatusBadge value={plan.is_active ? "Live" : "Paused"} />
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between border-t pt-3">
-                <Label>Plan Active</Label>
-                <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-              </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                        <p className="text-slate-500">Tables</p>
+                        <p className="font-medium text-slate-900">{plan.max_tables ?? "—"}</p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                        <p className="text-slate-500">Staff</p>
+                        <p className="font-medium text-slate-900">{plan.max_staff ?? "—"}</p>
+                      </div>
+                    </div>
 
-              <Button className="w-full" onClick={handleSave}>{editId ? "Update Plan" : "Create Plan"}</Button>
+                    <p className="text-sm text-slate-500">{summarizePlanFeatures(plan)}</p>
+                  </div>
+                </AdminPanelCard>
+              ))}
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
 
-      <div className="grid gap-4">
-        {plans.map((plan) => (
-          <Card key={plan.id}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex items-center gap-3">
-                <Package className="w-5 h-5 text-primary" />
-                <div>
-                  <CardTitle className="text-lg">{plan.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">₹{plan.price}/{plan.billing_period}</p>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <AdminPanelCard title="Renewal Health" description="Expiring, trial, and paused subscription visibility.">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-slate-600"><CalendarClock className="h-4 w-4" /> Expiring soon</span>
+                    <span className="font-semibold text-slate-900">{expiringSoon}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-slate-600"><Sparkles className="h-4 w-4" /> Trial clients</span>
+                    <span className="font-semibold text-slate-900">{queue.filter((row) => row.subscription_status.toLowerCase() === "trial").length}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-slate-600"><ShieldCheck className="h-4 w-4" /> Active subscriptions</span>
+                    <span className="font-semibold text-slate-900">{queue.filter((row) => row.subscription_status.toLowerCase() === "active").length}</span>
+                  </div>
+                </div>
+              </AdminPanelCard>
+
+              <AdminPanelCard title="Billing Mix" description="Current billing-period and status composition.">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-slate-600"><CreditCard className="h-4 w-4" /> Monthly plans</span>
+                    <span className="font-semibold text-slate-900">{queue.filter((row) => row.billing_period === "monthly").length}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-slate-600"><CreditCard className="h-4 w-4" /> Custom billing</span>
+                    <span className="font-semibold text-slate-900">{queue.filter((row) => row.billing_period !== "monthly").length}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="flex items-center gap-2 text-slate-600"><Filter className="h-4 w-4" /> Paused or expired</span>
+                    <span className="font-semibold text-slate-900">
+                      {queue.filter((row) => ["paused", "expired"].includes(row.subscription_status.toLowerCase())).length}
+                    </span>
+                  </div>
+                </div>
+              </AdminPanelCard>
+
+              <AdminPanelCard title="Phase 2 Scope" description="Safe actions live in this phase.">
+                <div className="space-y-3 text-sm text-slate-600">
+                  <p className="rounded-2xl bg-slate-50 px-4 py-3">Real plan catalog from `subscription_plans`</p>
+                  <p className="rounded-2xl bg-slate-50 px-4 py-3">Real client subscription queue from `owner_subscriptions`</p>
+                  <p className="rounded-2xl bg-slate-50 px-4 py-3">Admin plan reassignment, renewal update, and internal notes</p>
+                </div>
+              </AdminPanelCard>
+            </div>
+
+            <AdminPanelCard title="Plan Assignment Queue" description="Live upgrade, downgrade, renewal, and account subscription operations.">
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search by client, owner, email, phone, or plan"
+                    className="rounded-2xl pl-10"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-slate-400" />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px] rounded-2xl">
+                      <SelectValue placeholder="Filter status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="trial">Trial</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={plan.is_active ? "default" : "secondary"}>{plan.is_active ? "Active" : "Inactive"}</Badge>
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(plan)}><Pencil className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(plan.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm mb-3">
-                <div><span className="text-muted-foreground">Tables:</span> {plan.max_tables}</div>
-                <div><span className="text-muted-foreground">Rooms:</span> {plan.max_rooms}</div>
-                <div><span className="text-muted-foreground">Menu Items:</span> {plan.max_menu_items}</div>
-                <div><span className="text-muted-foreground">Staff:</span> {plan.max_staff}</div>
-                <div><span className="text-muted-foreground">Orders/mo:</span> {plan.max_orders_per_month}</div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {featureKeys.map((key) => (
-                  (plan as any)[key] && <Badge key={key} variant="outline" className="text-xs">{featureLabels[key]}</Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {plans.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">No plans created yet. Click "Add Plan" to create one.</div>
+
+              {hasError ? (
+                <AdminTableEmptyState
+                  title="Could not load subscription data"
+                  description={
+                    plansErrorValue instanceof Error
+                      ? plansErrorValue.message
+                      : queueErrorValue instanceof Error
+                        ? queueErrorValue.message
+                        : "Admin subscription data could not be loaded."
+                  }
+                />
+              ) : filteredQueue.length ? (
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Current Plan</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Outlets</TableHead>
+                        <TableHead>Renewal</TableHead>
+                        <TableHead>Billing Cycle</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredQueue.map((row) => (
+                        <TableRow key={row.subscription_id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-slate-900">{row.client_name}</p>
+                              <p className="text-xs text-slate-500">{row.owner_name}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-slate-700">
+                              <p>{row.contact}</p>
+                              {row.phone ? <p className="text-xs text-slate-500">{row.phone}</p> : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>{row.plan_name}</TableCell>
+                          <TableCell><AdminStatusBadge value={row.subscription_status.charAt(0).toUpperCase() + row.subscription_status.slice(1)} /></TableCell>
+                          <TableCell>{row.outlets_count}</TableCell>
+                          <TableCell>{formatRenewalLabel(row.expires_at)}</TableCell>
+                          <TableCell className="capitalize">{row.billing_period ?? "custom"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="outline" size="sm" className="rounded-full" onClick={() => openAssignmentDialog(row)}>
+                              <PencilLine className="mr-2 h-4 w-4" />
+                              Manage
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <AdminTableEmptyState title="No subscriptions match this filter" description="Try a different status or clear the search query." />
+              )}
+            </AdminPanelCard>
+          </>
         )}
       </div>
+
+      <Dialog open={Boolean(assignment)} onOpenChange={(open) => !open && setAssignment(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage client subscription</DialogTitle>
+            <DialogDescription>
+              Update plan, renewal date, and current subscription status without leaving the queue.
+            </DialogDescription>
+          </DialogHeader>
+
+          {assignment ? (
+            <div className="space-y-5">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-sm font-medium text-slate-900">{assignment.clientName}</p>
+                <p className="text-sm text-slate-500">Current plan: {assignment.currentPlanName}</p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Plan</label>
+                  <Select value={assignment.planId} onValueChange={(value) => setAssignment((current) => current ? { ...current, planId: value } : current)}>
+                    <SelectTrigger className="rounded-2xl">
+                      <SelectValue placeholder="Select a plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name} | {formatCurrency(plan.price)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Status</label>
+                  <Select value={assignment.status} onValueChange={(value) => setAssignment((current) => current ? { ...current, status: value } : current)}>
+                    <SelectTrigger className="rounded-2xl">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Renewal date</label>
+                  <Input
+                    type="date"
+                    className="rounded-2xl"
+                    value={assignment.expiresAt}
+                    onChange={(event) => setAssignment((current) => current ? { ...current, expiresAt: event.target.value } : current)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Billing summary</label>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {selectedPlan ? (
+                      <>
+                        <p className="font-medium text-slate-900">{selectedPlan.name}</p>
+                        <p>{formatCurrency(selectedPlan.price)} | {selectedPlan.billing_period ?? "custom"} cycle</p>
+                        <p className="mt-1">{summarizePlanFeatures(selectedPlan)}</p>
+                      </>
+                    ) : (
+                      <p>Select a plan to preview features and price.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Internal notes</label>
+                <Textarea
+                  value={assignment.notes}
+                  onChange={(event) => setAssignment((current) => current ? { ...current, notes: event.target.value } : current)}
+                  className="min-h-[120px] rounded-2xl"
+                  placeholder="Mention renewal context, coupon, add-on, finance approval, or migration notes."
+                />
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" className="rounded-2xl" onClick={() => setAssignment(null)}>
+              Cancel
+            </Button>
+            <Button className="rounded-2xl bg-slate-900 hover:bg-slate-800" onClick={handleAssignPlan} disabled={assignPlan.isPending}>
+              {assignPlan.isPending ? "Saving..." : "Save subscription"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };

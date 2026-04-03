@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,12 +6,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
+import { Plus, Pencil, Trash2, Package, ImagePlus } from "lucide-react";
+import type { Database, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { compressImageToWebP } from "@/lib/menu-image";
+import {
+  normalizeUnsignedDecimalInput,
+  parsePositiveNumber,
+} from "@/lib/number-input";
 
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
-type Combo = { id: string; name: string; description: string | null; combo_price: number; is_available: boolean; image_url: string | null };
-type ComboItem = { id: string; combo_id: string; menu_item_id: string; quantity: number };
+type Combo = Tables<"menu_combos">;
+type ComboItem = Tables<"combo_items">;
 
 interface ComboManagerProps {
   userId: string;
@@ -26,25 +31,32 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
   const [editing, setEditing] = useState<Combo | null>(null);
   const [form, setForm] = useState({ name: "", description: "", combo_price: "" });
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>({}); // itemId -> qty
+  const [comboImageFile, setComboImageFile] = useState<File | null>(null);
+  const [comboImagePreview, setComboImagePreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const fetchData = async () => {
-    const { data: c } = await supabase.from("menu_combos").select("*").eq("owner_id", userId).order("sort_order") as any;
+  const fetchData = useCallback(async () => {
+    const { data: c } = await supabase.from("menu_combos").select("*").eq("owner_id", userId).order("sort_order");
     if (c) {
       setCombos(c);
-      const ids = c.map((x: any) => x.id);
+      const ids = c.map((x) => x.id);
       if (ids.length > 0) {
-        const { data: ci } = await supabase.from("combo_items").select("*").in("combo_id", ids) as any;
+        const { data: ci } = await supabase.from("combo_items").select("*").in("combo_id", ids);
         if (ci) setComboItems(ci);
+      } else {
+        setComboItems([]);
       }
     }
-  };
+  }, [userId]);
 
-  useEffect(() => { fetchData(); }, [userId]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const openDialog = (combo?: Combo) => {
     if (combo) {
       setEditing(combo);
       setForm({ name: combo.name, description: combo.description || "", combo_price: String(combo.combo_price) });
+      setComboImagePreview(combo.image_url || null);
+      setComboImageFile(null);
       const items: Record<string, number> = {};
       comboItems.filter((ci) => ci.combo_id === combo.id).forEach((ci) => { items[ci.menu_item_id] = ci.quantity; });
       setSelectedItems(items);
@@ -52,8 +64,25 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
       setEditing(null);
       setForm({ name: "", description: "", combo_price: "" });
       setSelectedItems({});
+      setComboImageFile(null);
+      setComboImagePreview(null);
     }
     setDialogOpen(true);
+  };
+
+  const uploadComboImage = async (file: File) => {
+    const compressedFile = await compressImageToWebP(file, {
+      maxWidth: 1400,
+      maxHeight: 1400,
+      quality: 0.82,
+    });
+    const path = `${userId}/combos/${Date.now()}-${compressedFile.name}`;
+    const { error } = await supabase.storage
+      .from("menu-photos")
+      .upload(path, compressedFile, { cacheControl: "3600", upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from("menu-photos").getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const toggleItem = (itemId: string) => {
@@ -67,33 +96,65 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
 
   const setItemQty = (itemId: string, qty: number) => {
     if (qty <= 0) return;
-    setSelectedItems((prev) => ({ ...prev, [itemId]: qty }));
+    setSelectedItems((prev) => ({ ...prev, [itemId]: Math.max(1, Math.floor(qty)) }));
   };
 
   const save = async () => {
     if (!form.name.trim() || !form.combo_price || Object.keys(selectedItems).length === 0) {
       toast.error("Fill name, price and select items"); return;
     }
+    const comboPrice = parsePositiveNumber(form.combo_price);
+    if (comboPrice === null) {
+      toast.error("Combo price must be greater than 0");
+      return;
+    }
+    setSaving(true);
+    let imageUrl = editing?.image_url || null;
+    if (!comboImagePreview && editing?.image_url) {
+      imageUrl = null;
+    }
+    if (comboImageFile) {
+      try {
+        imageUrl = await uploadComboImage(comboImageFile);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Combo image upload failed";
+        toast.error(message);
+        setSaving(false);
+        return;
+      }
+    }
     let comboId = editing?.id;
-    if (editing) {
-      await supabase.from("menu_combos").update({
-        name: form.name, description: form.description || null, combo_price: parseFloat(form.combo_price),
-      } as any).eq("id", editing.id);
-      await supabase.from("combo_items").delete().eq("combo_id", editing.id);
-    } else {
-      const { data } = await supabase.from("menu_combos").insert({
-        name: form.name, description: form.description || null, combo_price: parseFloat(form.combo_price),
-        owner_id: userId, sort_order: combos.length,
-      } as any).select().single();
-      comboId = (data as any)?.id;
+    try {
+      if (editing) {
+        const payload: TablesUpdate<"menu_combos"> = {
+          name: form.name, description: form.description || null, combo_price: comboPrice, image_url: imageUrl,
+        };
+        await supabase.from("menu_combos").update(payload).eq("id", editing.id);
+        await supabase.from("combo_items").delete().eq("combo_id", editing.id);
+      } else {
+        const payload: TablesInsert<"menu_combos"> = {
+          name: form.name,
+          description: form.description || null,
+          combo_price: comboPrice,
+          image_url: imageUrl,
+          owner_id: userId,
+          sort_order: combos.length,
+        };
+        const { data } = await supabase.from("menu_combos").insert({
+          ...payload,
+        }).select("id").single();
+        comboId = data?.id;
+      }
+      if (comboId) {
+        const items: TablesInsert<"combo_items">[] = Object.entries(selectedItems).map(([menu_item_id, quantity]) => ({
+          combo_id: comboId!, menu_item_id, quantity,
+        }));
+        await supabase.from("combo_items").insert(items);
+      }
+      setDialogOpen(false); setComboImageFile(null); setComboImagePreview(null); toast.success("Combo saved"); fetchData(); onDataChange?.();
+    } finally {
+      setSaving(false);
     }
-    if (comboId) {
-      const items = Object.entries(selectedItems).map(([menu_item_id, quantity]) => ({
-        combo_id: comboId!, menu_item_id, quantity,
-      }));
-      await supabase.from("combo_items").insert(items as any);
-    }
-    setDialogOpen(false); toast.success("Combo saved"); fetchData(); onDataChange?.();
   };
 
   const deleteCombo = async (id: string) => {
@@ -102,7 +163,7 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
   };
 
   const toggleAvailability = async (combo: Combo) => {
-    await supabase.from("menu_combos").update({ is_available: !combo.is_available } as any).eq("id", combo.id);
+    await supabase.from("menu_combos").update({ is_available: !combo.is_available }).eq("id", combo.id);
     fetchData();
   };
 
@@ -132,6 +193,9 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
           const savings = originalTotal - combo.combo_price;
           return (
             <div key={combo.id} className={`bg-card rounded-xl border border-border p-4 shadow-card ${!combo.is_available ? "opacity-50" : ""}`}>
+              {combo.image_url ? (
+                <img src={combo.image_url} alt={combo.name} className="mb-3 h-24 w-full rounded-lg object-cover" />
+              ) : null}
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-semibold text-foreground text-sm">{combo.name}</h3>
@@ -181,7 +245,55 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
           <div className="space-y-3 mt-3">
             <Input placeholder="Combo name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <Input placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            <Input type="number" placeholder="Combo Price (₹)" value={form.combo_price} onChange={(e) => setForm({ ...form, combo_price: e.target.value })} />
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Combo Price (₹)"
+              value={form.combo_price}
+              onChange={(e) => setForm({ ...form, combo_price: normalizeUnsignedDecimalInput(e.target.value) })}
+            />
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Combo Image</p>
+              <label className="flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground transition-colors hover:border-primary/50">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    setComboImageFile(file);
+                    setComboImagePreview(URL.createObjectURL(file));
+                  }}
+                />
+                <span className="flex items-center gap-2">
+                  <ImagePlus className="h-4 w-4" />
+                  {comboImagePreview ? "Change combo image" : "Upload combo image"}
+                </span>
+              </label>
+              {comboImagePreview ? (
+                <div className="space-y-2">
+                  <img
+                    src={comboImagePreview}
+                    alt="Combo preview"
+                    className="h-32 w-full rounded-xl border border-border object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setComboImageFile(null);
+                      setComboImagePreview(null);
+                    }}
+                  >
+                    Remove image
+                  </Button>
+                </div>
+              ) : null}
+            </div>
 
             <div>
               <p className="text-sm font-medium text-foreground mb-2">Select Items</p>
@@ -209,7 +321,9 @@ const ComboManager = ({ userId, allItems, onDataChange }: ComboManagerProps) => 
               </div>
             </div>
 
-            <Button onClick={save} className="w-full">Save Combo</Button>
+            <Button onClick={save} className="w-full" disabled={saving}>
+              {saving ? "Saving..." : "Save Combo"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

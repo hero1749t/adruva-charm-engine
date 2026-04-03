@@ -1,13 +1,14 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useStaffRole } from "@/hooks/useStaffRole";
 
 interface RoleGuardProps {
   children: React.ReactNode;
-  check: "canViewAnalytics" | "canManageMenu" | "canManageStaff" | "canManageOrders" | "isOwner";
+  check: "canViewAnalytics" | "canManageMenu" | "canManageStaff" | "canManageOrders" | "canManageBusiness" | "isOwner";
 }
 
 const RoleGuard = ({ children, check }: RoleGuardProps) => {
   const staffInfo = useStaffRole();
+  const location = useLocation();
 
   if (staffInfo.loading) {
     return (
@@ -18,7 +19,7 @@ const RoleGuard = ({ children, check }: RoleGuardProps) => {
   }
 
   if (!staffInfo[check]) {
-    return <Navigate to="/owner/dashboard" replace />;
+    return <Navigate to="/owner/dashboard" replace state={{ reason: "insufficient-permission", from: location.pathname }} />;
   }
 
   return <>{children}</>;

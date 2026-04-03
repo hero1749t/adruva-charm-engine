@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,7 +14,20 @@ const OwnerLogin = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const reason = (location.state as { reason?: string } | null)?.reason;
+    if (reason === "auth-required") {
+      toast.error("Please log in to continue.");
+      navigate(location.pathname, { replace: true, state: null });
+    } else if (reason === "insufficient-permission") {
+      toast.error("Your account does not have permission to access that page.");
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,24 +74,27 @@ const OwnerLogin = () => {
 
   return (
     <div className="min-h-screen bg-secondary flex items-center justify-center px-4">
+      <div className="fixed right-4 top-4">
+        <LanguageToggle />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <a href="/" className="font-display text-3xl font-bold">
             <span className="text-primary">ADRU</span>
             <span className="text-secondary-foreground">vaa</span>
           </a>
-          <p className="mt-2 text-secondary-foreground/60">Owner Dashboard</p>
+          <p className="mt-2 text-secondary-foreground/60">{t("owner.login.title")}</p>
         </div>
 
         <div className="bg-card rounded-2xl shadow-card-hover p-8">
           <h2 className="font-display text-2xl font-bold text-foreground mb-6">
-            {isSignUp ? "Create Account" : "Welcome Back"}
+            {isSignUp ? t("owner.login.create") : t("owner.login.welcome")}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <Input
-                placeholder="Full Name"
+                placeholder={t("owner.login.fullName")}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -85,7 +103,7 @@ const OwnerLogin = () => {
             )}
             <Input
               type="email"
-              placeholder="Email"
+              placeholder={t("owner.login.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -93,7 +111,7 @@ const OwnerLogin = () => {
             />
             <Input
               type="password"
-              placeholder="Password"
+              placeholder={t("owner.login.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -101,17 +119,17 @@ const OwnerLogin = () => {
               className="h-12"
             />
             <Button variant="hero" className="w-full h-12" disabled={loading}>
-              {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Login"}
+              {loading ? t("owner.login.wait") : isSignUp ? t("owner.login.signUp") : t("owner.login.login")}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            {isSignUp ? t("owner.login.haveAccount") : t("owner.login.noAccount")}{" "}
             <button
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-primary font-semibold hover:underline"
             >
-              {isSignUp ? "Login" : "Sign Up"}
+              {isSignUp ? t("owner.login.login") : t("owner.login.signUp")}
             </button>
           </p>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Ticket, Plus, Trash2, Percent, IndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  normalizeUnsignedDecimalInput,
+  normalizeUnsignedIntegerInput,
+  parseNonNegativeNumber,
+  parsePositiveInteger,
+} from "@/lib/number-input";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
-type Coupon = {
-  id: string;
-  code: string;
-  discount_type: string;
-  discount_value: number;
-  min_order_amount: number;
-  max_uses_per_person: number;
-  valid_from: string;
-  valid_until: string;
-  is_active: boolean;
-};
+type Coupon = Tables<"discount_coupons">;
 
 const CouponManager = ({ userId }: { userId: string }) => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -34,33 +31,41 @@ const CouponManager = ({ userId }: { userId: string }) => {
     valid_until: "",
   });
 
-  const fetchCoupons = async () => {
+  const fetchCoupons = useCallback(async () => {
     const { data } = await supabase
       .from("discount_coupons")
       .select("*")
       .eq("owner_id", userId)
-      .order("created_at", { ascending: false }) as any;
+      .order("created_at", { ascending: false });
     if (data) setCoupons(data);
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchCoupons();
-  }, [userId]);
+  }, [fetchCoupons]);
 
   const addCoupon = async () => {
     if (!form.code.trim()) { toast.error("Enter a coupon code"); return; }
     if (!form.valid_until) { toast.error("Set expiry date"); return; }
+    const discountValue = parseNonNegativeNumber(form.discount_value);
+    const minOrderAmount = parseNonNegativeNumber(form.min_order_amount);
+    const maxUsesPerPerson = parsePositiveInteger(form.max_uses_per_person);
+    if (discountValue === null) { toast.error("Discount value cannot be negative"); return; }
+    if (minOrderAmount === null) { toast.error("Minimum order amount cannot be negative"); return; }
+    if (maxUsesPerPerson === null) { toast.error("Max uses per person must be at least 1"); return; }
+    if (new Date(form.valid_until) <= new Date(form.valid_from)) { toast.error("Expiry must be after valid from"); return; }
     setSaving(true);
-    const { error } = await supabase.from("discount_coupons").insert({
+    const payload: TablesInsert<"discount_coupons"> = {
       owner_id: userId,
       code: form.code.toUpperCase().trim(),
       discount_type: form.discount_type,
-      discount_value: parseFloat(form.discount_value) || 10,
-      min_order_amount: parseFloat(form.min_order_amount) || 0,
-      max_uses_per_person: parseInt(form.max_uses_per_person) || 1,
+      discount_value: discountValue,
+      min_order_amount: minOrderAmount,
+      max_uses_per_person: maxUsesPerPerson,
       valid_from: new Date(form.valid_from).toISOString(),
       valid_until: new Date(form.valid_until).toISOString(),
-    } as any);
+    };
+    const { error } = await supabase.from("discount_coupons").insert(payload);
     if (error) toast.error("Failed to add coupon");
     else {
       toast.success("Coupon added!");
@@ -72,7 +77,7 @@ const CouponManager = ({ userId }: { userId: string }) => {
   };
 
   const toggleCoupon = async (id: string, active: boolean) => {
-    await supabase.from("discount_coupons").update({ is_active: active } as any).eq("id", id);
+    await supabase.from("discount_coupons").update({ is_active: active }).eq("id", id);
     setCoupons((prev) => prev.map((c) => c.id === id ? { ...c, is_active: active } : c));
   };
 
@@ -128,17 +133,17 @@ const CouponManager = ({ userId }: { userId: string }) => {
                 <label className="text-xs text-muted-foreground mb-1 block">
                   Value ({form.discount_type === "percentage" ? "%" : "₹"})
                 </label>
-                <Input type="number" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} className="h-10" />
+                <Input type="number" min="0" step="0.01" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: normalizeUnsignedDecimalInput(e.target.value) })} className="h-10" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Min Order (₹)</label>
-                <Input type="number" value={form.min_order_amount} onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })} className="h-10" />
+                <Input type="number" min="0" step="0.01" value={form.min_order_amount} onChange={(e) => setForm({ ...form, min_order_amount: normalizeUnsignedDecimalInput(e.target.value) })} className="h-10" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Max Uses / Person</label>
-                <Input type="number" value={form.max_uses_per_person} onChange={(e) => setForm({ ...form, max_uses_per_person: e.target.value })} className="h-10" />
+                <Input type="number" min="1" step="1" value={form.max_uses_per_person} onChange={(e) => setForm({ ...form, max_uses_per_person: normalizeUnsignedIntegerInput(e.target.value) })} className="h-10" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, Smartphone, Gauge, Search, UtensilsCrossed, Eye, AlertTriangle, CheckCircle2, Loader2, ArrowRight, Lightbulb, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Category {
   name: string;
@@ -25,27 +25,34 @@ const categoryIcons: Record<string, typeof Globe> = {
   "SEO": Search,
   "Online Menu": UtensilsCrossed,
   "Google Visibility": Eye,
+  "मोबाइल ऑप्टिमाइजेशन": Smartphone,
+  "पेज स्पीड": Gauge,
+  "ऑनलाइन मेन्यू": UtensilsCrossed,
+  "Google visibility": Eye,
 };
 
-const scanSteps = [
-  { icon: Globe, label: "Fetching website...", delay: 0 },
-  { icon: Smartphone, label: "Checking mobile optimization...", delay: 1500 },
-  { icon: Gauge, label: "Measuring page speed...", delay: 3000 },
-  { icon: Search, label: "Analyzing SEO...", delay: 4500 },
-  { icon: UtensilsCrossed, label: "Scanning for online menu...", delay: 6000 },
-  { icon: Eye, label: "Checking Google visibility...", delay: 7500 },
-  { icon: Shield, label: "Generating report...", delay: 9000 },
-];
-
 const ScanningAnimation = ({ url }: { url: string }) => {
+  const { t } = useLanguage();
   const [activeStep, setActiveStep] = useState(0);
+  const scanSteps = useMemo(
+    () => [
+      { icon: Globe, label: t("audit.step.fetch"), delay: 0 },
+      { icon: Smartphone, label: t("audit.step.mobile"), delay: 1500 },
+      { icon: Gauge, label: t("audit.step.speed"), delay: 3000 },
+      { icon: Search, label: t("audit.step.seo"), delay: 4500 },
+      { icon: UtensilsCrossed, label: t("audit.step.menu"), delay: 6000 },
+      { icon: Eye, label: t("audit.step.visibility"), delay: 7500 },
+      { icon: Shield, label: t("audit.step.report"), delay: 9000 },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     const timers = scanSteps.map((step, i) =>
       setTimeout(() => setActiveStep(i), step.delay)
     );
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [scanSteps]);
 
   return (
     <motion.div
@@ -72,7 +79,7 @@ const ScanningAnimation = ({ url }: { url: string }) => {
             >
               <Loader2 className="w-4 h-4 text-primary" />
             </motion.div>
-            <span className="text-sm font-medium text-primary">Scanning in progress</span>
+            <span className="text-sm font-medium text-primary">{t("audit.scanning")}</span>
           </div>
           <p className="text-xs text-secondary-foreground/40 font-mono">{url}</p>
         </div>
@@ -152,14 +159,18 @@ const getScoreColor = (score: number, max: number) => {
   return "text-primary";
 };
 
-const getOverallGrade = (score: number) => {
-  if (score >= 80) return { label: "Great", color: "text-green-500", bg: "bg-green-500" };
-  if (score >= 60) return { label: "Good", color: "text-yellow-500", bg: "bg-yellow-500" };
-  if (score >= 40) return { label: "Needs Work", color: "text-orange-500", bg: "bg-orange-500" };
-  return { label: "Poor", color: "text-primary", bg: "bg-primary" };
+const getOverallGrade = (score: number, t: (key: string) => string) => {
+  if (score >= 80) return { label: t("audit.grade.great"), color: "text-green-500", bg: "bg-green-500" };
+  if (score >= 60) return { label: t("audit.grade.good"), color: "text-yellow-500", bg: "bg-yellow-500" };
+  if (score >= 40) return { label: t("audit.grade.needsWork"), color: "text-orange-500", bg: "bg-orange-500" };
+  return { label: t("audit.grade.poor"), color: "text-primary", bg: "bg-primary" };
 };
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 const WebsiteScoreTool = () => {
+  const { t } = useLanguage();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -178,11 +189,26 @@ const WebsiteScoreTool = () => {
     setScanUrl(formattedUrl);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("analyze-website", {
-        body: { url: url.trim() },
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-website`, {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ url: url.trim() }),
       });
 
-      if (fnError) throw fnError;
+      const rawBody = await response.text();
+      const data = rawBody
+        ? (JSON.parse(rawBody) as Partial<AnalysisResult> & { success?: boolean; error?: string })
+        : null;
+
+      if (!response.ok) {
+        throw new Error(data?.error || `Request failed with status ${response.status}`);
+      }
+
       if (!data?.success) throw new Error(data?.error || "Analysis failed");
 
       setResult(data as AnalysisResult);
@@ -194,7 +220,14 @@ const WebsiteScoreTool = () => {
     }
   };
 
-  const grade = result ? getOverallGrade(result.overallScore) : null;
+  const grade = result ? getOverallGrade(result.overallScore, t) : null;
+  const categoryLabels: Record<string, string> = {
+    "Mobile Optimization": t("audit.category.mobile"),
+    "Page Speed": t("audit.category.speed"),
+    SEO: t("audit.category.seo"),
+    "Online Menu": t("audit.category.menu"),
+    "Google Visibility": t("audit.category.visibility"),
+  };
 
   return (
     <section id="website-score" className="section-padding bg-secondary">
@@ -207,14 +240,14 @@ const WebsiteScoreTool = () => {
           className="text-center mb-12"
         >
           <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold tracking-wide uppercase">
-            Free Website Audit
+            {t("audit.badge")}
           </span>
           <h2 className="mt-4 font-display text-3xl md:text-4xl lg:text-5xl font-bold text-secondary-foreground">
-            Your Restaurant Website{" "}
-            <span className="gradient-text">Score</span>
+            {t("audit.titlePrefix")}{" "}
+            <span className="gradient-text">{t("audit.titleHighlight")}</span>
           </h2>
           <p className="mt-3 text-secondary-foreground/60 max-w-xl mx-auto">
-            Enter your website URL and get an instant score with actionable improvements
+            {t("audit.subtitle")}
           </p>
         </motion.div>
 
@@ -233,7 +266,7 @@ const WebsiteScoreTool = () => {
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g. www.myrestaurant.com"
+              placeholder={t("audit.placeholder")}
               className="h-14 pl-12 pr-4 rounded-xl bg-secondary-foreground/5 border-secondary-foreground/10 text-secondary-foreground placeholder:text-secondary-foreground/30 focus:border-primary text-base"
               disabled={loading}
             />
@@ -248,11 +281,11 @@ const WebsiteScoreTool = () => {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Analyzing...
+                {t("audit.analyzing")}
               </>
             ) : (
               <>
-                Analyze My Website
+                {t("audit.analyze")}
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
@@ -337,7 +370,7 @@ const WebsiteScoreTool = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-display font-bold text-secondary-foreground text-sm">
-                              {cat.name}
+                              {categoryLabels[cat.name] || cat.name}
                             </span>
                             <span className={`font-display font-bold text-sm ${getScoreColor(cat.score, cat.maxScore)}`}>
                               {cat.score}/{cat.maxScore}
@@ -356,7 +389,7 @@ const WebsiteScoreTool = () => {
                         </div>
                         {totalIssues > 0 && (
                           <span className="shrink-0 text-xs text-secondary-foreground/40 font-medium">
-                            {totalIssues} issue{totalIssues > 1 ? "s" : ""}
+                            {totalIssues} {totalIssues > 1 ? t("audit.issue.plural") : t("audit.issue.single")}
                           </span>
                         )}
                       </button>
@@ -400,10 +433,10 @@ const WebsiteScoreTool = () => {
                 className="text-center p-8 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20"
               >
                 <h3 className="font-display text-xl md:text-2xl font-bold text-secondary-foreground mb-3">
-                  Want to fix these issues?
+                  {t("audit.ctaTitle")}
                 </h3>
                 <p className="text-secondary-foreground/60 text-sm mb-6 max-w-md mx-auto">
-                  Our team will optimize your restaurant website for better rankings, more customers, and more orders.
+                  {t("audit.ctaDescription")}
                 </p>
                 <Button
                   variant="hero"
@@ -411,7 +444,7 @@ const WebsiteScoreTool = () => {
                   className="h-14 px-8 text-base rounded-xl gap-2"
                   onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}
                 >
-                  Fix My Website with Adruva Resto
+                  {t("audit.ctaButton")}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </motion.div>

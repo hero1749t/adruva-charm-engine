@@ -1,8 +1,7 @@
--- Fix RLS policies on profiles table to allow public read access for restaurant menus
--- This allows unauthenticated users to view restaurant profile information
-
--- Drop existing public-facing policies if they exist
-DROP POLICY IF EXISTS "Public can view all profiles" ON public.profiles;
-
--- Add new policy to allow anyone to read profiles (for public restaurant menus)
-CREATE POLICY "Public can view all profiles" ON public.profiles FOR SELECT USING (true);
+-- Legacy placeholder migration.
+-- The original broad public profile policy from this migration has been
+-- superseded by later hardening migrations:
+--   20260401014500_limit_public_profile_access.sql
+--   20260402000000_finalize_public_rls_overrides.sql
+-- Keeping this migration as a no-op prevents historical version mismatches
+-- from reintroducing insecure public-read behavior when environments are repaired.

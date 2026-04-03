@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, Check } from "lucide-react";
@@ -20,12 +20,14 @@ interface AddonGroup {
 }
 
 export interface SelectedVariant {
+  optionId: string;
   groupName: string;
   optionName: string;
   price: number;
 }
 
 export interface SelectedAddon {
+  optionId: string;
   groupName: string;
   optionName: string;
   price: number;
@@ -156,11 +158,11 @@ const ItemCustomizeModal = ({ item, ownerId, onClose, onAdd, menuStyle }: Props)
     .filter(g => g.is_required)
     .every(g => selectedVariants[g.id]);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     const variants: SelectedVariant[] = Object.entries(selectedVariants).map(([gId, oId]) => {
       const group = variantGroups.find(g => g.id === gId)!;
       const option = group.options.find(o => o.id === oId)!;
-      return { groupName: group.name, optionName: option.name, price: Number(option.price) };
+      return { optionId: option.id, groupName: group.name, optionName: option.name, price: Number(option.price) };
     });
 
     const addons: SelectedAddon[] = [];
@@ -168,12 +170,12 @@ const ItemCustomizeModal = ({ item, ownerId, onClose, onAdd, menuStyle }: Props)
       const group = addonGroups.find(g => g.id === gId)!;
       optionIds.forEach(oId => {
         const option = group.options.find(o => o.id === oId)!;
-        addons.push({ groupName: group.name, optionName: option.name, price: Number(option.price) });
+        addons.push({ optionId: option.id, groupName: group.name, optionName: option.name, price: Number(option.price) });
       });
     });
 
     onAdd(variants, addons, variantExtra + addonExtra);
-  };
+  }, [addonExtra, onAdd, selectedAddons, selectedVariants, variantExtra, variantGroups, addonGroups]);
 
   const hasCustomizations = variantGroups.length > 0 || addonGroups.length > 0;
 
@@ -182,7 +184,7 @@ const ItemCustomizeModal = ({ item, ownerId, onClose, onAdd, menuStyle }: Props)
     if (!loading && !hasCustomizations) {
       onAdd([], [], 0);
     }
-  }, [loading, hasCustomizations]);
+  }, [loading, hasCustomizations, onAdd]);
 
   if (loading || !hasCustomizations) return null;
 

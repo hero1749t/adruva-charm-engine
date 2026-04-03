@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, loading, user } = useAdminCheck();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -12,8 +13,8 @@ const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) return <Navigate to="/admin/login" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/admin/login" replace state={{ reason: "auth-required", from: location.pathname }} />;
+  if (!isAdmin) return <Navigate to="/" replace state={{ reason: "admin-required", from: location.pathname }} />;
 
   return <>{children}</>;
 };

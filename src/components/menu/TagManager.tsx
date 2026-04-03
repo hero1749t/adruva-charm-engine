@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, X, Tag } from "lucide-react";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 interface TagManagerProps {
   userId: string;
@@ -20,21 +21,22 @@ const TagManager = ({ userId, menuItemId }: TagManagerProps) => {
   const [newTagColor, setNewTagColor] = useState("#FF6B00");
   const [showCreate, setShowCreate] = useState(false);
 
-  const fetchTags = async () => {
-    const { data } = await supabase.from("item_tags").select("*").eq("owner_id", userId) as any;
+  const fetchTags = useCallback(async () => {
+    const { data } = await supabase.from("item_tags").select("*").eq("owner_id", userId);
     if (data) setAllTags(data);
 
     if (menuItemId) {
-      const { data: links } = await supabase.from("menu_item_tags").select("tag_id").eq("menu_item_id", menuItemId) as any;
-      if (links) setAssignedTagIds(links.map((l: any) => l.tag_id));
+      const { data: links } = await supabase.from("menu_item_tags").select("tag_id").eq("menu_item_id", menuItemId);
+      if (links) setAssignedTagIds(links.map((l) => l.tag_id));
     }
-  };
+  }, [menuItemId, userId]);
 
-  useEffect(() => { fetchTags(); }, [userId, menuItemId]);
+  useEffect(() => { fetchTags(); }, [fetchTags]);
 
   const createTag = async () => {
     if (!newTagName.trim()) return;
-    await supabase.from("item_tags").insert({ name: newTagName.trim(), color: newTagColor, owner_id: userId } as any);
+    const payload: TablesInsert<"item_tags"> = { name: newTagName.trim(), color: newTagColor, owner_id: userId };
+    await supabase.from("item_tags").insert(payload);
     setNewTagName(""); setShowCreate(false);
     toast.success("Tag created"); fetchTags();
   };
@@ -45,7 +47,8 @@ const TagManager = ({ userId, menuItemId }: TagManagerProps) => {
       await supabase.from("menu_item_tags").delete().eq("menu_item_id", menuItemId).eq("tag_id", tagId);
       setAssignedTagIds((prev) => prev.filter((id) => id !== tagId));
     } else {
-      await supabase.from("menu_item_tags").insert({ menu_item_id: menuItemId, tag_id: tagId } as any);
+      const payload: TablesInsert<"menu_item_tags"> = { menu_item_id: menuItemId, tag_id: tagId };
+      await supabase.from("menu_item_tags").insert(payload);
       setAssignedTagIds((prev) => [...prev, tagId]);
     }
   };

@@ -1,269 +1,286 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Store, UtensilsCrossed, LayoutGrid, DoorOpen, Users, ShoppingCart, Package, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminLoadingState, AdminPanelCard, AdminSectionHeader, AdminStatusBadge, AdminTableEmptyState } from "@/components/admin/AdminPrimitives";
+import { getRestaurantLogoUrl } from "@/lib/restaurantLogo";
+import { formatCurrency } from "@/lib/adminSuperData";
+import { type AdminClientDetail, useAdminClientDetail, useAdminClientOutlets, useAdminClientUsers } from "@/hooks/useAdminClients";
+import { useAdminInvoices } from "@/hooks/useAdminPayments";
+import { useAdminActivityLogs, useAdminSupportTickets } from "@/hooks/useAdminOpsCenter";
 
-interface OwnerProfile {
-  user_id: string;
-  full_name: string | null;
-  restaurant_name: string | null;
-  phone: string | null;
-  address: string | null;
-  created_at: string;
-}
-
-interface PlanInfo {
-  name: string;
-  price: number;
-  max_tables: number | null;
-  max_rooms: number | null;
-  max_menu_items: number | null;
-  max_staff: number | null;
-  max_orders_per_month: number | null;
-}
-
-interface SubInfo {
-  status: string | null;
-  expires_at: string | null;
-  starts_at: string | null;
-  subscription_plans: PlanInfo | null;
-}
-
-interface UsageData {
-  tables: number;
-  rooms: number;
-  menuItems: number;
-  staff: number;
-  totalOrders: number;
-  monthOrders: number;
-  categories: number;
-  ingredients: number;
-}
-
-interface RecentOrder {
-  id: string;
-  table_number: number | null;
-  status: string;
-  total_amount: number;
-  payment_method: string | null;
-  created_at: string;
-}
-
-const UsageCard = ({ icon: Icon, label, current, max, color }: {
-  icon: React.ElementType; label: string; current: number; max: number | null; color: string;
-}) => {
-  const hasLimit = max !== null && max !== undefined;
-  const percentage = hasLimit && max > 0 ? Math.min((current / max) * 100, 100) : 0;
-  const isAtLimit = hasLimit && current >= max!;
-  const isNear = hasLimit && percentage >= 80;
-
-  return (
-    <Card className={`${isAtLimit ? "border-destructive/40" : isNear ? "border-yellow-500/40" : ""}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
-              <Icon className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-medium text-muted-foreground">{label}</span>
-          </div>
-          {isAtLimit && <Badge variant="destructive" className="text-xs">Limit</Badge>}
-        </div>
-        <div className="flex items-baseline gap-1 mb-2">
-          <span className={`text-2xl font-bold ${isAtLimit ? "text-destructive" : "text-foreground"}`}>
-            {current}
-          </span>
-          {hasLimit && <span className="text-sm text-muted-foreground">/ {max}</span>}
-        </div>
-        {hasLimit && (
-          <Progress
-            value={percentage}
-            className={`h-1.5 ${
-              isAtLimit ? "[&>div]:bg-destructive" : isNear ? "[&>div]:bg-yellow-500" : "[&>div]:bg-primary"
-            }`}
-          />
-        )}
-      </CardContent>
-    </Card>
-  );
-};
+const featureLabels: Array<{ key: keyof Pick<AdminClientDetail,
+  | "feature_analytics"
+  | "feature_inventory"
+  | "feature_expenses"
+  | "feature_chain"
+  | "feature_coupons"
+  | "feature_online_orders"
+  | "feature_kitchen_display"
+  | "feature_customer_reviews"
+  | "feature_white_label">; label: string }> = [
+  { key: "feature_analytics", label: "Analytics" },
+  { key: "feature_inventory", label: "Inventory" },
+  { key: "feature_expenses", label: "Expenses" },
+  { key: "feature_chain", label: "Multi Outlet" },
+  { key: "feature_coupons", label: "Coupons" },
+  { key: "feature_online_orders", label: "QR Ordering" },
+  { key: "feature_kitchen_display", label: "Kitchen Display" },
+  { key: "feature_customer_reviews", label: "Feedback" },
+  { key: "feature_white_label", label: "Custom Branding" },
+];
 
 const AdminOwnerDetail = () => {
-  const { ownerId } = useParams<{ ownerId: string }>();
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState<OwnerProfile | null>(null);
-  const [sub, setSub] = useState<SubInfo | null>(null);
-  const [usage, setUsage] = useState<UsageData | null>(null);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { ownerId } = useParams();
+  const detailQuery = useAdminClientDetail(ownerId);
+  const outletsQuery = useAdminClientOutlets(ownerId);
+  const usersQuery = useAdminClientUsers(ownerId);
+  const invoicesQuery = useAdminInvoices();
+  const supportTicketsQuery = useAdminSupportTickets(ownerId);
+  const activityQuery = useAdminActivityLogs(ownerId);
 
-  useEffect(() => {
-    if (!ownerId) return;
-    const fetchAll = async () => {
-      const [profileRes, subRes, tablesRes, roomsRes, menuRes, staffRes, ordersRes, catsRes, ingredientsRes, monthOrdersRes, recentRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", ownerId).maybeSingle(),
-        supabase.from("owner_subscriptions").select("*, subscription_plans(*)").eq("owner_id", ownerId).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("restaurant_tables").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-        supabase.from("restaurant_rooms").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-        supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-        supabase.from("staff_members").select("id", { count: "exact", head: true }).eq("restaurant_owner_id", ownerId),
-        supabase.from("orders").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-        supabase.from("menu_categories").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-        supabase.from("ingredients").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-        supabase.from("orders").select("id", { count: "exact", head: true }).eq("owner_id", ownerId).gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-        supabase.from("orders").select("id, table_number, status, total_amount, payment_method, created_at").eq("owner_id", ownerId).order("created_at", { ascending: false }).limit(20),
-      ]);
-
-      if (profileRes.data) setProfile(profileRes.data as OwnerProfile);
-      if (subRes.data) setSub(subRes.data as SubInfo);
-
-      setUsage({
-        tables: tablesRes.count || 0,
-        rooms: roomsRes.count || 0,
-        menuItems: menuRes.count || 0,
-        staff: staffRes.count || 0,
-        totalOrders: ordersRes.count || 0,
-        monthOrders: monthOrdersRes.count || 0,
-        categories: catsRes.count || 0,
-        ingredients: ingredientsRes.count || 0,
-      });
-      if (recentRes.data) setRecentOrders(recentRes.data as RecentOrder[]);
-
-      setLoading(false);
-    };
-    fetchAll();
-  }, [ownerId]);
-
-  const plan = sub?.subscription_plans;
-
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
-          </div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <AdminLayout>
-        <p className="text-muted-foreground">Owner not found.</p>
-        <Button variant="outline" onClick={() => navigate("/admin/owners")} className="mt-4">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
-        </Button>
-      </AdminLayout>
-    );
-  }
+  const detail = detailQuery.data;
+  const featureEntries = useMemo(
+    () => (detail ? featureLabels.map((feature) => ({ label: feature.label, enabled: Boolean(detail[feature.key]) })) : []),
+    [detail],
+  );
+  const clientInvoices = useMemo(
+    () => (invoicesQuery.data ?? []).filter((invoice) => invoice.owner_id === ownerId),
+    [invoicesQuery.data, ownerId],
+  );
 
   return (
     <AdminLayout>
-      {/* Back + Header */}
-      <Button variant="ghost" size="sm" onClick={() => navigate("/admin/owners")} className="mb-4 text-muted-foreground">
-        <ArrowLeft className="w-4 h-4 mr-1" /> Back to Owners
-      </Button>
+      <div className="space-y-6">
+        {detailQuery.isLoading ? (
+          <AdminLoadingState />
+        ) : detail ? (
+          <>
+            <AdminSectionHeader
+              title={detail.client_name}
+              description={`${detail.owner_name} | ${detail.contact}${detail.phone ? ` | ${detail.phone}` : ""}`}
+              action={<AdminStatusBadge value={detail.subscription_status === "trial" ? "Trial" : "Active"} />}
+            />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold font-display flex items-center gap-2">
-            <Store className="w-6 h-6 text-primary" />
-            {profile.restaurant_name || "Unnamed Restaurant"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {profile.full_name} • {profile.phone || "No phone"} • Joined {format(new Date(profile.created_at), "dd MMM yyyy")}
-          </p>
-          {profile.address && <p className="text-xs text-muted-foreground mt-0.5">{profile.address}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          {plan ? (
-            <>
-              <Badge variant="default" className="text-sm">{plan.name}</Badge>
-              {sub?.expires_at && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  Exp: {format(new Date(sub.expires_at), "dd MMM yyyy")}
-                </span>
-              )}
-            </>
-          ) : (
-            <Badge variant="secondary">No Plan</Badge>
-          )}
-        </div>
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="flex h-auto flex-wrap justify-start rounded-2xl bg-white p-1">
+                {["overview", "outlets", "subscription", "payments", "modules", "users", "support", "activity"].map((tab) => (
+                  <TabsTrigger key={tab} value={tab} className="rounded-xl capitalize">{tab}</TabsTrigger>
+                ))}
+              </TabsList>
+
+              <TabsContent value="overview" className="grid gap-6 lg:grid-cols-3">
+                <AdminPanelCard title="Client Snapshot" description="Real profile and subscription summary.">
+                  <div className="mb-4 flex items-center gap-3">
+                    {detail.restaurant_logo_url ? (
+                      <img
+                        src={getRestaurantLogoUrl(detail.restaurant_logo_url) ?? undefined}
+                        alt={detail.client_name}
+                        className="h-14 w-14 rounded-2xl border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 font-semibold text-orange-700">
+                        {detail.client_name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-slate-900">{detail.client_name}</p>
+                      <p className="text-sm text-slate-500">{detail.address ?? "Address not added yet"}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3 text-sm text-slate-600">
+                    <div className="flex justify-between"><span>Plan</span><span className="font-medium text-slate-900">{detail.plan_name}</span></div>
+                    <div className="flex justify-between"><span>Monthly Revenue</span><span className="font-medium text-slate-900">{formatCurrency(detail.monthly_revenue)}</span></div>
+                    <div className="flex justify-between"><span>Outlets</span><span className="font-medium text-slate-900">{detail.outlets_count}</span></div>
+                    <div className="flex justify-between"><span>Total Orders</span><span className="font-medium text-slate-900">{detail.total_orders}</span></div>
+                    <div className="flex justify-between"><span>Subscription Expiry</span><span className="font-medium text-slate-900">{detail.subscription_expiry ? new Date(detail.subscription_expiry).toLocaleDateString() : "Not set"}</span></div>
+                  </div>
+                </AdminPanelCard>
+
+                <AdminPanelCard title="Operational Health" description="Live branch, staff, and setup counts.">
+                  <div className="space-y-3 text-sm text-slate-600">
+                    <div className="flex justify-between"><span>Outlets</span><span className="font-medium text-slate-900">{detail.outlets_count}</span></div>
+                    <div className="flex justify-between"><span>Tables</span><span className="font-medium text-slate-900">{detail.tables_count}</span></div>
+                    <div className="flex justify-between"><span>Rooms</span><span className="font-medium text-slate-900">{detail.rooms_count}</span></div>
+                    <div className="flex justify-between"><span>Staff Accounts</span><span className="font-medium text-slate-900">{detail.staff_count}</span></div>
+                    <div className="flex justify-between"><span>Owner Email</span><span className="font-medium text-slate-900">{detail.contact}</span></div>
+                  </div>
+                </AdminPanelCard>
+
+                <AdminPanelCard title="Quick Actions" description="Phase 2 still keeps action surface controlled and safe.">
+                  <div className="grid gap-2">
+                    {["Upgrade plan", "Extend renewal date", "Open outlet health review", "Inspect staff access"].map((action) => (
+                      <div key={action} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">{action}</div>
+                    ))}
+                  </div>
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="outlets">
+                <AdminPanelCard title="Outlets" description="Real outlets linked to this client in Supabase.">
+                  {outletsQuery.isLoading ? (
+                    <AdminLoadingState />
+                  ) : outletsQuery.data?.length ? (
+                    <div className="space-y-3">
+                      {outletsQuery.data.map((outlet) => (
+                        <div key={outlet.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <p className="font-medium text-slate-900">{outlet.name}</p>
+                            <p className="text-sm text-slate-500">{outlet.address ?? "Address missing"} | {outlet.manager_name ?? "Manager not assigned"}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <AdminStatusBadge value={outlet.is_active ? "Active" : "Paused"} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AdminTableEmptyState title="No outlets found" description="This client does not have any linked branches in the current schema." />
+                  )}
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="subscription">
+                <AdminPanelCard title="Subscription" description="Real plan and renewal data from owner subscriptions.">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm text-slate-500">Current Plan</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{detail.plan_name}</p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Billing cycle: {detail.billing_period ?? "Not set"} | Renewal: {detail.subscription_expiry ? new Date(detail.subscription_expiry).toLocaleDateString() : "Not set"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm text-slate-500">Subscription Status</p>
+                      <div className="mt-2">
+                        <AdminStatusBadge value={detail.subscription_status === "trial" ? "Trial" : "Active"} />
+                      </div>
+                      <p className="mt-2 text-sm text-slate-500">Plan reassignment and renewal controls are available from the main Subscriptions & Plans queue.</p>
+                    </div>
+                  </div>
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="payments">
+                <AdminPanelCard title="Payments" description="Client-level invoice ledger from the admin billing module.">
+                  {invoicesQuery.isLoading ? (
+                    <AdminLoadingState />
+                  ) : clientInvoices.length ? (
+                    <div className="space-y-3">
+                      {clientInvoices.map((invoice) => (
+                        <div key={invoice.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <p className="font-medium text-slate-900">{invoice.invoice_number}</p>
+                            <p className="text-sm text-slate-500">
+                              {invoice.plan_name} - {formatCurrency(invoice.total)} - {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "No due date"}
+                            </p>
+                          </div>
+                          <AdminStatusBadge value={invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AdminTableEmptyState title="No invoices yet" description="This client does not yet have entries in the admin billing ledger." />
+                  )}
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="modules">
+                <AdminPanelCard title="Enabled Modules" description="Live feature access derived from the client’s subscribed plan.">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {featureEntries.map((feature) => (
+                      <div key={feature.label} className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <p className="font-medium text-slate-900">{feature.label}</p>
+                        <div className="mt-3">
+                          <AdminStatusBadge value={feature.enabled ? "Active" : "Paused"} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="users">
+                <AdminPanelCard title="Users" description="Owner and staff records currently linked to this client.">
+                  {usersQuery.isLoading ? (
+                    <AdminLoadingState />
+                  ) : usersQuery.data?.length ? (
+                    <div className="space-y-3">
+                      {usersQuery.data.map((user) => (
+                        <div key={`${user.source}-${user.user_id}-${user.role}`} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div>
+                            <p className="font-medium text-slate-900">{user.name}</p>
+                            <p className="text-sm text-slate-500">{user.email ?? "No email"} | {user.phone ?? "No phone"} | {user.source}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <AdminStatusBadge value={user.role === "owner" ? "Active" : user.role} />
+                            <AdminStatusBadge value={user.is_active ? "Active" : "Paused"} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AdminTableEmptyState title="No users found" description="No owner/staff records were returned for this client." />
+                  )}
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="support">
+                <AdminPanelCard title="Support" description="Support queue linked to this client.">
+                  {supportTicketsQuery.isLoading ? (
+                    <AdminLoadingState />
+                  ) : supportTicketsQuery.data?.length ? (
+                    <div className="space-y-3">
+                      {supportTicketsQuery.data.map((ticket) => (
+                        <div key={ticket.ticket_id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-slate-900">{ticket.subject}</p>
+                              <p className="text-sm text-slate-500">{ticket.ticket_number} - {ticket.category} - {ticket.assigned_agent}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <AdminStatusBadge value={ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} />
+                              <AdminStatusBadge value={ticket.status.replace("_", " ").replace(/\b\w/g, (char) => char.toUpperCase())} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AdminTableEmptyState title="No support tickets" description="No support items are currently linked to this client." />
+                  )}
+                </AdminPanelCard>
+              </TabsContent>
+
+              <TabsContent value="activity">
+                <AdminPanelCard title="Activity" description="Recent admin actions tied to this client account.">
+                  {activityQuery.isLoading ? (
+                    <AdminLoadingState />
+                  ) : activityQuery.data?.length ? (
+                    <div className="space-y-3">
+                      {activityQuery.data.slice(0, 8).map((log) => (
+                        <div key={log.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-slate-900">{log.action}</p>
+                              <p className="text-sm text-slate-500">{log.user} - {log.module} - {new Date(log.timestamp).toLocaleString()}</p>
+                            </div>
+                            <AdminStatusBadge value={log.result} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AdminTableEmptyState title="No activity logs yet" description="Admin actions for this client will appear here as the new ops layer is used." />
+                  )}
+                </AdminPanelCard>
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : (
+          <AdminTableEmptyState title="Client not found" description="This client record could not be loaded from the admin RPC." />
+        )}
       </div>
-
-      {/* Usage Grid */}
-      {usage && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          <UsageCard icon={LayoutGrid} label="Tables" current={usage.tables} max={plan?.max_tables ?? null} color="bg-blue-500/10 text-blue-500" />
-          <UsageCard icon={DoorOpen} label="Rooms" current={usage.rooms} max={plan?.max_rooms ?? null} color="bg-purple-500/10 text-purple-500" />
-          <UsageCard icon={UtensilsCrossed} label="Menu Items" current={usage.menuItems} max={plan?.max_menu_items ?? null} color="bg-orange-500/10 text-orange-500" />
-          <UsageCard icon={Users} label="Staff" current={usage.staff} max={plan?.max_staff ?? null} color="bg-green-500/10 text-green-500" />
-          <UsageCard icon={ShoppingCart} label="Orders (This Month)" current={usage.monthOrders} max={plan?.max_orders_per_month ?? null} color="bg-primary/10 text-primary" />
-          <UsageCard icon={ShoppingCart} label="Total Orders" current={usage.totalOrders} max={null} color="bg-muted text-muted-foreground" />
-          <UsageCard icon={Package} label="Categories" current={usage.categories} max={null} color="bg-yellow-500/10 text-yellow-500" />
-          <UsageCard icon={Package} label="Ingredients" current={usage.ingredients} max={null} color="bg-teal-500/10 text-teal-500" />
-        </div>
-      )}
-
-      {/* Recent Orders */}
-      {recentOrders.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-lg font-bold font-display mb-3">Recent Orders</h2>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Order ID</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Table</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Amount</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Payment</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{order.id.slice(0, 8)}…</td>
-                      <td className="px-4 py-2.5">{order.table_number ?? "—"}</td>
-                      <td className="px-4 py-2.5">
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${
-                            order.status === "served" ? "bg-green-500/10 text-green-600" :
-                            order.status === "cancelled" ? "bg-destructive/10 text-destructive" :
-                            order.status === "preparing" ? "bg-yellow-500/10 text-yellow-600" :
-                            order.status === "ready" ? "bg-blue-500/10 text-blue-600" :
-                            order.status === "new" ? "bg-primary/10 text-primary" :
-                            ""
-                          }`}
-                        >
-                          {order.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-medium">₹{order.total_amount}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground capitalize">{order.payment_method || "—"}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{format(new Date(order.created_at), "dd MMM, HH:mm")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminLayout>
   );
 };

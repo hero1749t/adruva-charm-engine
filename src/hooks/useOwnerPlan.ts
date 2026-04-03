@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useStaffRole } from "@/hooks/useStaffRole";
+import type { Tables } from "@/integrations/supabase/types";
 
 export interface OwnerPlan {
   planName: string;
@@ -44,51 +45,77 @@ const defaultPlan: OwnerPlan = {
   hasPlan: false,
 };
 
+type PlanRow = Tables<"subscription_plans">;
+
 export const useOwnerPlan = () => {
-  const { user } = useAuth();
+  const { ownerId, loading: roleLoading } = useStaffRole();
   const [plan, setPlan] = useState<OwnerPlan>(defaultPlan);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
-      if (!user) { setLoading(false); return; }
+    let active = true;
+
+    const applyPlan = (nextPlan: OwnerPlan) => {
+      if (!active) return;
+      setPlan(nextPlan);
+      setLoading(false);
+    };
+
+    const fetchPlan = async () => {
+      if (roleLoading) return;
+      if (!ownerId) {
+        applyPlan(defaultPlan);
+        return;
+      }
+
+      setLoading(true);
 
       const { data: sub } = await supabase
         .from("owner_subscriptions")
-        .select("*, subscription_plans(*)")
-        .eq("owner_id", user.id)
+        .select("expires_at, status, subscription_plans(*)")
+        .eq("owner_id", ownerId)
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (sub && sub.subscription_plans) {
-        const p = sub.subscription_plans as any;
-        setPlan({
+      const rawPlan = sub?.subscription_plans;
+      const subscriptionPlan = Array.isArray(rawPlan) ? rawPlan[0] : rawPlan;
+
+      if (subscriptionPlan) {
+        const p = subscriptionPlan as PlanRow;
+        applyPlan({
           planName: p.name,
           expiresAt: sub.expires_at,
           status: sub.status || "active",
-          maxTables: p.max_tables,
-          maxRooms: p.max_rooms,
-          maxMenuItems: p.max_menu_items,
-          maxStaff: p.max_staff,
-          maxOrdersPerMonth: p.max_orders_per_month,
-          featureAnalytics: p.feature_analytics,
-          featureInventory: p.feature_inventory,
-          featureExpenses: p.feature_expenses,
-          featureChain: p.feature_chain,
-          featureCoupons: p.feature_coupons,
-          featureOnlineOrders: p.feature_online_orders,
-          featureKitchenDisplay: p.feature_kitchen_display,
-          featureCustomerReviews: p.feature_customer_reviews,
+          maxTables: p.max_tables ?? defaultPlan.maxTables,
+          maxRooms: p.max_rooms ?? defaultPlan.maxRooms,
+          maxMenuItems: p.max_menu_items ?? defaultPlan.maxMenuItems,
+          maxStaff: p.max_staff ?? defaultPlan.maxStaff,
+          maxOrdersPerMonth: p.max_orders_per_month ?? defaultPlan.maxOrdersPerMonth,
+          featureAnalytics: p.feature_analytics ?? defaultPlan.featureAnalytics,
+          featureInventory: p.feature_inventory ?? defaultPlan.featureInventory,
+          featureExpenses: p.feature_expenses ?? defaultPlan.featureExpenses,
+          featureChain: p.feature_chain ?? defaultPlan.featureChain,
+          featureCoupons: p.feature_coupons ?? defaultPlan.featureCoupons,
+          featureOnlineOrders: p.feature_online_orders ?? defaultPlan.featureOnlineOrders,
+          featureKitchenDisplay: p.feature_kitchen_display ?? defaultPlan.featureKitchenDisplay,
+          featureCustomerReviews: p.feature_customer_reviews ?? defaultPlan.featureCustomerReviews,
           featureWhiteLabel: p.feature_white_label ?? false,
           hasPlan: true,
         });
+        return;
       }
-      setLoading(false);
-    };
-    fetch();
-  }, [user]);
 
-  return { plan, loading };
+      applyPlan(defaultPlan);
+    };
+
+    fetchPlan();
+
+    return () => {
+      active = false;
+    };
+  }, [ownerId, roleLoading]);
+
+  return { plan, loading: roleLoading || loading };
 };

@@ -13,14 +13,57 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+
+          if (id.includes("@tanstack/react-query")) {
+            return "query";
+          }
+          if (id.includes("react-router") || id.includes("@remix-run/router")) {
+            return "router";
+          }
+          if (id.includes("lucide-react")) {
+            return "icons";
+          }
+          if (
+            id.includes("/react/") ||
+            id.includes("\\react\\") ||
+            id.includes("react-dom") ||
+            id.includes("scheduler")
+          ) {
+            return "react-core";
+          }
+          if (id.includes("@supabase")) {
+            return "supabase";
+          }
+          if (id.includes("@radix-ui")) {
+            return "radix-ui";
+          }
+          if (id.includes("framer-motion")) {
+            return "motion";
+          }
+          if (id.includes("qrcode.react")) {
+            return "qr";
+          }
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      selfDestroying: true,
       includeAssets: ["favicon.ico", "pwa-icon-192.png", "pwa-icon-512.png"],
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
         navigateFallbackDenylist: [/^\/~oauth/],
+        skipWaiting: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
       manifest: {

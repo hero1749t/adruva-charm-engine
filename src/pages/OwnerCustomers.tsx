@@ -1,5 +1,5 @@
 import OwnerLayout from "@/components/OwnerLayout";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,7 @@ const OwnerCustomers = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("orders")
@@ -61,9 +61,9 @@ const OwnerCustomers = () => {
       });
       setCustomers(Array.from(map.values()).sort((a, b) => b.order_count - a.order_count));
     }
-  };
+  }, [user]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("customer_reviews")
@@ -71,12 +71,12 @@ const OwnerCustomers = () => {
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
     if (data) setReviews(data);
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
     Promise.all([fetchCustomers(), fetchReviews()]).then(() => setLoading(false));
-  }, [user]);
+  }, [fetchCustomers, fetchReviews, user]);
 
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)

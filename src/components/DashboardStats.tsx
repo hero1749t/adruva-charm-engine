@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShoppingBag, IndianRupee, UtensilsCrossed, ChefHat } from "lucide-react";
 
@@ -12,30 +12,37 @@ interface Stats {
 }
 
 const DashboardStats = () => {
-  const { user } = useAuth();
+  const { ownerId, loading: roleLoading } = useStaffRole();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
     const fetchStats = async () => {
+      if (!ownerId) {
+        setStats({ totalOrders: 0, todayRevenue: 0, activeTables: 0, kitchenQueue: 0 });
+        setLoading(false);
+        return;
+      }
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const [ordersRes, revenueRes, tablesRes, queueRes] = await Promise.all([
-        supabase.from("orders").select("*", { count: "exact", head: true }).eq("owner_id", user.id),
-        supabase.from("orders").select("total_amount").eq("owner_id", user.id).gte("created_at", today.toISOString()),
-        supabase.from("restaurant_tables").select("*", { count: "exact", head: true }).eq("owner_id", user.id).eq("is_active", true),
-        supabase.from("orders").select("*", { count: "exact", head: true }).eq("owner_id", user.id).in("status", ["new", "accepted", "preparing"]),
+        supabase.from("orders").select("*", { count: "exact", head: true }).eq("owner_id", ownerId),
+        supabase.from("orders").select("total_amount").eq("owner_id", ownerId).gte("created_at", today.toISOString()),
+        supabase.from("restaurant_tables").select("*", { count: "exact", head: true }).eq("owner_id", ownerId).eq("is_active", true),
+        supabase.from("orders").select("*", { count: "exact", head: true }).eq("owner_id", ownerId).in("status", ["new", "accepted", "preparing"]),
       ]);
       const todayRevenue = (revenueRes.data || []).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
       setStats({ totalOrders: ordersRes.count || 0, todayRevenue, activeTables: tablesRes.count || 0, kitchenQueue: queueRes.count || 0 });
       setLoading(false);
     };
-    fetchStats();
+    if (roleLoading) return;
+    setLoading(true);
+    void fetchStats();
+    if (!ownerId) return;
     const channel = supabase.channel("dashboard-stats")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${user.id}` }, () => fetchStats())
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${ownerId}` }, () => fetchStats())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [ownerId, roleLoading]);
 
   const cards = [
     { label: "Total Orders", value: stats?.totalOrders ?? 0, icon: ShoppingBag, bgClass: "bg-primary/10", iconClass: "text-primary" },

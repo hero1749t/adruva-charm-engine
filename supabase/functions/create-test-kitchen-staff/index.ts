@@ -12,6 +12,21 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (Deno.env.get("ALLOW_TEST_KITCHEN_STAFF") !== "true") {
+      return new Response(JSON.stringify({ error: "This function is disabled in the current environment" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Missing authorization token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { owner_id } = await req.json();
     if (!owner_id) {
       return new Response(JSON.stringify({ error: "owner_id is required" }), {
@@ -24,6 +39,26 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user: caller },
+      error: callerError,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (callerError || !caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized caller" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (caller.id !== owner_id) {
+      return new Response(JSON.stringify({ error: "You can only create test staff for your own account" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Create test user
     const email = `kitchen-test-${Date.now()}@test.com`;

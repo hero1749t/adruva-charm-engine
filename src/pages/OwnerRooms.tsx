@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import { useOwnerPlan } from "@/hooks/useOwnerPlan";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { QrCode, Plus, Trash2, Copy, Users, Sparkles, Clock, CheckCircle2, Downl
 import { QRCodeCanvas } from "qrcode.react";
 import { format, differenceInDays } from "date-fns";
 import PlanUsageBadge from "@/components/PlanUsageBadge";
+import { normalizeUnsignedIntegerInput } from "@/lib/number-input";
 
 interface Room {
   id: string;
@@ -32,7 +33,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 };
 
 const OwnerRooms = () => {
-  const { user } = useAuth();
+  const { ownerId, loading: roleLoading } = useStaffRole();
   const { plan } = useOwnerPlan();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,21 +41,29 @@ const OwnerRooms = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [qrRoom, setQrRoom] = useState<Room | null>(null);
 
-  const fetchRooms = async () => {
-    if (!user) return;
+  const fetchRooms = useCallback(async () => {
+    if (!ownerId) {
+      setRooms([]);
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("restaurant_rooms")
       .select("*")
-      .eq("owner_id", user.id)
+      .eq("owner_id", ownerId)
       .order("room_number");
     if (data) setRooms(data as Room[]);
     setLoading(false);
-  };
+  }, [ownerId]);
 
-  useEffect(() => { fetchRooms(); }, [user]);
+  useEffect(() => {
+    if (roleLoading) return;
+    setLoading(true);
+    void fetchRooms();
+  }, [fetchRooms, roleLoading]);
 
   const addRooms = async () => {
-    if (!user) return;
+    if (!ownerId) return;
     const count = parseInt(newCount);
     if (isNaN(count) || count < 1 || count > 50) {
       toast.error("Enter a number between 1 and 50");
@@ -66,7 +75,7 @@ const OwnerRooms = () => {
     }
     const maxNum = rooms.length > 0 ? Math.max(...rooms.map((r) => r.room_number)) : 0;
     const newRooms = Array.from({ length: count }, (_, i) => ({
-      owner_id: user.id,
+      owner_id: ownerId,
       room_number: maxNum + i + 1,
     }));
     const { error } = await supabase.from("restaurant_rooms").insert(newRooms);
@@ -108,11 +117,11 @@ const OwnerRooms = () => {
 
   const getMenuUrl = (room: Room) => {
     const ts = room.qr_generated_at ? new Date(room.qr_generated_at).getTime() : "";
-    return `${window.location.origin}/menu/${user?.id}?room=${room.room_number}&qr=${ts}`;
+    return `${window.location.origin}/menu/${ownerId}?room=${room.room_number}&qr=${ts}`;
   };
 
   const getBillUrl = (room: Room) =>
-    `${window.location.origin}/menu/${user?.id}?room=${room.room_number}&bill=true`;
+    `${window.location.origin}/menu/${ownerId}?room=${room.room_number}&bill=true`;
 
   const copyLink = (room: Room) => {
     navigator.clipboard.writeText(getMenuUrl(room));
@@ -184,7 +193,7 @@ const OwnerRooms = () => {
 
       {/* Add rooms */}
       <div className="flex gap-3 mb-6">
-        <Input type="number" min="1" max="50" value={newCount} onChange={(e) => setNewCount(e.target.value)} className="w-24" placeholder="Count" />
+        <Input type="number" min="1" max="50" value={newCount} onChange={(e) => setNewCount(normalizeUnsignedIntegerInput(e.target.value))} className="w-24" placeholder="Count" />
         <Button variant="hero" onClick={addRooms}>
           <Plus className="w-4 h-4 mr-1" /> Add Rooms
         </Button>

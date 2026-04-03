@@ -4,18 +4,21 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-const navLinks = [
-  { label: "Services", href: "#services" },
-  { label: "Demo", href: "#demo" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Why Adruva Resto", href: "#why-choose" },
-  { label: "Contact", href: "#lead-form" },
-];
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const navLinks = [
+    { label: t("nav.services"), href: "#services" },
+    { label: t("nav.demo"), href: "#demo" },
+    { label: t("nav.pricing"), href: "#pricing" },
+    { label: t("nav.why"), href: "#why-choose" },
+    { label: t("nav.contact"), href: "#lead-form" },
+  ];
 
   const scrollTo = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -50,6 +53,7 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
+          <LanguageToggle />
           <ThemeToggle />
           <Button
             variant="outline"
@@ -57,7 +61,7 @@ const Navbar = () => {
             className="rounded-lg"
             onClick={() => navigate("/owner/login")}
           >
-            Owner Login
+            {t("nav.ownerLogin")}
           </Button>
           <Button
             variant="hero"
@@ -65,11 +69,12 @@ const Navbar = () => {
             className="rounded-lg"
             onClick={() => document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" })}
           >
-            Free Consultation
+            {t("nav.freeConsultation")}
           </Button>
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
+          <LanguageToggle />
           <ThemeToggle />
           <button
             className="text-foreground p-1"
@@ -102,14 +107,14 @@ const Navbar = () => {
               className="flex-1 rounded-lg"
               onClick={() => { setMobileOpen(false); navigate("/owner/login"); }}
             >
-              Owner Login
+              {t("nav.ownerLogin")}
             </Button>
             <Button
               variant="hero"
               className="flex-1 rounded-lg"
               onClick={() => { setMobileOpen(false); document.getElementById("lead-form")?.scrollIntoView({ behavior: "smooth" }); }}
             >
-              Free Consultation
+              {t("nav.freeConsultation")}
             </Button>
           </div>
         </motion.div>

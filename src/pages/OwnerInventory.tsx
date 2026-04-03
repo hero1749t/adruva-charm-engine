@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import OwnerLayout from "@/components/OwnerLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,35 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Package, AlertTriangle, Pencil, Trash2, Link, Search, Clock } from "lucide-react";
 import StockMovementHistory from "@/components/inventory/StockMovementHistory";
-import type { Database } from "@/integrations/supabase/types";
+import {
+  normalizeUnsignedDecimalInput,
+  parseNonNegativeNumber,
+  parsePositiveNumber,
+} from "@/lib/number-input";
+import type { Database, Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
 
-interface Ingredient {
-  id: string;
-  owner_id: string;
-  name: string;
-  unit: string;
-  current_stock: number;
-  low_stock_threshold: number;
-  cost_per_unit: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface RecipeIngredient {
-  id: string;
-  menu_item_id: string;
-  ingredient_id: string;
-  quantity_used: number;
-  owner_id: string;
-}
+type Ingredient = Tables<"ingredients">;
+type RecipeIngredient = Tables<"recipe_ingredients">;
 
 const UNITS = ["g", "kg", "ml", "L", "pcs", "dozen", "bunch", "packet"];
 
 const OwnerInventory = () => {
-  const { user } = useAuth();
+  const { ownerId, loading: roleLoading } = useStaffRole();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
@@ -61,19 +48,27 @@ const OwnerInventory = () => {
   const [recipeIngredientId, setRecipeIngredientId] = useState<string>("");
   const [recipeQty, setRecipeQty] = useState("");
 
-  const fetchData = async () => {
-    if (!user) return;
+  const fetchData = useCallback(async () => {
+    if (!ownerId) {
+      setIngredients([]);
+      setMenuItems([]);
+      setRecipeIngredients([]);
+      return;
+    }
     const [ingRes, menuRes, recipeRes] = await Promise.all([
-      supabase.from("ingredients").select("*").eq("owner_id", user.id).order("name"),
-      supabase.from("menu_items").select("*").eq("owner_id", user.id).order("name"),
-      supabase.from("recipe_ingredients").select("*").eq("owner_id", user.id),
+      supabase.from("ingredients").select("*").eq("owner_id", ownerId).order("name"),
+      supabase.from("menu_items").select("*").eq("owner_id", ownerId).order("name"),
+      supabase.from("recipe_ingredients").select("*").eq("owner_id", ownerId),
     ]);
-    if (ingRes.data) setIngredients(ingRes.data as unknown as Ingredient[]);
+    if (ingRes.data) setIngredients(ingRes.data);
     if (menuRes.data) setMenuItems(menuRes.data);
-    if (recipeRes.data) setRecipeIngredients(recipeRes.data as unknown as RecipeIngredient[]);
-  };
+    if (recipeRes.data) setRecipeIngredients(recipeRes.data);
+  }, [ownerId]);
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => {
+    if (roleLoading) return;
+    void fetchData();
+  }, [fetchData, roleLoading]);
 
   const lowStockItems = useMemo(() =>
     ingredients.filter(i => i.is_active && i.current_stock <= i.low_stock_threshold),
@@ -95,13 +90,20 @@ const OwnerInventory = () => {
   };
 
   const saveIngredient = async () => {
-    if (!user || !form.name.trim()) return;
+    if (!ownerId || !form.name.trim()) return;
+    const currentStock = parseNonNegativeNumber(form.current_stock) ?? 0;
+    const lowStockThreshold = parseNonNegativeNumber(form.low_stock_threshold);
+    const costPerUnit = parseNonNegativeNumber(form.cost_per_unit) ?? 0;
+    if (lowStockThreshold === null) {
+      toast.error("Low stock threshold cannot be negative");
+      return;
+    }
     const payload = {
       name: form.name.trim(), unit: form.unit,
-      current_stock: parseFloat(form.current_stock) || 0,
-      low_stock_threshold: parseFloat(form.low_stock_threshold) || 10,
-      cost_per_unit: parseFloat(form.cost_per_unit) || 0,
-      owner_id: user.id,
+      current_stock: currentStock,
+      low_stock_threshold: lowStockThreshold,
+      cost_per_unit: costPerUnit,
+      owner_id: ownerId,
     };
     if (editingIngredient) {
       await supabase.from("ingredients").update(payload).eq("id", editingIngredient.id);
@@ -127,24 +129,30 @@ const OwnerInventory = () => {
     const newStock = stockIngredient.current_stock + amt;
     await supabase.from("ingredients").update({ current_stock: Math.max(0, newStock) }).eq("id", stockIngredient.id);
     // Log manual movement
-    if (user) {
-      await supabase.from("stock_movements").insert({
-        owner_id: user.id,
+    if (ownerId) {
+      const movement: TablesInsert<"stock_movements"> = {
+        owner_id: ownerId,
         ingredient_id: stockIngredient.id,
         quantity_changed: amt,
         movement_type: amt >= 0 ? "manual_add" : "manual_deduct",
         note: amt >= 0 ? "Manual stock added" : "Manual stock deducted",
-      } as any);
+      };
+      await supabase.from("stock_movements").insert(movement);
     }
     setStockDialogOpen(false);
     toast.success("Stock updated"); fetchData();
   };
 
   const addRecipeMapping = async () => {
-    if (!user || !recipeMenuItem || !recipeIngredientId || !recipeQty) return;
+    if (!ownerId || !recipeMenuItem || !recipeIngredientId || !recipeQty) return;
+    const quantityUsed = parsePositiveNumber(recipeQty);
+    if (quantityUsed === null) {
+      toast.error("Recipe quantity must be greater than 0");
+      return;
+    }
     const { error } = await supabase.from("recipe_ingredients").insert({
       menu_item_id: recipeMenuItem, ingredient_id: recipeIngredientId,
-      quantity_used: parseFloat(recipeQty), owner_id: user.id,
+      quantity_used: quantityUsed, owner_id: ownerId,
     });
     if (error) {
       if (error.code === "23505") toast.error("This mapping already exists");
@@ -225,7 +233,14 @@ const OwnerInventory = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Input type="number" placeholder="Quantity used per order" value={recipeQty} onChange={(e) => setRecipeQty(e.target.value)} />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Quantity used per order"
+                  value={recipeQty}
+                  onChange={(e) => setRecipeQty(normalizeUnsignedDecimalInput(e.target.value))}
+                />
                 <Button onClick={addRecipeMapping} className="w-full">Add Mapping</Button>
               </div>
             </DialogContent>
@@ -360,11 +375,32 @@ const OwnerInventory = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Input type="number" placeholder="Current stock" value={form.current_stock} onChange={(e) => setForm({ ...form, current_stock: e.target.value })} />
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Current stock"
+                value={form.current_stock}
+                onChange={(e) => setForm({ ...form, current_stock: normalizeUnsignedDecimalInput(e.target.value) })}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Input type="number" placeholder="Low stock alert at" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })} />
-              <Input type="number" placeholder="Cost per unit (₹)" value={form.cost_per_unit} onChange={(e) => setForm({ ...form, cost_per_unit: e.target.value })} />
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Low stock alert at"
+                value={form.low_stock_threshold}
+                onChange={(e) => setForm({ ...form, low_stock_threshold: normalizeUnsignedDecimalInput(e.target.value) })}
+              />
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Cost per unit (₹)"
+                value={form.cost_per_unit}
+                onChange={(e) => setForm({ ...form, cost_per_unit: normalizeUnsignedDecimalInput(e.target.value) })}
+              />
             </div>
             <Button onClick={saveIngredient} className="w-full">Save Ingredient</Button>
           </div>

@@ -46,6 +46,7 @@ export const generateReceiptHTML = (data: {
   phone?: string | null;
   gstNumber?: string | null;
   orderId: string;
+  billNumber?: string | null;
   tableNumber: number;
   items: { name: string; quantity: number; price: number }[];
   total: number;
@@ -81,6 +82,7 @@ export const generateReceiptHTML = (data: {
     ${data.gstNumber ? `<div class="center small">GSTIN: ${data.gstNumber}</div>` : ""}
     <div class="line"></div>
     <table><tr><td>Order: #${data.orderId.slice(0, 8)}</td><td style="text-align:right">Table: ${data.tableNumber}</td></tr></table>
+    ${data.billNumber ? `<div class="small">Bill No: ${data.billNumber}</div>` : ""}
     <div class="small">${data.createdAt}</div>
     <div class="line"></div>
     <table>${itemRows}</table>

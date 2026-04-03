@@ -1,18 +1,23 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, X, Layers, GripVertical } from "lucide-react";
+import { Plus, X, Layers } from "lucide-react";
+import {
+  normalizeUnsignedDecimalInput,
+  parseNonNegativeNumber,
+} from "@/lib/number-input";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 interface VariantManagerProps {
   userId: string;
   menuItemId: string;
 }
 
-type VariantGroup = { id: string; name: string; is_required: boolean; sort_order: number };
-type VariantOption = { id: string; variant_group_id: string; name: string; price: number; sort_order: number };
+type VariantGroup = Tables<"variant_groups">;
+type VariantOption = Tables<"variant_options">;
 
 const VariantManager = ({ userId, menuItemId }: VariantManagerProps) => {
   const [groups, setGroups] = useState<VariantGroup[]>([]);
@@ -21,27 +26,28 @@ const VariantManager = ({ userId, menuItemId }: VariantManagerProps) => {
   const [addingOption, setAddingOption] = useState<string | null>(null);
   const [optionForm, setOptionForm] = useState({ name: "", price: "" });
 
-  const fetchData = async () => {
-    const { data: g } = await supabase.from("variant_groups").select("*").eq("menu_item_id", menuItemId).order("sort_order") as any;
+  const fetchData = useCallback(async () => {
+    const { data: g } = await supabase.from("variant_groups").select("*").eq("menu_item_id", menuItemId).order("sort_order");
     if (g) {
       setGroups(g);
-      const ids = g.map((x: any) => x.id);
+      const ids = g.map((x) => x.id);
       if (ids.length > 0) {
-        const { data: o } = await supabase.from("variant_options").select("*").in("variant_group_id", ids).order("sort_order") as any;
+        const { data: o } = await supabase.from("variant_options").select("*").in("variant_group_id", ids).order("sort_order");
         if (o) setOptions(o);
       } else {
         setOptions([]);
       }
     }
-  };
+  }, [menuItemId]);
 
-  useEffect(() => { fetchData(); }, [menuItemId]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const addGroup = async () => {
     if (!newGroupName.trim()) return;
-    await supabase.from("variant_groups").insert({
+    const payload: TablesInsert<"variant_groups"> = {
       name: newGroupName.trim(), menu_item_id: menuItemId, owner_id: userId, sort_order: groups.length,
-    } as any);
+    };
+    await supabase.from("variant_groups").insert(payload);
     setNewGroupName(""); toast.success("Variant group added"); fetchData();
   };
 
@@ -51,16 +57,22 @@ const VariantManager = ({ userId, menuItemId }: VariantManagerProps) => {
   };
 
   const toggleRequired = async (group: VariantGroup) => {
-    await supabase.from("variant_groups").update({ is_required: !group.is_required } as any).eq("id", group.id);
+    await supabase.from("variant_groups").update({ is_required: !group.is_required }).eq("id", group.id);
     fetchData();
   };
 
   const addOption = async (groupId: string) => {
-    if (!optionForm.name.trim() || !optionForm.price) return;
+    if (!optionForm.name.trim() || optionForm.price === "") return;
+    const price = parseNonNegativeNumber(optionForm.price);
+    if (price === null) {
+      toast.error("Option price cannot be negative");
+      return;
+    }
     const groupOptions = options.filter((o) => o.variant_group_id === groupId);
-    await supabase.from("variant_options").insert({
-      variant_group_id: groupId, name: optionForm.name.trim(), price: parseFloat(optionForm.price), sort_order: groupOptions.length,
-    } as any);
+    const payload: TablesInsert<"variant_options"> = {
+      variant_group_id: groupId, name: optionForm.name.trim(), price, sort_order: groupOptions.length,
+    };
+    await supabase.from("variant_options").insert(payload);
     setOptionForm({ name: "", price: "" }); setAddingOption(null);
     toast.success("Option added"); fetchData();
   };
@@ -110,7 +122,7 @@ const VariantManager = ({ userId, menuItemId }: VariantManagerProps) => {
             {addingOption === group.id ? (
               <div className="flex gap-2">
                 <Input value={optionForm.name} onChange={(e) => setOptionForm({ ...optionForm, name: e.target.value })} placeholder="e.g. Medium" className="h-8 text-sm flex-1" />
-                <Input type="number" value={optionForm.price} onChange={(e) => setOptionForm({ ...optionForm, price: e.target.value })} placeholder="₹" className="h-8 text-sm w-20" />
+                <Input type="number" min="0" step="0.01" value={optionForm.price} onChange={(e) => setOptionForm({ ...optionForm, price: normalizeUnsignedDecimalInput(e.target.value) })} placeholder="₹" className="h-8 text-sm w-20" />
                 <Button size="sm" className="h-8" onClick={() => addOption(group.id)}>Add</Button>
                 <Button size="sm" variant="ghost" className="h-8" onClick={() => setAddingOption(null)}>✕</Button>
               </div>
