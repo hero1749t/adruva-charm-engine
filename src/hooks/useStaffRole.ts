@@ -12,6 +12,7 @@ interface StaffInfo {
   isManager: boolean;
   isKitchen: boolean;
   isCashier: boolean;
+  canWorkKitchen: boolean;
   canManageMenu: boolean;
   canManageOrders: boolean;
   canManageStaff: boolean;
@@ -53,7 +54,7 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
           return;
         }
 
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("staff_members")
           .select("role")
           .eq("user_id", user.id)
@@ -61,23 +62,49 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
           .eq("is_active", true)
           .maybeSingle();
 
+        if (error) {
+          applyState(null, null);
+          return;
+        }
+
         applyState((data?.role as StaffRole | undefined) ?? null, ownerId);
         return;
       }
 
-      const { data: staffRecord } = await supabase
+      const { data: staffRecord, error: staffError } = await supabase
         .from("staff_members")
         .select("role, restaurant_owner_id")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
 
+      if (staffError) {
+        applyState(null, null);
+        return;
+      }
+
       if (staffRecord && staffRecord.restaurant_owner_id !== user.id) {
         applyState(staffRecord.role as StaffRole, staffRecord.restaurant_owner_id);
         return;
       }
 
-      applyState("owner", user.id);
+      const { data: ownerProfile, error: ownerProfileError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (ownerProfileError) {
+        applyState(null, null);
+        return;
+      }
+
+      if (ownerProfile) {
+        applyState("owner", user.id);
+        return;
+      }
+
+      applyState(null, null);
     };
 
     fetchRole();
@@ -100,6 +127,7 @@ export const useStaffRole = (ownerId?: string): StaffInfo => {
     isManager,
     isKitchen,
     isCashier,
+    canWorkKitchen: isOwner || isManager || isKitchen,
     canManageMenu: isOwner || isManager,
     canManageOrders: isOwner || isManager || isCashier,
     canManageStaff: isOwner,

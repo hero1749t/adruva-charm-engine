@@ -14,18 +14,17 @@ import PlanUsageBadge from "@/components/PlanUsageBadge";
 import { normalizeUnsignedIntegerInput } from "@/lib/number-input";
 import type { Database } from "@/integrations/supabase/types";
 
-type Table = Database["public"]["Tables"]["restaurant_tables"]["Row"] & {
-  status?: string;
-};
+type TableStatus = Database["public"]["Enums"]["table_status"];
+type Table = Database["public"]["Tables"]["restaurant_tables"]["Row"];
 
-const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
+const statusConfig: Record<TableStatus, { label: string; color: string; icon: React.ElementType; bg: string }> = {
   free: { label: "Free", color: "bg-green-500 text-primary-foreground", icon: CheckCircle2, bg: "border-green-500/30 bg-green-500/5" },
   occupied: { label: "Occupied", color: "bg-primary text-primary-foreground", icon: Users, bg: "border-primary/30 bg-primary/5" },
   reserved: { label: "Reserved", color: "bg-yellow-500 text-foreground", icon: Clock, bg: "border-yellow-500/30 bg-yellow-500/5" },
   cleaning: { label: "Cleaning", color: "bg-blue-500 text-primary-foreground", icon: Sparkles, bg: "border-blue-500/30 bg-blue-500/5" },
 };
 
-const statusCycle: Record<string, string> = {
+const statusCycle: Record<TableStatus, TableStatus> = {
   free: "occupied",
   occupied: "reserved",
   reserved: "cleaning",
@@ -38,7 +37,7 @@ const OwnerTables = () => {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState("1");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | TableStatus>("all");
   const [qrTable, setQrTable] = useState<Table | null>(null);
 
   const fetchTables = useCallback(async () => {
@@ -103,11 +102,11 @@ const OwnerTables = () => {
     }
   };
 
-  const updateStatus = async (id: string, currentStatus: string) => {
-    const newStatus = statusCycle[currentStatus] || "free";
+  const updateStatus = async (id: string, currentStatus: TableStatus) => {
+    const newStatus = statusCycle[currentStatus];
     const { error } = await supabase
       .from("restaurant_tables")
-      .update({ status: newStatus })
+      .update({ status: newStatus as TableStatus })
       .eq("id", id);
     if (error) {
       console.error("❌ Failed to update status:", error);
@@ -117,10 +116,10 @@ const OwnerTables = () => {
     }
   };
 
-  const setStatus = async (id: string, status: string) => {
+  const setStatus = async (id: string, status: TableStatus) => {
     const { error } = await supabase
       .from("restaurant_tables")
-      .update({ status: status })
+      .update({ status: status as TableStatus })
       .eq("id", id);
     if (error) {
       console.error("❌ Failed to set status:", error);
@@ -164,6 +163,16 @@ const OwnerTables = () => {
     cleaning: tables.filter((t) => (t.status || "free") === "cleaning").length,
   };
 
+  const statusCards: Array<{ key: "all" | TableStatus; label: string; count: number; color: string }> = [
+    { key: "all", label: "Total", count: stats.total, color: "text-foreground" },
+    { key: "free", label: "Free", count: stats.free, color: "text-green-500" },
+    { key: "occupied", label: "Occupied", count: stats.occupied, color: "text-primary" },
+    { key: "reserved", label: "Reserved", count: stats.reserved, color: "text-yellow-500" },
+    { key: "cleaning", label: "Cleaning", count: stats.cleaning, color: "text-blue-500" },
+  ];
+
+  const quickStatusButtons: TableStatus[] = ["free", "occupied", "reserved", "cleaning"];
+
   return (
     <OwnerLayout>
       <div className="mb-6">
@@ -180,13 +189,7 @@ const OwnerTables = () => {
 
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        {[
-          { key: "all", label: "Total", count: stats.total, color: "text-foreground" },
-          { key: "free", label: "Free", count: stats.free, color: "text-green-500" },
-          { key: "occupied", label: "Occupied", count: stats.occupied, color: "text-primary" },
-          { key: "reserved", label: "Reserved", count: stats.reserved, color: "text-yellow-500" },
-          { key: "cleaning", label: "Cleaning", count: stats.cleaning, color: "text-blue-500" },
-        ].map((s) => (
+        {statusCards.map((s) => (
           <button
             key={s.key}
             onClick={() => setFilterStatus(s.key)}
@@ -238,8 +241,8 @@ const OwnerTables = () => {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filteredTables.map((table) => {
-            const status = (table.status as string) || "free";
-            const config = statusConfig[status] || statusConfig.free;
+            const status = table.status;
+            const config = statusConfig[status];
             const StatusIcon = config.icon;
 
             return (
@@ -274,7 +277,7 @@ const OwnerTables = () => {
 
                 {/* Quick status buttons */}
                 <div className="grid grid-cols-2 gap-1 mt-3">
-                  {Object.entries(statusConfig).map(([key, cfg]) => (
+                  {quickStatusButtons.map((key) => (
                     <button
                       key={key}
                       onClick={() => setStatus(table.id, key)}
@@ -284,7 +287,7 @@ const OwnerTables = () => {
                           : "border-border hover:border-foreground/20"
                       }`}
                     >
-                      {cfg.label}
+                      {statusConfig[key].label}
                     </button>
                   ))}
                 </div>

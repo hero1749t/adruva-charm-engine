@@ -3,7 +3,7 @@ import { useStaffRole } from "@/hooks/useStaffRole";
 
 interface RoleGuardProps {
   children: React.ReactNode;
-  check: "canViewAnalytics" | "canManageMenu" | "canManageStaff" | "canManageOrders" | "canManageBusiness" | "isOwner";
+  check: "canViewAnalytics" | "canManageMenu" | "canManageStaff" | "canManageOrders" | "canManageBusiness" | "canWorkKitchen" | "isOwner";
 }
 
 const RoleGuard = ({ children, check }: RoleGuardProps) => {

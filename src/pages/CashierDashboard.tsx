@@ -92,7 +92,7 @@ const CashierDashboard = () => {
   const [manualNotes, setManualNotes] = useState("");
   const [manualMenuSearch, setManualMenuSearch] = useState("");
   const [manualItemQuantities, setManualItemQuantities] = useState<Record<string, number>>({});
-  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { method: PaymentMethod; amount: string; reference: string; note: string }>>({});
+  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { method: PaymentMethod; note: string }>>({});
   const {
     orders,
     isLoading: ordersLoading,
@@ -283,18 +283,17 @@ const CashierDashboard = () => {
   };
 
   const handleAddPayment = async (order: OrderWithItems) => {
-    const draft = paymentDrafts[order.id] ?? { method: "cash", amount: "", reference: "", note: "" };
-    const amount = Number(draft.amount);
+    const draft = paymentDrafts[order.id] ?? { method: "cash", note: "" };
     const remaining = getRemainingAmount(order);
-    const closesInvoice = Math.abs(amount - remaining) < 0.001;
+    const amount = remaining;
+    const closesInvoice = true;
+    const autoReference =
+      draft.method === "cash"
+        ? null
+        : `${draft.method.toUpperCase()}-${order.id.slice(0, 8)}-${Date.now().toString().slice(-6)}`;
 
-    if (!amount || amount <= 0) {
-      toast.error("Enter a valid payment amount");
-      return;
-    }
-
-    if (draft.method !== "cash" && !draft.reference.trim()) {
-      toast.error("Add transaction reference for card or UPI");
+    if (!remaining || remaining <= 0) {
+      toast.error("This invoice is already fully paid");
       return;
     }
 
@@ -305,14 +304,14 @@ const CashierDashboard = () => {
         orderId: order.id,
         paymentMethod: draft.method,
         amount,
-        paymentReference: draft.reference,
+        paymentReference: autoReference,
         billingNote: draft.note,
       });
 
       toast.success(closesInvoice ? "Invoice closed and bill generated" : "Split payment recorded");
       setPaymentDrafts((prev) => ({
         ...prev,
-        [order.id]: { method: draft.method, amount: "", reference: "", note: "" },
+        [order.id]: { method: draft.method, note: "" },
       }));
 
       await refetchOrders();
@@ -425,7 +424,7 @@ const CashierDashboard = () => {
                 const isClosed = order.payment_status === "confirmed";
                 const isGatewayLocked = Boolean(order.payment_locked_at);
                 const isBusy = actionOrderId === order.id || recordManualPaymentMutation.isPending;
-                const paymentDraft = paymentDrafts[order.id] ?? { method: "cash" as PaymentMethod, amount: remainingAmount > 0 ? remainingAmount.toFixed(2) : "", reference: "", note: "" };
+                const paymentDraft = paymentDrafts[order.id] ?? { method: "cash" as PaymentMethod, note: "" };
 
                 return (
                   <div key={order.id} className="rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover">
@@ -468,10 +467,9 @@ const CashierDashboard = () => {
                         ) : (
                           <>
                             <div className="grid grid-cols-3 gap-2">{paymentMethods.map((method) => <Button key={method} size="sm" variant={paymentDraft.method === method ? "default" : "outline"} className="capitalize text-xs" onClick={() => setPaymentDrafts((prev) => ({ ...prev, [order.id]: { ...paymentDraft, method } }))}>{method === "upi" ? "UPI" : method}</Button>)}</div>
-                            <Input type="number" min="0" step="0.01" value={paymentDraft.amount} onChange={(event) => setPaymentDrafts((prev) => ({ ...prev, [order.id]: { ...paymentDraft, amount: event.target.value } }))} placeholder={`Remaining ${formatCurrency(remainingAmount)}`} />
-                            {paymentDraft.method !== "cash" ? <Input value={paymentDraft.reference} onChange={(event) => setPaymentDrafts((prev) => ({ ...prev, [order.id]: { ...paymentDraft, reference: event.target.value } }))} placeholder={paymentDraft.method === "upi" ? "UPI reference / txn id" : "Card reference / auth code"} /> : null}
+                            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">Closing amount: <span className="font-semibold text-foreground">{formatCurrency(remainingAmount)}</span></div>
                             <Input value={paymentDraft.note} onChange={(event) => setPaymentDrafts((prev) => ({ ...prev, [order.id]: { ...paymentDraft, note: event.target.value } }))} placeholder="Payment note (optional)" />
-                            <Button onClick={() => void handleAddPayment(order)} disabled={isBusy}>{isBusy ? "Saving..." : remainingAmount <= Number(paymentDraft.amount || 0) ? "Close Invoice" : "Add Payment Row"}</Button>
+                            <Button onClick={() => void handleAddPayment(order)} disabled={isBusy}>{isBusy ? "Saving..." : "Close Invoice"}</Button>
                           </>
                         )}
                       </div>

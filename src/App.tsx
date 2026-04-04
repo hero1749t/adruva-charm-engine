@@ -13,7 +13,37 @@ import RoleDashboardRedirect from "./components/RoleDashboardRedirect";
 import AdminGuard from "./components/AdminGuard";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
-const queryClient = new QueryClient();
+const isRetryableQueryError = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return true;
+  }
+
+  const message = error.message.toLowerCase();
+  if (message.includes("jwt") || message.includes("unauthorized") || message.includes("forbidden")) {
+    return false;
+  }
+
+  return true;
+};
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 10 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error) => {
+        if (failureCount >= 2) {
+          return false;
+        }
+        return isRetryableQueryError(error);
+      },
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
@@ -196,7 +226,7 @@ const App = () => (
                 <Route path="/owner/settings" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerSettings /></RoleGuard></ProtectedRoute>} />
                 <Route path="/owner/customers" element={<ProtectedRoute><RoleGuard check="isOwner"><OwnerCustomers /></RoleGuard></ProtectedRoute>} />
                 <Route path="/owner/staff" element={<ProtectedRoute><RoleGuard check="canManageStaff"><OwnerStaff /></RoleGuard></ProtectedRoute>} />
-                <Route path="/owner/kitchen" element={<ProtectedRoute><KitchenDisplay /></ProtectedRoute>} />
+                <Route path="/owner/kitchen" element={<ProtectedRoute><RoleGuard check="canWorkKitchen"><KitchenDisplay /></RoleGuard></ProtectedRoute>} />
                 <Route path="/owner/inventory" element={<ProtectedRoute><RoleGuard check="canManageBusiness"><OwnerInventory /></RoleGuard></ProtectedRoute>} />
                 <Route path="/owner/expenses" element={<ProtectedRoute><RoleGuard check="canManageBusiness"><OwnerExpenses /></RoleGuard></ProtectedRoute>} />
                 <Route path="/owner/rooms" element={<ProtectedRoute><RoleGuard check="canManageBusiness"><OwnerRooms /></RoleGuard></ProtectedRoute>} />

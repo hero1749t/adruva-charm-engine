@@ -37,7 +37,13 @@ const statusFlow: Record<string, string> = {
   new: "accepted",
   accepted: "preparing",
   preparing: "ready",
+  ready: "served",
 };
+
+const rpc = supabase.rpc as unknown as <TReturn = unknown>(
+  fn: string,
+  args?: Record<string, unknown>,
+) => Promise<{ data: TReturn | null; error: { message?: string } | null }>;
 
 const OwnerDashboard = () => {
   const { ownerId, isOwner, isManager, loading: roleLoading } = useStaffRole();
@@ -101,10 +107,10 @@ const OwnerDashboard = () => {
   }, [fetchOrders, ownerId, roleLoading]);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: newStatus as Order["status"] })
-      .eq("id", orderId);
+    const { error } = await rpc("advance_order_status", {
+      _order_id: orderId,
+      _next_status: newStatus,
+    });
 
     if (error) {
       toast.error(language === "hi" ? "ऑर्डर स्टेटस अपडेट नहीं हुआ" : "Failed to update status");
@@ -218,7 +224,7 @@ const OwnerDashboard = () => {
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-display text-lg font-bold">₹{order.total_amount}</span>
                 <div className="flex items-center gap-2">
-                  {(isOwner || isManager) && !["served", "cancelled"].includes(order.status) ? (
+                  {(isOwner || isManager) && !["ready", "served", "cancelled"].includes(order.status) ? (
                     <Button
                       size="sm"
                       variant="outline"

@@ -1701,6 +1701,10 @@ export type Database = {
         Args: { _owner_id: string }
         Returns: boolean
       }
+      can_manage_order_workflow: {
+        Args: { _owner_id: string }
+        Returns: boolean
+      }
       create_manual_counter_order: {
         Args: {
           _customer_phone: string
@@ -1724,6 +1728,17 @@ export type Database = {
           order_id: string
           order_status: Database["public"]["Enums"]["order_status"]
           payment_status: string
+        }[]
+      }
+      advance_order_status: {
+        Args: {
+          _next_status: Database["public"]["Enums"]["order_status"]
+          _order_id: string
+        }
+        Returns: {
+          next_status: Database["public"]["Enums"]["order_status"]
+          order_id: string
+          previous_status: Database["public"]["Enums"]["order_status"]
         }[]
       }
       confirm_order_payment: {

@@ -231,6 +231,7 @@ export const useCashierOrders = (ownerId: string | null | undefined, filter: Cas
     const channel = supabase
       .channel(`cashier-orders-${ownerId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `owner_id=eq.${ownerId}` }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items", filter: `owner_id=eq.${ownerId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "order_payment_entries", filter: `owner_id=eq.${ownerId}` }, invalidate)
       .subscribe();
 

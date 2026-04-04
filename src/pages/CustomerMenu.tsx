@@ -12,6 +12,8 @@ import type { SelectedVariant, SelectedAddon } from "@/components/menu/ItemCusto
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getRestaurantLogoUrl } from "@/lib/restaurantLogo";
+import { PaymentMethodSelector } from "@/components/PaymentMethodSelector";
+import { PaymentLinkDisplay } from "@/components/PaymentLinkDisplay";
 
 const CustomerReceipt = lazyWithRetry(() => import("@/components/CustomerReceipt"));
 const CustomerReview = lazyWithRetry(() => import("@/components/CustomerReview"));
@@ -104,6 +106,10 @@ const CustomerMenu = () => {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [restaurantGstPct, setRestaurantGstPct] = useState<number>(5);
   const [livePaymentMethod, setLivePaymentMethod] = useState<string | null>(null);
+  // QR Payment states
+  const [paymentMethodSelected, setPaymentMethodSelected] = useState(false);
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
+  const [showPaymentLink, setShowPaymentLink] = useState(false);
   // Promo code states
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState<{ id: string; code: string; discount_type: string; discount_value: number } | null>(null);
@@ -573,6 +579,10 @@ const CustomerMenu = () => {
     setNotes("");
     setPromoApplied(null);
     setPromoCode("");
+    // Reset payment states for QR workflow
+    setPaymentMethodSelected(false);
+    setPaymentLinkUrl(null);
+    setShowPaymentLink(false);
   };
 
   // Filtered items with search + veg filter
@@ -598,6 +608,44 @@ const CustomerMenu = () => {
 
   // ── ORDER TRACKING SCREEN ──
   if (orderPlaced) {
+    // Show Payment Method Selector first if not selected
+    if (!paymentMethodSelected) {
+      return (
+        <div className="min-h-screen bg-background px-4 py-8 flex items-center justify-center">
+          <PaymentMethodSelector
+            orderId={orderPlaced}
+            orderTotal={orderTotal}
+            customerPhone={phone}
+            onUPISelected={(paymentLink) => {
+              setPaymentLinkUrl(paymentLink);
+              setShowPaymentLink(true);
+              setPaymentMethodSelected(true);
+              setLivePaymentMethod("upi");
+            }}
+            onCashierSelected={() => {
+              setPaymentMethodSelected(true);
+              setLivePaymentMethod("counter");
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Show Payment Link Display if UPI was selected
+    if (showPaymentLink && paymentLinkUrl) {
+      return (
+        <div className="min-h-screen bg-background px-4 py-8 flex items-center justify-center">
+          <PaymentLinkDisplay
+            paymentUrl={paymentLinkUrl}
+            orderTotal={orderTotal}
+            onPaymentConfirmed={() => {
+              setShowPaymentLink(false);
+            }}
+            isWaitingForPayment={true}
+          />
+        </div>
+      );
+    }
     const upiLink = upiId
       ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(restaurantName || "Restaurant")}&am=${orderTotal.toFixed(2)}&cu=INR&tn=Order-${orderPlaced.slice(0, 8)}`
       : null;
@@ -750,7 +798,7 @@ const CustomerMenu = () => {
             </Suspense>
           )}
 
-          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTrackingToken(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); setOrderItems([]); setOrderCreatedAt(""); }}>
+          <Button variant="hero" className="mt-4 w-full" onClick={() => { setOrderPlaced(null); setOrderTrackingToken(null); setOrderTotal(0); setLiveStatus("new"); setOrderPlacedAt(null); setTimeLeft(null); setOrderItems([]); setOrderCreatedAt(""); setPaymentMethodSelected(false); setPaymentLinkUrl(null); setShowPaymentLink(false); setLivePaymentMethod(null); }}>
               Order More
             </Button>
         </div>

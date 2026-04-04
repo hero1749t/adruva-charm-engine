@@ -70,7 +70,7 @@ export const useOwnerPlan = () => {
 
       setLoading(true);
 
-      const { data: sub } = await supabase
+      const { data: sub, error } = await supabase
         .from("owner_subscriptions")
         .select("expires_at, status, subscription_plans(*)")
         .eq("owner_id", ownerId)
@@ -78,6 +78,12 @@ export const useOwnerPlan = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (error) {
+        if (!active) return;
+        setLoading(false);
+        return;
+      }
 
       const rawPlan = sub?.subscription_plans;
       const subscriptionPlan = Array.isArray(rawPlan) ? rawPlan[0] : rawPlan;

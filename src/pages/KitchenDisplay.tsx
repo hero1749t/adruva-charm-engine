@@ -17,7 +17,13 @@ const statusFlow: Record<string, string> = {
   new: "accepted",
   accepted: "preparing",
   preparing: "ready",
+  ready: "served",
 };
+
+const rpc = supabase.rpc as unknown as <TReturn = unknown>(
+  fn: string,
+  args?: Record<string, unknown>,
+) => Promise<{ data: TReturn | null; error: { message?: string } | null }>;
 
 const columnConfig = [
   { key: "new", label: "🔔 New", color: "border-primary", bgHeader: "bg-primary/10 text-primary" },
@@ -128,7 +134,14 @@ const KitchenDisplay = () => {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    await supabase.from("orders").update({ status: newStatus as Order["status"] }).eq("id", orderId);
+    const { error } = await rpc("advance_order_status", {
+      _order_id: orderId,
+      _next_status: newStatus,
+    });
+    if (error) {
+      toast.error(error.message || "Failed to update kitchen order");
+      return;
+    }
     toast.success(`Order → ${newStatus}`);
     fetchOrders();
   };
