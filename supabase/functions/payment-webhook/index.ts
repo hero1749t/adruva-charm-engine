@@ -2,13 +2,12 @@
  * Payment Webhook Handler - Supabase Edge Function
  * Handles callbacks from payment gateways (Razorpay, PhonePe)
  * 
- * Endpoint: POST /api/webhooks/payment-callback
- * 
- * Features:
- * - Webhook signature verification
- * - Idempotent processing (handles duplicate webhooks)
- * - Atomic transaction for payment + inventory
- * - Error logging and retry
+ * Supports:
+ * - Razorpay: payment.authorized, payment.captured webhooks
+ * - PhonePe: transaction.success, transaction.failed webhooks
+ * - Automatically marks orders as paid and moves to kitchen
+ * - Records payment in database
+ * - Handles duplicates gracefully
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

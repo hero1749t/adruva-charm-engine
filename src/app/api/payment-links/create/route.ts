@@ -122,9 +122,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ✅ TIMEOUT: Set 2-second timeout for Edge Function call
+    // ✅ TIMEOUT: Set 8-second timeout for Edge Function call (payment gateways can be slow)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     // Call Supabase Edge Function
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -161,9 +161,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      console.warn("Payment link creation timeout (2s exceeded)");
+      console.warn("Payment link creation timeout (8s exceeded)");
       return NextResponse.json(
-        { success: false, error: "Request timeout - please try again" },
+        { success: false, error: "Payment gateway timeout - please try again" },
         { status: 504 }
       );
     }
